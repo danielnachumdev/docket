@@ -205,10 +205,24 @@ button.danger {
   gap: 0.45rem;
 }
 
+.task-list.nested {
+  margin: 0.35rem 0.55rem 0.55rem;
+  gap: 0.35rem;
+}
+
 .task-row {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
+}
+
+.task-list.nested .task-row {
+  background: color-mix(in srgb, var(--panel) 85%, #0a0e12);
+}
+
+.nest-mark,
+.child-count {
+  font-weight: 500;
 }
 
 .task-link {
