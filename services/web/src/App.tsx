@@ -1,50 +1,52 @@
-import { useEffect, useState } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider, useAuth } from './auth'
+import { LoginPage } from './pages/LoginPage'
+import { TaskDetailPage } from './pages/TaskDetailPage'
+import { TaskListPage } from './pages/TaskListPage'
 import './App.css'
 
-type Health = { status: string; version: string }
+function Shell() {
+  const { status, loading, logout } = useAuth()
 
-function App() {
-  const [health, setHealth] = useState<Health | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  if (loading) {
+    return (
+      <main className="shell">
+        <p className="muted">Loading…</p>
+      </main>
+    )
+  }
 
-  useEffect(() => {
-    let cancelled = false
-    fetch('/api/health')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json() as Promise<Health>
-      })
-      .then((data) => {
-        if (!cancelled) setHealth(data)
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  if (!status?.user) {
+    return <LoginPage />
+  }
 
   return (
-    <main className="shell">
-      <h1>Docket</h1>
-      <p className="tagline">System of record for human + agent tasks.</p>
-      <section className="panel">
-        <h2>API</h2>
-        {health && (
-          <p>
-            <code>{health.status}</code> · v{health.version}
-          </p>
-        )}
-        {error && (
-          <p className="err">
-            API unreachable ({error}). Start with <code>uv run docket</code>.
-          </p>
-        )}
-        {!health && !error && <p>Checking…</p>}
-      </section>
-    </main>
+    <div className="app">
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark">Docket</span>
+          <span className="muted small">human control plane</span>
+        </div>
+        <div className="topbar-right">
+          <span className="muted small">{status.user.display_name}</span>
+          <button type="button" className="ghost" onClick={() => void logout()}>
+            Log out
+          </button>
+        </div>
+      </header>
+      <Routes>
+        <Route path="/" element={<TaskListPage />} />
+        <Route path="/tasks/:id" element={<TaskDetailPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <AuthProvider>
+      <Shell />
+    </AuthProvider>
+  )
+}

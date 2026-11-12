@@ -45,4 +45,5 @@ SQLite persists in the `docket-data` volume. Override `TOKEN_PEPPER` via env for
 
 ## Status
 
-Scaffold + schema + RBAC seed + service layout. Auth, task API, and real UI come next.
+Human UI + session auth + task CRUD/status/archive/artifacts/history are in.
+Next: authn middleware + `Depends(require("perm"))` refactor; agent API tokens.

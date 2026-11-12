@@ -21,5 +21,12 @@ def _isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         future=True,
     )
     db_mod.Base.metadata.create_all(bind=db_mod.engine)
+    from docket.seed import seed_rbac
+
+    session = db_mod.SessionLocal()
+    try:
+        seed_rbac(session)
+    finally:
+        session.close()
     yield
     get_settings.cache_clear()

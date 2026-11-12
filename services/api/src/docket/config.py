@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
     # Used when hashing API tokens (pepper). Override in deploy.
     token_pepper: str = "dev-only-change-me"
+    # Signed session cookie secret. Override in deploy.
+    session_secret: str = "dev-only-session-secret"
+    session_cookie: str = "docket_session"
+    session_max_age_seconds: int = 60 * 60 * 24 * 30
 
     @property
     def cors_origin_list(self) -> list[str]:

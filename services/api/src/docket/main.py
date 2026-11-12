@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from docket import __version__
+from docket.api import auth as auth_api
+from docket.api import tasks as tasks_api
 from docket.config import ROOT, get_settings
 from docket.db import SessionLocal
 from docket.seed import seed_rbac
@@ -40,6 +42,8 @@ def create_app() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
 
+    app.include_router(auth_api.router)
+    app.include_router(tasks_api.router)
     return app
 
 
