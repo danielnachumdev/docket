@@ -97,8 +97,20 @@ export const api = {
   login: (body: { email: string; password: string }) =>
     request<User>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
-  listTasks: (archived = false) =>
-    request<Task[]>(`/api/tasks?archived=${archived}&roots_only=true`),
+  listTasks: (opts?: {
+    archived?: boolean
+    rootsOnly?: boolean
+    parentTaskId?: number
+  }) => {
+    const params = new URLSearchParams()
+    params.set('archived', String(opts?.archived ?? false))
+    if (opts?.parentTaskId != null) {
+      params.set('parent_task_id', String(opts.parentTaskId))
+    } else if (opts?.rootsOnly) {
+      params.set('roots_only', 'true')
+    }
+    return request<Task[]>(`/api/tasks?${params}`)
+  },
   getTask: (id: number) => request<TaskDetail>(`/api/tasks/${id}`),
   createTask: (body: {
     title: string

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, type TaskDetail } from '../api'
+import { api, type Task, type TaskDetail } from '../api'
 
 const STATUSES = ['open', 'in_progress', 'blocked', 'done', 'cancelled'] as const
 const LINK_KINDS = ['blocks', 'related', 'duplicate_of'] as const
@@ -19,16 +19,33 @@ function fromLocalInput(value: string) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
+function descendantIds(taskId: number, all: Task[]): Set<number> {
+  const kids = all.filter((t) => t.parent_task_id === taskId)
+  const ids = new Set<number>()
+  for (const kid of kids) {
+    ids.add(kid.id)
+    for (const d of descendantIds(kid.id, all)) ids.add(d)
+  }
+  return ids
+}
+
 export function TaskDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const taskId = Number(id)
   const [detail, setDetail] = useState<TaskDetail | null>(null)
+  const [parentTask, setParentTask] = useState<{ id: number; title: string } | null>(
+    null,
+  )
+  const [parentChoices, setParentChoices] = useState<Task[]>([])
   const [error, setError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [priority, setPriority] = useState(3)
   const [dueLocal, setDueLocal] = useState('')
+  const [parentSelect, setParentSelect] = useState('')
+  const [subTitle, setSubTitle] = useState('')
+  const [subPriority, setSubPriority] = useState(3)
   const [artifactTitle, setArtifactTitle] = useState('')
   const [artifactText, setArtifactText] = useState('')
   const [linkToId, setLinkToId] = useState('')
@@ -42,6 +59,35 @@ export function TaskDetailPage() {
     setBody(data.task.body ?? '')
     setPriority(data.task.priority)
     setDueLocal(toLocalInput(data.task.due_at))
+    setParentSelect(
+      data.task.parent_task_id != null ? String(data.task.parent_task_id) : '',
+    )
+
+    const all = await api.listTasks({ archived: false })
+    const blocked = descendantIds(taskId, all)
+    blocked.add(taskId)
+    setParentChoices(
+      all
+        .filter((t) => !blocked.has(t.id))
+        .sort((a, b) => a.title.localeCompare(b.title) || a.id - b.id),
+    )
+
+    if (data.task.parent_task_id != null) {
+      const parentId = data.task.parent_task_id
+      const fromList = all.find((t) => t.id === parentId)
+      if (fromList) {
+        setParentTask({ id: fromList.id, title: fromList.title })
+      } else {
+        try {
+          const parentDetail = await api.getTask(parentId)
+          setParentTask({ id: parentDetail.task.id, title: parentDetail.task.title })
+        } catch {
+          setParentTask({ id: parentId, title: `Task #${parentId}` })
+        }
+      }
+    } else {
+      setParentTask(null)
+    }
   }, [taskId])
 
   useEffect(() => {
@@ -52,18 +98,30 @@ export function TaskDetailPage() {
     void load().catch((err: Error) => setError(err.message))
   }, [load, taskId])
 
+  const parentChanged = useMemo(() => {
+    if (!detail) return false
+    const current =
+      detail.task.parent_task_id != null ? String(detail.task.parent_task_id) : ''
+    return parentSelect !== current
+  }, [detail, parentSelect])
+
   async function save(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
     setError(null)
     try {
       const due = fromLocalInput(dueLocal)
-      await api.updateTask(taskId, {
+      const patch: Record<string, unknown> = {
         title: title.trim(),
         body,
         priority,
         ...(due ? { due_at: due } : { clear_due_at: true }),
-      })
+      }
+      if (parentChanged) {
+        if (!parentSelect) patch.clear_parent = true
+        else patch.parent_task_id = Number(parentSelect)
+      }
+      await api.updateTask(taskId, patch)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
@@ -104,9 +162,30 @@ export function TaskDetailPage() {
     setBusy(true)
     try {
       await api.deleteTask(taskId)
-      navigate('/')
+      navigate(detail?.task.parent_task_id ? `/tasks/${detail.task.parent_task_id}` : '/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed')
+      setBusy(false)
+    }
+  }
+
+  async function addSubtask(e: FormEvent) {
+    e.preventDefault()
+    if (!subTitle.trim()) return
+    setBusy(true)
+    setError(null)
+    try {
+      await api.createTask({
+        title: subTitle.trim(),
+        priority: subPriority,
+        parent_task_id: taskId,
+      })
+      setSubTitle('')
+      setSubPriority(3)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Subtask create failed')
+    } finally {
       setBusy(false)
     }
   }
@@ -186,7 +265,14 @@ export function TaskDetailPage() {
   return (
     <main className="shell">
       <p className="crumb">
-        <Link to="/">Tasks</Link> / #{task.id}
+        <Link to="/">Tasks</Link>
+        {parentTask && (
+          <>
+            {' / '}
+            <Link to={`/tasks/${parentTask.id}`}>{parentTask.title}</Link>
+          </>
+        )}
+        {' / '}#{task.id}
       </p>
       {error && <p className="err">{error}</p>}
 
@@ -227,6 +313,27 @@ export function TaskDetailPage() {
             />
           </label>
         </div>
+        <label>
+          Parent task
+          <select
+            value={parentSelect}
+            onChange={(e) => setParentSelect(e.target.value)}
+            aria-label="Parent task"
+          >
+            <option value="">None (root)</option>
+            {parentChoices.map((p) => (
+              <option key={p.id} value={p.id}>
+                #{p.id} · {p.title}
+              </option>
+            ))}
+            {parentTask &&
+              !parentChoices.some((p) => p.id === parentTask.id) && (
+                <option value={parentTask.id}>
+                  #{parentTask.id} · {parentTask.title}
+                </option>
+              )}
+          </select>
+        </label>
         <div className="actions">
           <button type="submit" className="primary" disabled={busy}>
             Save
@@ -257,21 +364,45 @@ export function TaskDetailPage() {
         </div>
       </section>
 
-      {detail.children.length > 0 && (
-        <section className="panel">
-          <h3>Subtasks</h3>
-          <ul className="plain">
-            {detail.children.map((child) => (
-              <li key={child.id}>
-                <Link to={`/tasks/${child.id}`}>
-                  P{child.priority} · {child.title}{' '}
-                  <span className="muted">({child.status})</span>
-                </Link>
-              </li>
+      <section className="panel">
+        <h3>Subtasks</h3>
+        <ul className="plain">
+          {detail.children.map((child) => (
+            <li key={child.id}>
+              <Link to={`/tasks/${child.id}`}>
+                P{child.priority} · {child.title}{' '}
+                <span className="muted">({child.status.replace('_', ' ')})</span>
+              </Link>
+            </li>
+          ))}
+          {detail.children.length === 0 && (
+            <li className="muted">No subtasks yet.</li>
+          )}
+        </ul>
+        <form className="form inline" onSubmit={(e) => void addSubtask(e)}>
+          <input
+            type="text"
+            placeholder="New subtask title"
+            value={subTitle}
+            onChange={(e) => setSubTitle(e.target.value)}
+            required
+          />
+          <select
+            value={subPriority}
+            onChange={(e) => setSubPriority(Number(e.target.value))}
+            aria-label="Subtask priority"
+          >
+            {[1, 2, 3, 4].map((p) => (
+              <option key={p} value={p}>
+                P{p}
+              </option>
             ))}
-          </ul>
-        </section>
-      )}
+          </select>
+          <button type="submit" className="primary" disabled={busy}>
+            Add subtask
+          </button>
+        </form>
+      </section>
 
       <section className="panel">
         <h3>Links</h3>
