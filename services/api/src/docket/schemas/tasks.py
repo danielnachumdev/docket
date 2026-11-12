@@ -65,9 +65,19 @@ class TaskEventOut(BaseModel):
 
 
 class ArtifactCreate(BaseModel):
-    kind: str = Field(pattern="^(link|text|json)$")
+    kind: str = Field(pattern="^(link|text|file|json)$")
     title: str = Field(min_length=1, max_length=300)
     content_text: str | None = None
+    # Base64-encoded bytes for kind=file (and optional blob replace on update).
+    content_base64: str | None = None
+    content_type: str | None = Field(default=None, max_length=120)
+
+
+class ArtifactUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=300)
+    content_text: str | None = None
+    content_base64: str | None = None
+    content_type: str | None = Field(default=None, max_length=120)
 
 
 class ArtifactOut(BaseModel):

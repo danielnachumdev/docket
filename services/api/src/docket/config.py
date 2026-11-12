@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     session_secret: str = "dev-only-session-secret"
     session_cookie: str = "docket_session"
     session_max_age_seconds: int = 60 * 60 * 24 * 30
+    # Artifact blob storage: local (default) or gcs.
+    artifact_storage: str = "local"
+    artifact_local_root: str = str(ROOT / "data" / "artifacts")
+    gcs_bucket: str = ""
+    gcs_prefix: str = "artifacts"
 
     @property
     def cors_origin_list(self) -> list[str]:
