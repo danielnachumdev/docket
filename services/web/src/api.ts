@@ -76,6 +76,26 @@ export type TaskShare = {
   created_at: string
 }
 
+export type Role = {
+  id: number
+  name: string
+  description: string
+}
+
+export type ApiToken = {
+  id: number
+  name: string
+  role_id: number | null
+  role_name: string | null
+  created_at: string
+  last_used_at: string | null
+  revoked_at: string | null
+}
+
+export type ApiTokenCreated = ApiToken & {
+  token: string
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: 'include',
@@ -163,4 +183,14 @@ export const api = {
     }),
   unshareTask: (id: number, membershipId: number) =>
     request<void>(`/api/tasks/${id}/shares/${membershipId}`, { method: 'DELETE' }),
+  listTokens: (includeRevoked = false) =>
+    request<ApiToken[]>(`/api/tokens?include_revoked=${includeRevoked}`),
+  listAssignableRoles: () => request<Role[]>('/api/tokens/roles'),
+  createToken: (body: { name: string; role_id?: number | null }) =>
+    request<ApiTokenCreated>('/api/tokens', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  revokeToken: (id: number) =>
+    request<ApiToken>(`/api/tokens/${id}/revoke`, { method: 'POST' }),
 }
