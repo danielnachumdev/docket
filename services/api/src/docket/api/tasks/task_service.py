@@ -1,15 +1,15 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from docket.api.tasks.task_gateway import TaskGateway
+from docket.artifacts import ArtifactGateway
 from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
-from docket.api.tasks.task_gateway import TaskGateway
 from docket.events import task_event_recorder
-from docket.models import Artifact, Task
+from docket.models import Task
 from docket.schemas import (
-    ArtifactCreate,
     ArtifactOut,
     TaskClaimIn,
     TaskCreate,
@@ -28,6 +28,7 @@ class TaskService:
     def __init__(self, db: Session) -> None:
         self._db = db
         self._gateway = TaskGateway(db)
+        self._artifacts = ArtifactGateway(db)
         self._claims = TaskClaimService(db)
         self._access = TaskAccessService(db)
 
@@ -90,7 +91,7 @@ class TaskService:
             ],
             artifacts=[
                 ArtifactOut.model_validate(a)
-                for a in self._gateway.list_artifacts(task.id)
+                for a in self._artifacts.list_for_task(task.id)
             ],
             children=[
                 TaskOut.model_validate(c) for c in self._gateway.list_children(task.id)
@@ -191,34 +192,6 @@ class TaskService:
         self._gateway.delete(task)
         self._gateway.commit()
 
-    def add_artifact(
-        self, principal: Principal, task_id: int, body: ArtifactCreate
-    ) -> Artifact:
-        task = self._access.get_task(principal, task_id, "artifacts:write")
-        artifact = Artifact(
-            task_id=task.id,
-            kind=body.kind,
-            title=body.title.strip(),
-            content_text=body.content_text,
-            created_by_user_id=principal.user_id,
-            created_by_token_id=principal.token_id,
-        )
-        self._gateway.add_artifact(artifact)
-        task_event_recorder.record(
-            self._db,
-            task_id=task.id,
-            event_type="artifact_added",
-            actor=principal,
-            payload={
-                "artifact_id": artifact.id,
-                "kind": artifact.kind,
-                "title": artifact.title,
-            },
-        )
-        self._gateway.commit()
-        self._gateway.refresh(artifact)
-        return artifact
-
     def _apply_update(
         self, task: Task, principal: Principal, body: TaskUpdate
     ) -> dict:
@@ -280,4 +253,4 @@ class TaskService:
             task.cancelled_at = None
 
     def _utcnow(self) -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)

@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select
 
-from docket.models import Artifact, Task, TaskEvent
+from docket.models import Task, TaskEvent
 
 
 class TaskGateway:
@@ -51,15 +51,6 @@ class TaskGateway:
             ).all()
         )
 
-    def list_artifacts(self, task_id: int) -> list[Artifact]:
-        return list(
-            self._db.scalars(
-                select(Artifact)
-                .where(Artifact.task_id == task_id)
-                .order_by(Artifact.created_at.desc(), Artifact.id.desc())
-            ).all()
-        )
-
     def list_children(self, parent_id: int) -> list[Task]:
         return list(
             self._db.scalars(
@@ -68,11 +59,6 @@ class TaskGateway:
                 .order_by(Task.priority.asc(), Task.rank.asc(), Task.id.asc())
             ).all()
         )
-
-    def add_artifact(self, artifact: Artifact) -> Artifact:
-        self._db.add(artifact)
-        self._db.flush()
-        return artifact
 
     def commit(self) -> None:
         self._db.commit()

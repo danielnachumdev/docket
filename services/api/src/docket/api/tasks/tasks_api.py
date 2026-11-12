@@ -2,13 +2,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
-from docket.auth import Principal, RequirePermission
 from docket.api.tasks.task_service import TaskService
+from docket.auth import Principal, RequirePermission
 from docket.db import DbSession
-from docket.models import Artifact, Task, TaskLink
+from docket.models import Task, TaskLink
 from docket.schemas import (
-    ArtifactCreate,
-    ArtifactOut,
     TaskClaimIn,
     TaskCreate,
     TaskDetailOut,
@@ -24,7 +22,6 @@ CanRead = Annotated[Principal, Depends(RequirePermission("tasks:read"))]
 CanWrite = Annotated[Principal, Depends(RequirePermission("tasks:write"))]
 CanClaim = Annotated[Principal, Depends(RequirePermission("tasks:claim"))]
 CanAdmin = Annotated[Principal, Depends(RequirePermission("tasks:admin"))]
-CanArtifacts = Annotated[Principal, Depends(RequirePermission("artifacts:write"))]
 
 
 class TasksApi:
@@ -96,13 +93,6 @@ class TasksApi:
             self.delete_task,
             methods=["DELETE"],
             status_code=status.HTTP_204_NO_CONTENT,
-        )
-        self.router.add_api_route(
-            "/{task_id}/artifacts",
-            self.add_artifact,
-            methods=["POST"],
-            response_model=ArtifactOut,
-            status_code=status.HTTP_201_CREATED,
         )
         self.router.add_api_route(
             "/{task_id}/links",
@@ -196,15 +186,6 @@ class TasksApi:
         self, task_id: int, db: DbSession, principal: CanAdmin
     ) -> None:
         TaskService(db).delete(principal, task_id)
-
-    def add_artifact(
-        self,
-        task_id: int,
-        body: ArtifactCreate,
-        db: DbSession,
-        principal: CanArtifacts,
-    ) -> Artifact:
-        return TaskService(db).add_artifact(principal, task_id, body)
 
     def list_links(
         self, task_id: int, db: DbSession, principal: CanRead

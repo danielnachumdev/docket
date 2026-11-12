@@ -43,6 +43,29 @@ docker compose up --build
 
 SQLite persists in the `docket-data` volume. Override `TOKEN_PEPPER` via env for non-dev use. Host port `8088` avoids common local `8080` clashes.
 
+## Artifact storage
+
+Blob-backed artifacts (`kind=file`) use a pluggable storage backend. Metadata stays in SQLite (`storage_key`, `content_type`); bytes live in storage.
+
+| Env | Default | Meaning |
+| --- | ------- | ------- |
+| `ARTIFACT_STORAGE` | `local` | `local` or `gcs` |
+| `ARTIFACT_LOCAL_ROOT` | `services/api/data/artifacts` | Root directory for local blobs |
+| `GCS_BUCKET` | _(empty)_ | Required when `ARTIFACT_STORAGE=gcs` |
+| `GCS_PREFIX` | `artifacts` | Object key prefix in the bucket |
+
+Local (default) needs no extra deps. GCS needs the optional extra and ADC/credentials as usual:
+
+```bash
+cd services/api
+uv sync --extra gcs --group dev
+export ARTIFACT_STORAGE=gcs
+export GCS_BUCKET=your-bucket
+# optional: GCS_PREFIX=artifacts
+```
+
+Create file artifacts via JSON with `content_base64` (SPA encodes the chosen file). Content is always streamed through `GET /api/tasks/{id}/artifacts/{artifact_id}/content` (local and GCS).
+
 ## Auth model
 
 - **Authn:** `AuthnMiddleware` resolves session cookie or `Authorization: Bearer` into `request.state.principal`

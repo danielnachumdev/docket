@@ -19,6 +19,11 @@ dependencies = [
     "uvicorn[standard]>=0.54.0",
 ]
 
+[project.optional-dependencies]
+gcs = [
+    "google-cloud-storage>=3.0.0",
+]
+
 [project.scripts]
 docket = "docket.main:main"
 

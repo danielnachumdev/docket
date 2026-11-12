@@ -51,6 +51,8 @@ export function TaskDetailPage() {
   const [subPriority, setSubPriority] = useState(3)
   const [artifactTitle, setArtifactTitle] = useState('')
   const [artifactText, setArtifactText] = useState('')
+  const [artifactKind, setArtifactKind] = useState<'text' | 'link' | 'file'>('text')
+  const [artifactFile, setArtifactFile] = useState<File | null>(null)
   const [linkToId, setLinkToId] = useState('')
   const [linkKind, setLinkKind] = useState<(typeof LINK_KINDS)[number]>('related')
   const [shareEmail, setShareEmail] = useState('')
@@ -198,21 +200,69 @@ export function TaskDetailPage() {
     }
   }
 
+  async function fileToBase64(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer()
+    const bytes = new Uint8Array(buffer)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i += 1) {
+      binary += String.fromCharCode(bytes[i]!)
+    }
+    return btoa(binary)
+  }
+
   async function addArtifact(e: FormEvent) {
     e.preventDefault()
     if (!artifactTitle.trim()) return
     setBusy(true)
+    setError(null)
     try {
-      await api.addArtifact(taskId, {
-        kind: 'text',
-        title: artifactTitle.trim(),
-        content_text: artifactText,
-      })
+      if (artifactKind === 'file') {
+        if (!artifactFile) throw new Error('Choose a file to attach')
+        const content_base64 = await fileToBase64(artifactFile)
+        await api.addArtifact(taskId, {
+          kind: 'file',
+          title: artifactTitle.trim(),
+          content_base64,
+          content_type: artifactFile.type || 'application/octet-stream',
+        })
+        setArtifactFile(null)
+      } else {
+        await api.addArtifact(taskId, {
+          kind: artifactKind,
+          title: artifactTitle.trim(),
+          content_text: artifactText,
+        })
+      }
       setArtifactTitle('')
       setArtifactText('')
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Artifact failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function downloadArtifact(artifactId: number, title: string) {
+    setBusy(true)
+    setError(null)
+    try {
+      await api.downloadArtifactContent(taskId, artifactId, title)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Download failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function deleteArtifact(artifactId: number) {
+    setBusy(true)
+    setError(null)
+    try {
+      await api.deleteArtifact(taskId, artifactId)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed')
     } finally {
       setBusy(false)
     }
@@ -562,14 +612,53 @@ export function TaskDetailPage() {
             <li key={a.id}>
               <strong>{a.title}</strong>{' '}
               <span className="muted small">{a.kind}</span>
-              {a.content_text && <pre className="artifact">{a.content_text}</pre>}
+              {a.content_type && (
+                <span className="muted small"> · {a.content_type}</span>
+              )}
+              {a.content_text && a.kind !== 'file' && (
+                <pre className="artifact">{a.content_text}</pre>
+              )}
+              <div className="form inline">
+                {(a.storage_key || a.content_text) && (
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy}
+                    onClick={() => void downloadArtifact(a.id, a.title)}
+                  >
+                    Download
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={busy}
+                  onClick={() => void deleteArtifact(a.id)}
+                >
+                  Delete
+                </button>
+              </div>
             </li>
           ))}
           {detail.artifacts.length === 0 && <li className="muted">None yet.</li>}
         </ul>
         <form className="form" onSubmit={(e) => void addArtifact(e)}>
           <label>
-            Add note / link text
+            Kind
+            <select
+              value={artifactKind}
+              onChange={(e) =>
+                setArtifactKind(e.target.value as 'text' | 'link' | 'file')
+              }
+              aria-label="Artifact kind"
+            >
+              <option value="text">text</option>
+              <option value="link">link</option>
+              <option value="file">file</option>
+            </select>
+          </label>
+          <label>
+            Title
             <input
               value={artifactTitle}
               onChange={(e) => setArtifactTitle(e.target.value)}
@@ -577,12 +666,23 @@ export function TaskDetailPage() {
               required
             />
           </label>
-          <textarea
-            rows={3}
-            value={artifactText}
-            onChange={(e) => setArtifactText(e.target.value)}
-            placeholder="Content"
-          />
+          {artifactKind === 'file' ? (
+            <label>
+              File
+              <input
+                type="file"
+                onChange={(e) => setArtifactFile(e.target.files?.[0] ?? null)}
+                required
+              />
+            </label>
+          ) : (
+            <textarea
+              rows={3}
+              value={artifactText}
+              onChange={(e) => setArtifactText(e.target.value)}
+              placeholder={artifactKind === 'link' ? 'https://example.com/...' : 'Content'}
+            />
+          )}
           <button type="submit" className="primary" disabled={busy}>
             Attach
           </button>

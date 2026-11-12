@@ -162,12 +162,42 @@ export const api = {
     request<void>(`/api/tasks/${id}`, { method: 'DELETE' }),
   addArtifact: (
     id: number,
-    body: { kind: 'link' | 'text' | 'json'; title: string; content_text?: string },
+    body: {
+      kind: 'link' | 'text' | 'file' | 'json'
+      title: string
+      content_text?: string
+      content_base64?: string
+      content_type?: string
+    },
   ) =>
     request<Artifact>(`/api/tasks/${id}/artifacts`, {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  deleteArtifact: (id: number, artifactId: number) =>
+    request<void>(`/api/tasks/${id}/artifacts/${artifactId}`, { method: 'DELETE' }),
+  downloadArtifactContent: async (id: number, artifactId: number, filename: string) => {
+    const res = await fetch(`/api/tasks/${id}/artifacts/${artifactId}/content`, {
+      credentials: 'include',
+    })
+    if (!res.ok) {
+      let detail = res.statusText
+      try {
+        const body = (await res.json()) as { detail?: string }
+        if (typeof body.detail === 'string') detail = body.detail
+      } catch {
+        /* ignore */
+      }
+      throw new Error(detail || `HTTP ${res.status}`)
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = filename
+    anchor.click()
+    URL.revokeObjectURL(url)
+  },
   createLink: (id: number, body: { to_task_id: number; kind: string }) =>
     request<TaskLink>(`/api/tasks/${id}/links`, {
       method: 'POST',
