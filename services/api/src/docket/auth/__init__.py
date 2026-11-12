@@ -11,6 +11,8 @@ from docket.auth.permission_deps import (
 )
 from docket.auth.principal import Principal
 from docket.auth.principal_resolver import PrincipalResolver, principal_resolver
+from docket.auth.rbac import RbacService
+from docket.auth.task_access_service import TaskAccessService
 
 __all__ = [
     "AuthnMiddleware",
@@ -18,8 +20,10 @@ __all__ = [
     "OptionalPrincipal",
     "Principal",
     "PrincipalResolver",
+    "RbacService",
     "RequirePermission",
     "RequireUser",
+    "TaskAccessService",
     "principal_resolver",
     "require",
     "require_user",

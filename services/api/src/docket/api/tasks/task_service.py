@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from docket.auth.principal import Principal
+from docket.auth.task_access_service import TaskAccessService
 from docket.api.tasks.task_gateway import TaskGateway
 from docket.events import task_event_recorder
 from docket.models import Artifact, Task
@@ -28,6 +29,7 @@ class TaskService:
         self._db = db
         self._gateway = TaskGateway(db)
         self._claims = TaskClaimService(db)
+        self._access = TaskAccessService(db)
 
     def list_tasks(
         self,
@@ -37,8 +39,8 @@ class TaskService:
         parent_task_id: int | None,
         roots_only: bool,
     ) -> list[Task]:
-        return self._gateway.list_for_owner(
-            principal.user_id,
+        return self._gateway.list_visible(
+            self._access.accessible_task_ids_select(principal.user_id),
             archived=archived,
             parent_task_id=parent_task_id,
             roots_only=roots_only,
@@ -46,7 +48,9 @@ class TaskService:
 
     def create(self, principal: Principal, body: TaskCreate) -> Task:
         if body.parent_task_id is not None:
-            parent = self._owned_task(principal.user_id, body.parent_task_id)
+            parent = self._access.get_task(
+                principal, body.parent_task_id, "tasks:write"
+            )
             if parent.archived_at is not None:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, "Parent is archived")
 
@@ -74,7 +78,7 @@ class TaskService:
         return task
 
     def get_detail(self, principal: Principal, task_id: int) -> TaskDetailOut:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.get_task(principal, task_id, "tasks:read")
         links = TaskLinkService(self._db).list_for_task(
             user_id=principal.user_id, task_id=task.id
         )
@@ -95,8 +99,8 @@ class TaskService:
         )
 
     def update(self, principal: Principal, task_id: int, body: TaskUpdate) -> Task:
-        task = self._owned_task(principal.user_id, task_id)
-        changes = self._apply_update(task, principal.user_id, body)
+        task = self._access.get_task(principal, task_id, "tasks:write")
+        changes = self._apply_update(task, principal, body)
         if changes:
             task_event_recorder.record(
                 self._db,
@@ -112,7 +116,7 @@ class TaskService:
     def set_status(
         self, principal: Principal, task_id: int, body: TaskStatusIn
     ) -> Task:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.get_task(principal, task_id, "tasks:write")
         old = task.status
         task.status = body.status
         self._apply_status_timestamps(task, body.status)
@@ -133,7 +137,7 @@ class TaskService:
         task_id: int,
         body: TaskClaimIn | None = None,
     ) -> Task:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.get_task(principal, task_id, "tasks:claim")
         lease_seconds = (body or TaskClaimIn()).lease_seconds
         self._claims.claim(task, principal, lease_seconds=lease_seconds)
         self._gateway.commit()
@@ -141,7 +145,7 @@ class TaskService:
         return task
 
     def release(self, principal: Principal, task_id: int) -> Task:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.get_task(principal, task_id, "tasks:claim")
         self._claims.release(task, principal)
         self._gateway.commit()
         self._gateway.refresh(task)
@@ -153,7 +157,7 @@ class TaskService:
         task_id: int,
         body: TaskClaimIn | None = None,
     ) -> Task:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.get_task(principal, task_id, "tasks:claim")
         lease_seconds = (body or TaskClaimIn()).lease_seconds
         self._claims.renew(task, principal, lease_seconds=lease_seconds)
         self._gateway.commit()
@@ -161,7 +165,7 @@ class TaskService:
         return task
 
     def archive(self, principal: Principal, task_id: int) -> Task:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.get_task(principal, task_id, "tasks:write")
         if task.archived_at is None:
             task.archived_at = self._utcnow()
             task_event_recorder.record(
@@ -172,7 +176,7 @@ class TaskService:
         return task
 
     def unarchive(self, principal: Principal, task_id: int) -> Task:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.get_task(principal, task_id, "tasks:write")
         if task.archived_at is not None:
             task.archived_at = None
             task_event_recorder.record(
@@ -183,14 +187,14 @@ class TaskService:
         return task
 
     def delete(self, principal: Principal, task_id: int) -> None:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.require_owner(principal, task_id)
         self._gateway.delete(task)
         self._gateway.commit()
 
     def add_artifact(
         self, principal: Principal, task_id: int, body: ArtifactCreate
     ) -> Artifact:
-        task = self._owned_task(principal.user_id, task_id)
+        task = self._access.get_task(principal, task_id, "artifacts:write")
         artifact = Artifact(
             task_id=task.id,
             kind=body.kind,
@@ -215,14 +219,8 @@ class TaskService:
         self._gateway.refresh(artifact)
         return artifact
 
-    def _owned_task(self, user_id: int, task_id: int) -> Task:
-        task = self._gateway.get(task_id)
-        if task is None or task.owner_user_id != user_id:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
-        return task
-
     def _apply_update(
-        self, task: Task, user_id: int, body: TaskUpdate
+        self, task: Task, principal: Principal, body: TaskUpdate
     ) -> dict:
         changes: dict = {}
         if body.title is not None:
@@ -237,12 +235,16 @@ class TaskService:
         if body.rank is not None:
             task.rank = body.rank
             changes["rank"] = task.rank
-        self._apply_parent_change(task, user_id, body, changes)
+        self._apply_parent_change(task, principal, body, changes)
         self._apply_due_change(task, body, changes)
         return changes
 
     def _apply_parent_change(
-        self, task: Task, user_id: int, body: TaskUpdate, changes: dict
+        self,
+        task: Task,
+        principal: Principal,
+        body: TaskUpdate,
+        changes: dict,
     ) -> None:
         if body.clear_parent:
             task.parent_task_id = None
@@ -252,7 +254,7 @@ class TaskService:
                 raise HTTPException(
                     status.HTTP_400_BAD_REQUEST, "Cannot parent to self"
                 )
-            self._owned_task(user_id, body.parent_task_id)
+            self._access.get_task(principal, body.parent_task_id, "tasks:write")
             task.parent_task_id = body.parent_task_id
             changes["parent_task_id"] = task.parent_task_id
 

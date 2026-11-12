@@ -67,6 +67,15 @@ export type TaskDetail = {
   links: TaskLink[]
 }
 
+export type TaskShare = {
+  id: number
+  user_id: number
+  email: string | null
+  display_name: string
+  role: 'viewer' | 'editor' | string
+  created_at: string
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: 'include',
@@ -146,4 +155,12 @@ export const api = {
     }),
   deleteLink: (id: number, linkId: number) =>
     request<void>(`/api/tasks/${id}/links/${linkId}`, { method: 'DELETE' }),
+  listShares: (id: number) => request<TaskShare[]>(`/api/tasks/${id}/shares`),
+  shareTask: (id: number, body: { email: string; role: 'viewer' | 'editor' }) =>
+    request<TaskShare>(`/api/tasks/${id}/shares`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  unshareTask: (id: number, membershipId: number) =>
+    request<void>(`/api/tasks/${id}/shares/${membershipId}`, { method: 'DELETE' }),
 }

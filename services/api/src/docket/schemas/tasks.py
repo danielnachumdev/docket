@@ -112,3 +112,17 @@ class TaskDetailOut(BaseModel):
     artifacts: list[ArtifactOut]
     children: list[TaskOut]
     links: list[TaskLinkOut] = []
+
+
+class TaskShareCreate(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    role: str = Field(pattern="^(viewer|editor)$")
+
+
+class TaskShareOut(BaseModel):
+    id: int
+    user_id: int
+    email: str | None
+    display_name: str
+    role: str
+    created_at: datetime
