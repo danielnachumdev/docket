@@ -31,10 +31,9 @@ jobs:
     # secrets:
     #   VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}   # unlocks raft when .raft/ + raft-service/git-repo set
     with:
-      # Bare template has no pyproject/package.json; drop allow-empty after a
-      # derived repo adds a real language lane.
-      allow-empty: true
-      # working-directory: .
+      package-json-path: web/package.json
+      python-versions: '["3.12","3.13"]'
+      python-versions-push: '["3.12","3.13"]'
       # Unlock terraform plan/apply (validate still runs from versions.tf alone):
       # workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
       # service_account: ${{ vars.GCP_WIF_SERVICE_ACCOUNT }}

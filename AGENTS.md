@@ -1,8 +1,8 @@
 # AGENTS.md
 
-Implementation guide for coding agents working in repos **created from this template**, or editing the template itself.
+Orientation for coding agents working in **docket**.
 
-Product pitch for humans: [`README.md`](README.md).
+Product pitch: [`README.md`](README.md).
 
 ---
 
@@ -10,25 +10,24 @@ Product pitch for humans: [`README.md`](README.md).
 
 | Question | Answer |
 | -------- | ------ |
-| What is this? | Starter scaffold: Actions CI + Dependabot + CODEOWNERS + issue templates + CAPA + this file |
-| Issue templates | [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) — feature request (Background / Motivation / Requirements / AC); bug report (Description / Steps to reproduce / Expected / Actual / Environment) |
-| CI hub | Shared reusable workflows pinned `@latest` (see thin orchestrator) |
+| What is this? | Task system of record: FastAPI + SQLite API, Vite/React/TS SPA; agents via API tokens + RBAC |
+| API package | `src/docket/` — entry `docket.main:app` / `uv run docket` |
+| Migrations | Alembic (`uv run alembic upgrade head`) |
+| SPA | `web/` — Vite React TS; proxy `/api` → API in dev |
+| CI hub | Shared reusable workflows pinned `@latest` |
 | Thin orchestrator | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | CAPA | [`capabilities.yaml`](capabilities.yaml) — run `capa install` (do not hand-edit generated `.cursor/` / `.claude/`) |
-| Semver | **Omitted** until the repo publishes releases/wheels — then copy Semver jobs from the actions templates |
-| Secrets | Never commit tokens, keys, or live operator inventory; use dummy data in fixtures/PRs |
+| Semver | **Omitted** until the repo publishes releases |
+| Secrets | Never commit tokens, keys, live DB, or operator inventory; use dummy data in fixtures/PRs |
 
-## After “Use this template”
+## Conventions
 
-GitHub does **not** copy labels, branch protection, or security toggles. Re-do the actions hub HOW-TO-USE wire-up steps 3–5 on the new repo.
+- Prefer SQLite-lean schema; avoid heavyweight deps without need.
+- Task history goes in `task_events`; relationships via `parent_task_id` + `task_links`.
+- Authorization is RBAC (`permissions` / `roles` / `memberships`); API tokens may downscope via `role_id`.
+- Deploy wiring lives in a **private** deploy repo later — not here.
 
-1. Rename the product in `README.md` and rewrite this orientation table for the real codebase.
-2. Point [`.github/CODEOWNERS`](.github/CODEOWNERS) at the owning handle(s).
-3. Add the language layout (`pyproject.toml` / `package.json` / etc.). Detect turns on the matching CI lanes.
-4. Drop `allow-empty: true` from `ci.yml` once at least one lane is real.
-5. Create label `dependencies`. Soft-protect `main`: require **`CI / CI`**, PR reviews (count 0 OK), `require_code_owner_reviews: false` so Dependabot auto-merge can land, admin bypass OK. Enable security settings + `allow_auto_merge` if using DAM.
-6. Semver only if publishing: uncomment Semver job, copy `cd.yml`, create bump labels, restore `noBump` on Dependabot, require **`Semver / Semver`**.
+## After template bootstrap
 
-## Editing the template repo itself
-
-Keep the scaffold **language-agnostic**. Prefer `allow-empty: true`. Do not enable Semver here. Keep HOW-TO-USE wire-up applied on this repo (protection, labels, security, DAM). Keep docs free of personal paths, handles, and live inventory.
+1. Language lanes are real (`pyproject.toml` + `web/package.json`) — keep `allow-empty` **off** in `ci.yml`.
+2. Soft-protect `main`: require **`CI / CI`**; Dependabot auto-merge settings per actions hub HOW-TO-USE.
