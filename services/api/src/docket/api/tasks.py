@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 
-from docket.deps import CurrentUser, DbSession, require_permission
+from docket.auth import Principal, require
+from docket.deps import DbSession
 from docket.events import record_event
 from docket.models import Artifact, Task, TaskEvent
 from docket.schemas import (
@@ -20,6 +22,11 @@ from docket.schemas import (
 )
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
+
+CanRead = Annotated[Principal, Depends(require("tasks:read"))]
+CanWrite = Annotated[Principal, Depends(require("tasks:write"))]
+CanAdmin = Annotated[Principal, Depends(require("tasks:admin"))]
+CanArtifacts = Annotated[Principal, Depends(require("artifacts:write"))]
 
 
 def _utcnow() -> datetime:
@@ -36,13 +43,12 @@ def _get_owned_task(db: DbSession, user_id: int, task_id: int) -> Task:
 @router.get("", response_model=list[TaskOut])
 def list_tasks(
     db: DbSession,
-    user: CurrentUser,
+    principal: CanRead,
     archived: bool = Query(False),
     parent_task_id: int | None = Query(None),
     roots_only: bool = Query(False),
 ) -> list[Task]:
-    require_permission(db, user, "tasks:read")
-    stmt = select(Task).where(Task.owner_user_id == user.id)
+    stmt = select(Task).where(Task.owner_user_id == principal.user_id)
     if archived:
         stmt = stmt.where(Task.archived_at.is_not(None))
     else:
@@ -56,22 +62,22 @@ def list_tasks(
 
 
 @router.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
-def create_task(body: TaskCreate, db: DbSession, user: CurrentUser) -> Task:
-    require_permission(db, user, "tasks:write")
+def create_task(body: TaskCreate, db: DbSession, principal: CanWrite) -> Task:
     if body.parent_task_id is not None:
-        parent = _get_owned_task(db, user.id, body.parent_task_id)
+        parent = _get_owned_task(db, principal.user_id, body.parent_task_id)
         if parent.archived_at is not None:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Parent is archived")
 
     task = Task(
-        owner_user_id=user.id,
+        owner_user_id=principal.user_id,
         parent_task_id=body.parent_task_id,
         title=body.title.strip(),
         body=body.body,
         priority=body.priority,
         due_at=body.due_at,
-        source="ui",
-        created_by_user_id=user.id,
+        source="api" if principal.token else "ui",
+        created_by_user_id=principal.user_id,
+        created_by_token_id=principal.token_id,
     )
     db.add(task)
     db.flush()
@@ -79,7 +85,7 @@ def create_task(body: TaskCreate, db: DbSession, user: CurrentUser) -> Task:
         db,
         task_id=task.id,
         event_type="created",
-        actor=user,
+        actor=principal,
         payload={"title": task.title, "priority": task.priority},
     )
     db.commit()
@@ -88,9 +94,8 @@ def create_task(body: TaskCreate, db: DbSession, user: CurrentUser) -> Task:
 
 
 @router.get("/{task_id}", response_model=TaskDetailOut)
-def get_task(task_id: int, db: DbSession, user: CurrentUser) -> TaskDetailOut:
-    require_permission(db, user, "tasks:read")
-    task = _get_owned_task(db, user.id, task_id)
+def get_task(task_id: int, db: DbSession, principal: CanRead) -> TaskDetailOut:
+    task = _get_owned_task(db, principal.user_id, task_id)
     events = list(
         db.scalars(
             select(TaskEvent)
@@ -122,10 +127,9 @@ def get_task(task_id: int, db: DbSession, user: CurrentUser) -> TaskDetailOut:
 
 @router.patch("/{task_id}", response_model=TaskOut)
 def update_task(
-    task_id: int, body: TaskUpdate, db: DbSession, user: CurrentUser
+    task_id: int, body: TaskUpdate, db: DbSession, principal: CanWrite
 ) -> Task:
-    require_permission(db, user, "tasks:write")
-    task = _get_owned_task(db, user.id, task_id)
+    task = _get_owned_task(db, principal.user_id, task_id)
     changes: dict = {}
 
     if body.title is not None:
@@ -146,7 +150,7 @@ def update_task(
     elif body.parent_task_id is not None:
         if body.parent_task_id == task.id:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cannot parent to self")
-        _get_owned_task(db, user.id, body.parent_task_id)
+        _get_owned_task(db, principal.user_id, body.parent_task_id)
         task.parent_task_id = body.parent_task_id
         changes["parent_task_id"] = task.parent_task_id
     if body.clear_due_at:
@@ -158,7 +162,11 @@ def update_task(
 
     if changes:
         record_event(
-            db, task_id=task.id, event_type="updated", actor=user, payload=changes
+            db,
+            task_id=task.id,
+            event_type="updated",
+            actor=principal,
+            payload=changes,
         )
     db.commit()
     db.refresh(task)
@@ -167,10 +175,9 @@ def update_task(
 
 @router.post("/{task_id}/status", response_model=TaskOut)
 def set_status(
-    task_id: int, body: TaskStatusIn, db: DbSession, user: CurrentUser
+    task_id: int, body: TaskStatusIn, db: DbSession, principal: CanWrite
 ) -> Task:
-    require_permission(db, user, "tasks:write")
-    task = _get_owned_task(db, user.id, task_id)
+    task = _get_owned_task(db, principal.user_id, task_id)
     old = task.status
     task.status = body.status
     if body.status == "done":
@@ -186,7 +193,7 @@ def set_status(
         db,
         task_id=task.id,
         event_type="status_changed",
-        actor=user,
+        actor=principal,
         payload={"from": old, "to": body.status},
     )
     db.commit()
@@ -195,33 +202,30 @@ def set_status(
 
 
 @router.post("/{task_id}/archive", response_model=TaskOut)
-def archive_task(task_id: int, db: DbSession, user: CurrentUser) -> Task:
-    require_permission(db, user, "tasks:write")
-    task = _get_owned_task(db, user.id, task_id)
+def archive_task(task_id: int, db: DbSession, principal: CanWrite) -> Task:
+    task = _get_owned_task(db, principal.user_id, task_id)
     if task.archived_at is None:
         task.archived_at = _utcnow()
-        record_event(db, task_id=task.id, event_type="archived", actor=user)
+        record_event(db, task_id=task.id, event_type="archived", actor=principal)
         db.commit()
         db.refresh(task)
     return task
 
 
 @router.post("/{task_id}/unarchive", response_model=TaskOut)
-def unarchive_task(task_id: int, db: DbSession, user: CurrentUser) -> Task:
-    require_permission(db, user, "tasks:write")
-    task = _get_owned_task(db, user.id, task_id)
+def unarchive_task(task_id: int, db: DbSession, principal: CanWrite) -> Task:
+    task = _get_owned_task(db, principal.user_id, task_id)
     if task.archived_at is not None:
         task.archived_at = None
-        record_event(db, task_id=task.id, event_type="unarchived", actor=user)
+        record_event(db, task_id=task.id, event_type="unarchived", actor=principal)
         db.commit()
         db.refresh(task)
     return task
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_id: int, db: DbSession, user: CurrentUser) -> None:
-    require_permission(db, user, "tasks:admin")
-    task = _get_owned_task(db, user.id, task_id)
+def delete_task(task_id: int, db: DbSession, principal: CanAdmin) -> None:
+    task = _get_owned_task(db, principal.user_id, task_id)
     db.delete(task)
     db.commit()
 
@@ -232,16 +236,16 @@ def delete_task(task_id: int, db: DbSession, user: CurrentUser) -> None:
     status_code=status.HTTP_201_CREATED,
 )
 def add_artifact(
-    task_id: int, body: ArtifactCreate, db: DbSession, user: CurrentUser
+    task_id: int, body: ArtifactCreate, db: DbSession, principal: CanArtifacts
 ) -> Artifact:
-    require_permission(db, user, "artifacts:write")
-    task = _get_owned_task(db, user.id, task_id)
+    task = _get_owned_task(db, principal.user_id, task_id)
     artifact = Artifact(
         task_id=task.id,
         kind=body.kind,
         title=body.title.strip(),
         content_text=body.content_text,
-        created_by_user_id=user.id,
+        created_by_user_id=principal.user_id,
+        created_by_token_id=principal.token_id,
     )
     db.add(artifact)
     db.flush()
@@ -249,8 +253,12 @@ def add_artifact(
         db,
         task_id=task.id,
         event_type="artifact_added",
-        actor=user,
-        payload={"artifact_id": artifact.id, "kind": artifact.kind, "title": artifact.title},
+        actor=principal,
+        payload={
+            "artifact_id": artifact.id,
+            "kind": artifact.kind,
+            "title": artifact.title,
+        },
     )
     db.commit()
     db.refresh(artifact)

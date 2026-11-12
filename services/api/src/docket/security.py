@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 from pwdlib import PasswordHash
 
 from docket.config import get_settings
@@ -13,6 +15,11 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, password_hash: str) -> bool:
     return _password_hash.verify(password, password_hash)
+
+
+def hash_api_token(raw_token: str) -> str:
+    pepper = get_settings().token_pepper
+    return hashlib.sha256(f"{pepper}:{raw_token}".encode()).hexdigest()
 
 
 def make_session_serializer():

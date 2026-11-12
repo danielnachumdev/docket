@@ -43,7 +43,11 @@ docker compose up --build
 
 SQLite persists in the `docket-data` volume. Override `TOKEN_PEPPER` via env for non-dev use. Host port `8088` avoids common local `8080` clashes.
 
+## Auth model
+
+- **Authn:** `AuthnMiddleware` resolves session cookie or `Authorization: Bearer` into `request.state.principal`
+- **Authz:** route `Depends(require("tasks:write"))` (etc.) checks RBAC for that principal
+
 ## Status
 
-Human UI + session auth + task CRUD/status/archive/artifacts/history are in.
-Next: authn middleware + `Depends(require("perm"))` refactor; agent API tokens.
+Human UI + task API + authn/authz split are in. Next: token minting UI/API for agents.

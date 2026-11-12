@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Response, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
 
+from docket.auth import AuthenticatedPrincipal, OptionalPrincipal
 from docket.config import get_settings
-from docket.deps import CurrentUser, DbSession, OptionalUser
+from docket.deps import DbSession
 from docket.models import Membership, Role, User
 from docket.schemas import AuthStatusOut, BootstrapIn, LoginIn, UserOut
 from docket.security import dump_session, hash_password, verify_password
@@ -30,8 +33,9 @@ def _clear_session_cookie(response: Response) -> None:
 
 
 @router.get("/status", response_model=AuthStatusOut)
-def auth_status(db: DbSession, user: OptionalUser) -> AuthStatusOut:
+def auth_status(db: DbSession, principal: OptionalPrincipal) -> AuthStatusOut:
     count = db.scalar(select(func.count()).select_from(User)) or 0
+    user = principal.user if principal else None
     return AuthStatusOut(
         bootstrapped=count > 0,
         user=UserOut.model_validate(user) if user else None,
@@ -88,5 +92,5 @@ def logout(response: Response) -> None:
 
 
 @router.get("/me", response_model=UserOut)
-def me(user: CurrentUser) -> User:
-    return user
+def me(principal: AuthenticatedPrincipal) -> User:
+    return principal.user

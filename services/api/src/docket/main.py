@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from docket import __version__
 from docket.api import auth as auth_api
 from docket.api import tasks as tasks_api
+from docket.auth import AuthnMiddleware
 from docket.config import ROOT, get_settings
 from docket.db import SessionLocal
 from docket.seed import seed_rbac
@@ -30,6 +31,8 @@ async def lifespan(_app: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
+    # Authn outermost among our middleware so principal is set before routes.
+    app.add_middleware(AuthnMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
