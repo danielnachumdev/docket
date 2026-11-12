@@ -24,7 +24,7 @@ class RequireUser:
 
 
 class RequirePermission:
-    """Authz: principal must exist and hold the named permission."""
+    """Authz: principal must exist and hold the named permission (any membership scope)."""
 
     def __init__(self, permission: str) -> None:
         self._permission = permission

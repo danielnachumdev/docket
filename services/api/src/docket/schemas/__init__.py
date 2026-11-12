@@ -14,6 +14,8 @@ from docket.schemas.tasks import (
     TaskLinkCreate,
     TaskLinkOut,
     TaskOut,
+    TaskShareCreate,
+    TaskShareOut,
     TaskStatusIn,
     TaskUpdate,
 )
@@ -31,6 +33,8 @@ __all__ = [
     "TaskLinkCreate",
     "TaskLinkOut",
     "TaskOut",
+    "TaskShareCreate",
+    "TaskShareOut",
     "TaskStatusIn",
     "TaskUpdate",
     "UserOut",

@@ -15,7 +15,12 @@ class TaskLinkService:
         self._db = db
 
     def list_for_task(self, *, user_id: int, task_id: int) -> list[TaskLink]:
-        self._require_owned_task(user_id, task_id)
+        # Caller enforces read access; listing does not require ownership
+        # (shared viewers need to see edges too).
+        _ = user_id
+        task = self._db.get(Task, task_id)
+        if task is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
         stmt = (
             select(TaskLink)
             .where(

@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select
 
 from docket.models import Artifact, Task, TaskEvent
 
@@ -21,15 +22,15 @@ class TaskGateway:
     def delete(self, task: Task) -> None:
         self._db.delete(task)
 
-    def list_for_owner(
+    def list_visible(
         self,
-        owner_user_id: int,
+        accessible_ids: Select[tuple[int]],
         *,
         archived: bool,
         parent_task_id: int | None,
         roots_only: bool,
     ) -> list[Task]:
-        stmt = select(Task).where(Task.owner_user_id == owner_user_id)
+        stmt = select(Task).where(Task.id.in_(accessible_ids))
         if archived:
             stmt = stmt.where(Task.archived_at.is_not(None))
         else:

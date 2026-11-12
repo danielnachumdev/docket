@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, type Task, type TaskDetail } from '../api'
+import { api, type Task, type TaskDetail, type TaskShare } from '../api'
+import { useAuth } from '../auth'
 
 const STATUSES = ['open', 'in_progress', 'blocked', 'done', 'cancelled'] as const
 const LINK_KINDS = ['blocks', 'related', 'duplicate_of'] as const
@@ -32,12 +33,14 @@ function descendantIds(taskId: number, all: Task[]): Set<number> {
 export function TaskDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { status } = useAuth()
   const taskId = Number(id)
   const [detail, setDetail] = useState<TaskDetail | null>(null)
   const [parentTask, setParentTask] = useState<{ id: number; title: string } | null>(
     null,
   )
   const [parentChoices, setParentChoices] = useState<Task[]>([])
+  const [shares, setShares] = useState<TaskShare[]>([])
   const [error, setError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
@@ -50,6 +53,8 @@ export function TaskDetailPage() {
   const [artifactText, setArtifactText] = useState('')
   const [linkToId, setLinkToId] = useState('')
   const [linkKind, setLinkKind] = useState<(typeof LINK_KINDS)[number]>('related')
+  const [shareEmail, setShareEmail] = useState('')
+  const [shareRole, setShareRole] = useState<'viewer' | 'editor'>('viewer')
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
@@ -88,6 +93,9 @@ export function TaskDetailPage() {
     } else {
       setParentTask(null)
     }
+
+    const shareRows = await api.listShares(taskId)
+    setShares(shareRows)
   }, [taskId])
 
   useEffect(() => {
@@ -243,6 +251,38 @@ export function TaskDetailPage() {
     }
   }
 
+  async function shareTask(e: FormEvent) {
+    e.preventDefault()
+    if (!shareEmail.trim()) return
+    setBusy(true)
+    setError(null)
+    try {
+      await api.shareTask(taskId, {
+        email: shareEmail.trim().toLowerCase(),
+        role: shareRole,
+      })
+      setShareEmail('')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Share failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function unshare(membershipId: number) {
+    setBusy(true)
+    setError(null)
+    try {
+      await api.unshareTask(taskId, membershipId)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unshare failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (!detail && !error) {
     return (
       <main className="shell">
@@ -261,6 +301,7 @@ export function TaskDetailPage() {
   }
 
   const task = detail.task
+  const isOwner = status?.user?.id === task.owner_user_id
 
   return (
     <main className="shell">
@@ -462,6 +503,56 @@ export function TaskDetailPage() {
             Add link
           </button>
         </form>
+      </section>
+
+
+      <section className="panel">
+        <h3>Sharing</h3>
+        <ul className="plain">
+          {shares.map((s) => (
+            <li key={s.id} className="row-between">
+              <span>
+                {s.display_name}{' '}
+                <span className="muted small">
+                  ({s.email ?? 'no email'}) · {s.role}
+                </span>
+              </span>
+              {isOwner && (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={busy}
+                  onClick={() => void unshare(s.id)}
+                >
+                  Unshare
+                </button>
+              )}
+            </li>
+          ))}
+          {shares.length === 0 && <li className="muted">Not shared with anyone.</li>}
+        </ul>
+        {isOwner && (
+          <form className="form inline" onSubmit={(e) => void shareTask(e)}>
+            <input
+              type="email"
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+              placeholder="user@example.com"
+              required
+            />
+            <select
+              value={shareRole}
+              onChange={(e) => setShareRole(e.target.value as 'viewer' | 'editor')}
+              aria-label="Share role"
+            >
+              <option value="viewer">viewer</option>
+              <option value="editor">editor</option>
+            </select>
+            <button type="submit" className="primary" disabled={busy}>
+              Share
+            </button>
+          </form>
+        )}
       </section>
 
       <section className="panel">
