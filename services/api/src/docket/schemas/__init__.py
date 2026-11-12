@@ -7,6 +7,7 @@ from docket.schemas.auth import (
 from docket.schemas.tasks import (
     ArtifactCreate,
     ArtifactOut,
+    TaskClaimIn,
     TaskCreate,
     TaskDetailOut,
     TaskEventOut,
@@ -23,6 +24,7 @@ __all__ = [
     "AuthStatusOut",
     "BootstrapIn",
     "LoginIn",
+    "TaskClaimIn",
     "TaskCreate",
     "TaskDetailOut",
     "TaskEventOut",

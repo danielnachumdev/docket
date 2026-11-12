@@ -10,6 +10,7 @@ from docket.models import Artifact, Task
 from docket.schemas import (
     ArtifactCreate,
     ArtifactOut,
+    TaskClaimIn,
     TaskCreate,
     TaskDetailOut,
     TaskEventOut,
@@ -18,6 +19,7 @@ from docket.schemas import (
     TaskStatusIn,
     TaskUpdate,
 )
+from docket.task_claims import TaskClaimService
 from docket.task_links import TaskLinkService
 
 
@@ -25,6 +27,7 @@ class TaskService:
     def __init__(self, db: Session) -> None:
         self._db = db
         self._gateway = TaskGateway(db)
+        self._claims = TaskClaimService(db)
 
     def list_tasks(
         self,
@@ -120,6 +123,39 @@ class TaskService:
             actor=principal,
             payload={"from": old, "to": body.status},
         )
+        self._gateway.commit()
+        self._gateway.refresh(task)
+        return task
+
+    def claim(
+        self,
+        principal: Principal,
+        task_id: int,
+        body: TaskClaimIn | None = None,
+    ) -> Task:
+        task = self._owned_task(principal.user_id, task_id)
+        lease_seconds = (body or TaskClaimIn()).lease_seconds
+        self._claims.claim(task, principal, lease_seconds=lease_seconds)
+        self._gateway.commit()
+        self._gateway.refresh(task)
+        return task
+
+    def release(self, principal: Principal, task_id: int) -> Task:
+        task = self._owned_task(principal.user_id, task_id)
+        self._claims.release(task, principal)
+        self._gateway.commit()
+        self._gateway.refresh(task)
+        return task
+
+    def heartbeat(
+        self,
+        principal: Principal,
+        task_id: int,
+        body: TaskClaimIn | None = None,
+    ) -> Task:
+        task = self._owned_task(principal.user_id, task_id)
+        lease_seconds = (body or TaskClaimIn()).lease_seconds
+        self._claims.renew(task, principal, lease_seconds=lease_seconds)
         self._gateway.commit()
         self._gateway.refresh(task)
         return task
