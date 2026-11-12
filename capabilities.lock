@@ -1,6 +1,6 @@
 version: 1
 generator: capa@2.4.0
-generatedAt: '2026-11-04T12:46:59.127Z'
+generatedAt: '2026-11-12T13:37:14.391Z'
 skills:
   - id: async
     source: github
@@ -30,6 +30,14 @@ skills:
     source: github
     repo: danielnachumdev/skills
     skillName: triage-board
+    requestedVersion: null
+    requestedRef: null
+    resolvedRef: ee0acc2cb887d7647f2fddb8d66b07715d37278c
+    resolvedVersion: null
+  - id: writing-python
+    source: github
+    repo: danielnachumdev/skills
+    skillName: writing-python
     requestedVersion: null
     requestedRef: null
     resolvedRef: ee0acc2cb887d7647f2fddb8d66b07715d37278c

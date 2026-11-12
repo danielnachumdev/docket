@@ -1,19 +1,26 @@
 """Authentication and authorization."""
 
-from docket.auth.middleware import AuthnMiddleware
-from docket.auth.permissions import (
+from docket.auth.authn_middleware import AuthnMiddleware
+from docket.auth.permission_deps import (
     AuthenticatedPrincipal,
     OptionalPrincipal,
+    RequirePermission,
+    RequireUser,
     require,
     require_user,
 )
 from docket.auth.principal import Principal
+from docket.auth.principal_resolver import PrincipalResolver, principal_resolver
 
 __all__ = [
     "AuthnMiddleware",
     "AuthenticatedPrincipal",
     "OptionalPrincipal",
     "Principal",
+    "PrincipalResolver",
+    "RequirePermission",
+    "RequireUser",
+    "principal_resolver",
     "require",
     "require_user",
 ]

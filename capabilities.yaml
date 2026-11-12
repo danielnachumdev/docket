@@ -39,6 +39,13 @@ skills:
       description: >-
         Batch many user decisions through a local web UI instead of chat
         tables (accept / decline / defer)
+  - id: writing-python
+    type: github
+    def:
+      repo: danielnachumdev/skills@writing-python
+      description: >-
+        Conventions for writing and refactoring Python (SRP, strategy/gateway
+        layout, clean imports)
 
 servers: []
 

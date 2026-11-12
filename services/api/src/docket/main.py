@@ -5,12 +5,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from docket import __version__
-from docket.api import auth as auth_api
-from docket.api import tasks as tasks_api
+from docket.api import auth_api, tasks_api
 from docket.auth import AuthnMiddleware
 from docket.config import ROOT, get_settings
-from docket.db import SessionLocal
-from docket.seed import seed_rbac
+from docket.db import database
+from docket.seed import rbac_seeder
 
 
 @asynccontextmanager
@@ -20,9 +19,9 @@ async def lifespan(_app: FastAPI):
         Path(settings.database_url.removeprefix("sqlite:///")).parent.mkdir(
             parents=True, exist_ok=True
         )
-    db = SessionLocal()
+    db = database.session()
     try:
-        seed_rbac(db)
+        rbac_seeder.seed(db)
     finally:
         db.close()
     yield

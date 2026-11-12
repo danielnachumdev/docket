@@ -7,7 +7,7 @@ from docket.auth.strategies import (
     PrincipalStrategy,
     SessionCookieStrategy,
 )
-from docket.db import database
+from docket.db.database import database
 
 
 class PrincipalResolver:

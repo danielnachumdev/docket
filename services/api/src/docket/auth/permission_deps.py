@@ -1,50 +1,52 @@
-from __future__ import annotations
-
-from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from docket.auth.principal import Principal
-from docket.auth.rbac import principal_has_permission
-from docket.db import get_db
+from docket.auth.rbac.rbac_service import RbacService
+from docket.db.database import database
 
 
-def get_optional_principal(request: Request) -> Principal | None:
-    return getattr(request.state, "principal", None)
+class OptionalPrincipalDep:
+    def __call__(self, request: Request) -> Principal | None:
+        return getattr(request.state, "principal", None)
 
 
-def require_user() -> Callable[..., Principal]:
+class RequireUser:
     """Authn only: principal must exist (human session or agent token)."""
 
-    def _dep(request: Request) -> Principal:
-        principal = get_optional_principal(request)
+    def __call__(self, request: Request) -> Principal:
+        principal = getattr(request.state, "principal", None)
         if principal is None:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
         return principal
 
-    return _dep
 
+class RequirePermission:
+    """Authz: principal must exist and hold the named permission."""
 
-def require(permission: str) -> Callable[..., Principal]:
-    """Authz: principal must exist and hold ``permission``."""
+    def __init__(self, permission: str) -> None:
+        self._permission = permission
 
-    def _dep(
+    def __call__(
+        self,
         request: Request,
-        db: Annotated[Session, Depends(get_db)],
+        db: Annotated[Session, Depends(database.get_db)],
     ) -> Principal:
-        principal = get_optional_principal(request)
+        principal = getattr(request.state, "principal", None)
         if principal is None:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
-        if not principal_has_permission(db, principal, permission):
+        if not RbacService(db).principal_has_permission(principal, self._permission):
             raise HTTPException(
-                status.HTTP_403_FORBIDDEN, f"Missing permission: {permission}"
+                status.HTTP_403_FORBIDDEN,
+                f"Missing permission: {self._permission}",
             )
         return principal
 
-    return _dep
 
+require = RequirePermission
+require_user = RequireUser
 
-OptionalPrincipal = Annotated[Principal | None, Depends(get_optional_principal)]
-AuthenticatedPrincipal = Annotated[Principal, Depends(require_user())]
+OptionalPrincipal = Annotated[Principal | None, Depends(OptionalPrincipalDep())]
+AuthenticatedPrincipal = Annotated[Principal, Depends(RequireUser())]

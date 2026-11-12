@@ -1,7 +1,3 @@
-"""Seed system RBAC (idempotent)."""
-
-from __future__ import annotations
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -45,23 +41,43 @@ ROLES: dict[str, tuple[str, list[str]]] = {
 }
 
 
-def seed_rbac(session: Session) -> None:
-    perm_by_code: dict[str, Permission] = {}
-    for code, description in PERMISSIONS:
-        existing = session.scalar(select(Permission).where(Permission.code == code))
-        if existing is None:
-            existing = Permission(code=code, description=description)
-            session.add(existing)
-            session.flush()
-        perm_by_code[code] = existing
+class RbacSeeder:
+    """Idempotent system RBAC seed."""
 
-    for name, (description, codes) in ROLES.items():
-        role = session.scalar(select(Role).where(Role.name == name))
-        if role is None:
-            role = Role(name=name, description=description, is_system=True)
-            session.add(role)
-            session.flush()
+    def seed(self, session: Session) -> None:
+        perm_by_code = self._ensure_permissions(session)
+        self._ensure_roles(session, perm_by_code)
+        session.commit()
 
+    def _ensure_permissions(self, session: Session) -> dict[str, Permission]:
+        perm_by_code: dict[str, Permission] = {}
+        for code, description in PERMISSIONS:
+            existing = session.scalar(select(Permission).where(Permission.code == code))
+            if existing is None:
+                existing = Permission(code=code, description=description)
+                session.add(existing)
+                session.flush()
+            perm_by_code[code] = existing
+        return perm_by_code
+
+    def _ensure_roles(
+        self, session: Session, perm_by_code: dict[str, Permission]
+    ) -> None:
+        for name, (description, codes) in ROLES.items():
+            role = session.scalar(select(Role).where(Role.name == name))
+            if role is None:
+                role = Role(name=name, description=description, is_system=True)
+                session.add(role)
+                session.flush()
+            self._ensure_role_permissions(session, role, codes, perm_by_code)
+
+    def _ensure_role_permissions(
+        self,
+        session: Session,
+        role: Role,
+        codes: list[str],
+        perm_by_code: dict[str, Permission],
+    ) -> None:
         for code in codes:
             perm = perm_by_code[code]
             link = session.scalar(
@@ -73,4 +89,5 @@ def seed_rbac(session: Session) -> None:
             if link is None:
                 session.add(RolePermission(role_id=role.id, permission_id=perm.id))
 
-    session.commit()
+
+rbac_seeder = RbacSeeder()
