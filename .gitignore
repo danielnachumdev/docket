@@ -1,0 +1,33 @@
+# CapA / agent generated (providers write under these; lock stays committed)
+.cursor/
+.claude/
+.codex/
+.windsurf/
+.github/copilot-instructions.md
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+
+# OS / editors
+.DS_Store
+.idea/
+*.swp
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+credentials.json
+client_secrets.json

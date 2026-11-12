@@ -1,0 +1,78 @@
+name: CI
+
+# Thin orchestrator. Prefer requiring check "CI / CI".
+# Copied from danielnachumdev/actions templates/workflows/ci.yml.
+# Umbrella auto-detects lanes from layout (pyproject, package.json, .github/,
+# alembic, terraform/, .raft/). Override or disable-* only when needed.
+# Semver omitted: this template does not publish versioned artifacts.
+# Prefer @latest (CD moves floating latest after each release).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write # Terraform plan/apply when WIF inputs are passed
+
+jobs:
+  ci:
+    name: CI
+    uses: danielnachumdev/actions/.github/workflows/ci.yml@latest
+    # secrets:
+    #   VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}   # unlocks raft when .raft/ + raft-service/git-repo set
+    with:
+      # Bare template has no pyproject/package.json; drop allow-empty after a
+      # derived repo adds a real language lane.
+      allow-empty: true
+      # working-directory: .
+      # Unlock terraform plan/apply (validate still runs from versions.tf alone):
+      # workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+      # service_account: ${{ vars.GCP_WIF_SERVICE_ACCOUNT }}
+      # Unlock raft (also needs .raft/ + secrets.VPS_SSH_KEY):
+      # raft-service: my-app
+      # raft-git-repo: git@github.com:org/repo.git
+      # disable-python: false
+      # disable-node: false
+      # disable-github-yaml: false
+      # disable-rebase-guard: false
+      # disable-terraform: false
+      # disable-terraform-apply: false
+      # disable-raft: false
+      # python-versions: '["3.11","3.12","3.13"]'
+      # python-versions-push: '["3.11","3.13"]'
+      # node-versions: '["22"]'   # empty → infer .nvmrc / engines
+      # sync-args: "--group dev"  # empty → infer from pyproject groups
+      # pytest-command: "pytest -q"
+
+  # Semver — uncomment ONLY if this repo publishes versions (releases/wheels).
+  # Also create bump labels, add Semver / Semver as a required check, restore
+  # noBump on Dependabot labels, and copy templates/workflows/cd.yml.
+  # semver:
+  #   name: Semver
+  #   if: github.event_name == 'pull_request'
+  #   uses: danielnachumdev/actions/.github/workflows/semver-ci.yml@latest
+  #   with:
+  #     standards-ref: latest
+
+  # Opt-in Dependabot merge after sibling CI jobs pass (HOW-TO-USE.md).
+  # Without Semver: needs: [ci]. With Semver: needs: [ci, semver].
+  # require_code_owner_reviews must stay false on soft branch protection so
+  # Dependabot can land after required checks.
+  dependabot-auto-merge:
+    name: Merge Dependabot PR
+    needs: [ci]
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: danielnachumdev/actions/.github/workflows/dependabot-auto-merge.yml@latest
