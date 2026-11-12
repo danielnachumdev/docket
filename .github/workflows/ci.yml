@@ -1,10 +1,9 @@
 name: CI
 
 # Thin orchestrator. Prefer requiring check "CI / CI".
-# Copied from danielnachumdev/actions templates/workflows/ci.yml.
-# Umbrella auto-detects lanes from layout (pyproject, package.json, .github/,
-# alembic, terraform/, .raft/). Override or disable-* only when needed.
-# Semver omitted: this template does not publish versioned artifacts.
+# Monorepo: Python and Node live under different services/, so we call the
+# reusable lanes directly (umbrella detect uses one working-directory).
+# Semver omitted: this app does not publish versioned artifacts.
 # Prefer @latest (CD moves floating latest after each release).
 
 on:
@@ -22,57 +21,64 @@ concurrency:
 permissions:
   contents: read
   pull-requests: read
-  id-token: write # Terraform plan/apply when WIF inputs are passed
 
 jobs:
+  python:
+    name: Python
+    uses: danielnachumdev/actions/.github/workflows/python.yml@latest
+    with:
+      working-directory: services/api
+      python-versions: '["3.12","3.13"]'
+      sync-args: "--group dev"
+      pytest-command: "pytest -q"
+
+  node:
+    name: Node
+    uses: danielnachumdev/actions/.github/workflows/node.yml@latest
+    with:
+      working-directory: services/web
+      node-versions: '["20","22"]'
+
+  github-yaml:
+    name: GitHub YAML
+    uses: danielnachumdev/actions/.github/workflows/github-yaml.yml@latest
+
+  rebase-guard:
+    name: Rebase guard
+    uses: danielnachumdev/actions/.github/workflows/rebase-guard.yml@latest
+    with:
+      alembic-root: services/api/alembic
+      base-ref: origin/main
+
+  # Aggregate required check "CI / CI" (HOW-TO-USE soft protection + DAM gate).
   ci:
     name: CI
-    uses: danielnachumdev/actions/.github/workflows/ci.yml@latest
-    # secrets:
-    #   VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}   # unlocks raft when .raft/ + raft-service/git-repo set
-    with:
-      pyproject-path: services/api/pyproject.toml
-      package-json-path: services/web/package.json
-      alembic-root: services/api/alembic
-      python-versions: '["3.12","3.13"]'
-      python-versions-push: '["3.12","3.13"]'
-      # Unlock terraform plan/apply (validate still runs from versions.tf alone):
-      # workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-      # service_account: ${{ vars.GCP_WIF_SERVICE_ACCOUNT }}
-      # Unlock raft (also needs .raft/ + secrets.VPS_SSH_KEY):
-      # raft-service: my-app
-      # raft-git-repo: git@github.com:org/repo.git
-      # disable-python: false
-      # disable-node: false
-      # disable-github-yaml: false
-      # disable-rebase-guard: false
-      # disable-terraform: false
-      # disable-terraform-apply: false
-      # disable-raft: false
-      # python-versions: '["3.11","3.12","3.13"]'
-      # python-versions-push: '["3.11","3.13"]'
-      # node-versions: '["22"]'   # empty → infer .nvmrc / engines
-      # sync-args: "--group dev"  # empty → infer from pyproject groups
-      # pytest-command: "pytest -q"
+    needs: [python, node, github-yaml, rebase-guard]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require sibling lanes
+        run: |
+          set -euo pipefail
+          echo "python=${{ needs.python.result }}"
+          echo "node=${{ needs.node.result }}"
+          echo "github-yaml=${{ needs.github-yaml.result }}"
+          echo "rebase-guard=${{ needs.rebase-guard.result }}"
+          test "${{ needs.python.result }}" = "success"
+          test "${{ needs.node.result }}" = "success"
+          test "${{ needs.github-yaml.result }}" = "success"
+          test "${{ needs.rebase-guard.result }}" = "success"
 
-  # Semver — uncomment ONLY if this repo publishes versions (releases/wheels).
-  # Also create bump labels, add Semver / Semver as a required check, restore
-  # noBump on Dependabot labels, and copy templates/workflows/cd.yml.
-  # semver:
-  #   name: Semver
-  #   if: github.event_name == 'pull_request'
-  #   uses: danielnachumdev/actions/.github/workflows/semver-ci.yml@latest
-  #   with:
-  #     standards-ref: latest
-
-  # Opt-in Dependabot merge after sibling CI jobs pass (HOW-TO-USE.md).
-  # Without Semver: needs: [ci]. With Semver: needs: [ci, semver].
-  # require_code_owner_reviews must stay false on soft branch protection so
-  # Dependabot can land after required checks.
+  # Opt-in Dependabot merge after aggregate CI (HOW-TO-USE.md).
+  # Aggregate uses if: always() → DAM must continue with always() + result gate.
   dependabot-auto-merge:
     name: Merge Dependabot PR
     needs: [ci]
-    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    if: >-
+      always() &&
+      needs.ci.result == 'success' &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
     permissions:
       contents: write
       pull-requests: write

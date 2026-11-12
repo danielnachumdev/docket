@@ -1,10 +1,10 @@
 # Copied from danielnachumdev/actions templates/github/dependabot.yml.
-# noBump labels omitted: Semver is not adopted on this template.
-# Restore noBump (and create the label) when enabling Semver CI.
+# noBump labels omitted: Semver is not adopted on this repo.
+# Monorepo directories match services/ layout.
 version: 2
 updates:
   - package-ecosystem: "pip"
-    directory: "/"
+    directory: "/services/api"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
@@ -17,7 +17,7 @@ updates:
         dependency-type: "development"
 
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/services/web"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
