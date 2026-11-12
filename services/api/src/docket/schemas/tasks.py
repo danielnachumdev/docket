@@ -78,8 +78,31 @@ class ArtifactOut(BaseModel):
     created_at: datetime
 
 
+class TaskLinkCreate(BaseModel):
+    to_task_id: int
+    kind: str = Field(
+        min_length=1,
+        max_length=32,
+        pattern=r"^[a-z][a-z0-9_]*$",
+        description="Extensible link kind, e.g. blocks, related, duplicate_of",
+    )
+
+
+class TaskLinkOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    from_task_id: int
+    to_task_id: int
+    kind: str
+    created_by_user_id: int
+    created_by_token_id: int | None
+    created_at: datetime
+
+
 class TaskDetailOut(BaseModel):
     task: TaskOut
     events: list[TaskEventOut]
     artifacts: list[ArtifactOut]
     children: list[TaskOut]
+    links: list[TaskLinkOut] = []

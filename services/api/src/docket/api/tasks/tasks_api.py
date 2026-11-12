@@ -5,16 +5,19 @@ from fastapi import APIRouter, Depends, Query, status
 from docket.auth import Principal, RequirePermission
 from docket.api.tasks.task_service import TaskService
 from docket.db import DbSession
-from docket.models import Artifact, Task
+from docket.models import Artifact, Task, TaskLink
 from docket.schemas import (
     ArtifactCreate,
     ArtifactOut,
     TaskCreate,
     TaskDetailOut,
+    TaskLinkCreate,
+    TaskLinkOut,
     TaskOut,
     TaskStatusIn,
     TaskUpdate,
 )
+from docket.task_links import TaskLinkService
 
 CanRead = Annotated[Principal, Depends(RequirePermission("tasks:read"))]
 CanWrite = Annotated[Principal, Depends(RequirePermission("tasks:write"))]
@@ -81,6 +84,25 @@ class TasksApi:
             response_model=ArtifactOut,
             status_code=status.HTTP_201_CREATED,
         )
+        self.router.add_api_route(
+            "/{task_id}/links",
+            self.list_links,
+            methods=["GET"],
+            response_model=list[TaskLinkOut],
+        )
+        self.router.add_api_route(
+            "/{task_id}/links",
+            self.create_link,
+            methods=["POST"],
+            response_model=TaskLinkOut,
+            status_code=status.HTTP_201_CREATED,
+        )
+        self.router.add_api_route(
+            "/{task_id}/links/{link_id}",
+            self.delete_link,
+            methods=["DELETE"],
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
 
     def list_tasks(
         self,
@@ -140,6 +162,30 @@ class TasksApi:
         principal: CanArtifacts,
     ) -> Artifact:
         return TaskService(db).add_artifact(principal, task_id, body)
+
+    def list_links(
+        self, task_id: int, db: DbSession, principal: CanRead
+    ) -> list[TaskLink]:
+        return TaskLinkService(db).list_for_task(
+            user_id=principal.user_id, task_id=task_id
+        )
+
+    def create_link(
+        self, task_id: int, body: TaskLinkCreate, db: DbSession, principal: CanWrite
+    ) -> TaskLink:
+        return TaskLinkService(db).create(
+            principal=principal,
+            from_task_id=task_id,
+            to_task_id=body.to_task_id,
+            kind=body.kind,
+        )
+
+    def delete_link(
+        self, task_id: int, link_id: int, db: DbSession, principal: CanWrite
+    ) -> None:
+        TaskLinkService(db).delete(
+            principal=principal, task_id=task_id, link_id=link_id
+        )
 
 
 tasks_api = TasksApi()

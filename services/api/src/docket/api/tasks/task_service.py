@@ -13,10 +13,12 @@ from docket.schemas import (
     TaskCreate,
     TaskDetailOut,
     TaskEventOut,
+    TaskLinkOut,
     TaskOut,
     TaskStatusIn,
     TaskUpdate,
 )
+from docket.task_links import TaskLinkService
 
 
 class TaskService:
@@ -70,6 +72,9 @@ class TaskService:
 
     def get_detail(self, principal: Principal, task_id: int) -> TaskDetailOut:
         task = self._owned_task(principal.user_id, task_id)
+        links = TaskLinkService(self._db).list_for_task(
+            user_id=principal.user_id, task_id=task.id
+        )
         return TaskDetailOut(
             task=TaskOut.model_validate(task),
             events=[
@@ -83,6 +88,7 @@ class TaskService:
             children=[
                 TaskOut.model_validate(c) for c in self._gateway.list_children(task.id)
             ],
+            links=[TaskLinkOut.model_validate(link) for link in links],
         )
 
     def update(self, principal: Principal, task_id: int, body: TaskUpdate) -> Task:

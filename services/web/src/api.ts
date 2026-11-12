@@ -49,11 +49,22 @@ export type Artifact = {
   created_at: string
 }
 
+export type TaskLink = {
+  id: number
+  from_task_id: number
+  to_task_id: number
+  kind: string
+  created_by_user_id: number
+  created_by_token_id: number | null
+  created_at: string
+}
+
 export type TaskDetail = {
   task: Task
   events: TaskEvent[]
   artifacts: Artifact[]
   children: Task[]
+  links: TaskLink[]
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -116,4 +127,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  createLink: (id: number, body: { to_task_id: number; kind: string }) =>
+    request<TaskLink>(`/api/tasks/${id}/links`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  deleteLink: (id: number, linkId: number) =>
+    request<void>(`/api/tasks/${id}/links/${linkId}`, { method: 'DELETE' }),
 }

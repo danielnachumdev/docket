@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type TaskDetail } from '../api'
 
 const STATUSES = ['open', 'in_progress', 'blocked', 'done', 'cancelled'] as const
+const LINK_KINDS = ['blocks', 'related', 'duplicate_of'] as const
 
 function toLocalInput(iso: string | null) {
   if (!iso) return ''
@@ -30,6 +31,8 @@ export function TaskDetailPage() {
   const [dueLocal, setDueLocal] = useState('')
   const [artifactTitle, setArtifactTitle] = useState('')
   const [artifactText, setArtifactText] = useState('')
+  const [linkToId, setLinkToId] = useState('')
+  const [linkKind, setLinkKind] = useState<(typeof LINK_KINDS)[number]>('related')
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
@@ -123,6 +126,39 @@ export function TaskDetailPage() {
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Artifact failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function addLink(e: FormEvent) {
+    e.preventDefault()
+    const toTaskId = Number(linkToId)
+    if (!Number.isFinite(toTaskId) || toTaskId <= 0) {
+      setError('Enter a valid task id to link')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      await api.createLink(taskId, { to_task_id: toTaskId, kind: linkKind })
+      setLinkToId('')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Link failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function removeLink(linkId: number) {
+    setBusy(true)
+    setError(null)
+    try {
+      await api.deleteLink(taskId, linkId)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unlink failed')
     } finally {
       setBusy(false)
     }
@@ -236,6 +272,66 @@ export function TaskDetailPage() {
           </ul>
         </section>
       )}
+
+      <section className="panel">
+        <h3>Links</h3>
+        <ul className="plain">
+          {(detail.links ?? []).map((link) => {
+            const otherId =
+              link.from_task_id === task.id ? link.to_task_id : link.from_task_id
+            const direction = link.from_task_id === task.id ? '→' : '←'
+            return (
+              <li key={link.id} className="link-row">
+                <span className="badge">{link.kind}</span>
+                <span className="muted">{direction}</span>
+                <Link to={`/tasks/${otherId}`}>#{otherId}</Link>
+                <button
+                  type="button"
+                  className="ghost compact"
+                  disabled={busy}
+                  onClick={() => void removeLink(link.id)}
+                >
+                  Remove
+                </button>
+              </li>
+            )
+          })}
+          {(detail.links ?? []).length === 0 && (
+            <li className="muted">No links yet.</li>
+          )}
+        </ul>
+        <form className="form form-row" onSubmit={(e) => void addLink(e)}>
+          <label>
+            Kind
+            <select
+              value={linkKind}
+              onChange={(e) =>
+                setLinkKind(e.target.value as (typeof LINK_KINDS)[number])
+              }
+            >
+              {LINK_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            To task #
+            <input
+              type="number"
+              min={1}
+              value={linkToId}
+              onChange={(e) => setLinkToId(e.target.value)}
+              placeholder="id"
+              required
+            />
+          </label>
+          <button type="submit" className="primary" disabled={busy}>
+            Add link
+          </button>
+        </form>
+      </section>
 
       <section className="panel">
         <h3>Artifacts</h3>
