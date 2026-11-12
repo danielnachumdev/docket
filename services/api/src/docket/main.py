@@ -47,12 +47,16 @@ app = create_app()
 
 
 def main() -> None:
+    import os
+
     import uvicorn
 
+    host = os.getenv("HOST", "127.0.0.1")
+    reload = os.getenv("RELOAD", "1") not in {"0", "false", "False"}
     uvicorn.run(
         "docket.main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=True,
-        reload_dirs=[str(ROOT / "src")],
+        host=host,
+        port=int(os.getenv("PORT", "8000")),
+        reload=reload,
+        reload_dirs=[str(ROOT / "src")] if reload else None,
     )

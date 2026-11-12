@@ -35,4 +35,6 @@ client_secrets.json
 # Local SQLite / runtime data
 data/*.db
 data/*.db-*
+**/data/*.db
+**/data/*.db-*
 *.db

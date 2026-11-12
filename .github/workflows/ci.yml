@@ -31,7 +31,9 @@ jobs:
     # secrets:
     #   VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}   # unlocks raft when .raft/ + raft-service/git-repo set
     with:
-      package-json-path: web/package.json
+      pyproject-path: services/api/pyproject.toml
+      package-json-path: services/web/package.json
+      alembic-root: services/api/alembic
       python-versions: '["3.12","3.13"]'
       python-versions-push: '["3.12","3.13"]'
       # Unlock terraform plan/apply (validate still runs from versions.tf alone):
