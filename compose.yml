@@ -30,6 +30,8 @@ services:
   web:
     build:
       context: ./services/web
+    environment:
+      API_UPSTREAM: api:8000
     ports:
       - "8088:80"
     depends_on:

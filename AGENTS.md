@@ -20,6 +20,8 @@ Product pitch: [`README.md`](README.md).
 | Thin orchestrator | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | CAPA | [`capabilities.yaml`](capabilities.yaml) — run `capa install` (do not hand-edit generated `.cursor/` / `.claude/`) |
 | Semver | **Omitted** until the repo publishes releases |
+| Images | CD on `main` pushes `ghcr.io/danielnachumdev/docket-api` + `docket-web` (`:main` and `:<sha>`) |
+| VPS deploy | [`danielnachumdev/docket-deploy`](https://github.com/danielnachumdev/docket-deploy) — Raft manifests only (not this repo) |
 | Secrets | Never commit tokens, keys, live DB, or operator inventory; use dummy data in fixtures/PRs |
 
 ## Conventions
@@ -28,7 +30,7 @@ Product pitch: [`README.md`](README.md).
 - Task history goes in `task_events`; relationships via `parent_task_id` + `task_links`.
 - Authorization is RBAC (`permissions` / `roles` / `memberships`); API tokens may downscope via `role_id`.
 - Each service owns its Dockerfile and runtime files under `services/<name>/`.
-- Deploy wiring for the VPS lives in a **private** deploy repo later — not here.
+- Raft / host / TLS / live env live in **docket-deploy**; this repo ships product + GHCR images.
 
 ## After template bootstrap
 

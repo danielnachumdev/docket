@@ -7,6 +7,8 @@ System of record for **human + agent** tasks. Humans use the web UI (and often W
 - **API:** FastAPI + SQLAlchemy + Alembic + SQLite (`services/api`)
 - **UI:** Vite + React + TypeScript (`services/web`)
 - **Local deploy:** `compose.yml` (API + nginx SPA)
+- **Images (CD on `main`):** `ghcr.io/danielnachumdev/docket-api` + `docket-web`
+- **VPS:** Raft manifests in [`docket-deploy`](https://github.com/danielnachumdev/docket-deploy) (`docket.danielnachum.com`)
 
 ## Layout
 
