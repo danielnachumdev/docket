@@ -19,13 +19,23 @@ from docket.schemas.tasks import (
     TaskStatusIn,
     TaskUpdate,
 )
+from docket.schemas.tokens import (
+    ApiTokenCreate,
+    ApiTokenCreatedOut,
+    ApiTokenOut,
+    RoleOut,
+)
 
 __all__ = [
+    "ApiTokenCreate",
+    "ApiTokenCreatedOut",
+    "ApiTokenOut",
     "ArtifactCreate",
     "ArtifactOut",
     "AuthStatusOut",
     "BootstrapIn",
     "LoginIn",
+    "RoleOut",
     "TaskClaimIn",
     "TaskCreate",
     "TaskDetailOut",

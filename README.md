@@ -50,4 +50,5 @@ SQLite persists in the `docket-data` volume. Override `TOKEN_PEPPER` via env for
 
 ## Status
 
-Human UI + task API + authn/authz split are in. Next: token minting UI/API for agents.
+Human UI + task API + authn/authz + API token mint/list/revoke (`tokens:manage`) are in.
+Next: claim/lease, links, and Instinct/agent docs.
