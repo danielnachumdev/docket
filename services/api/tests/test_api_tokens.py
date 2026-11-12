@@ -84,11 +84,20 @@ def test_token_mint_list_revoke_and_bearer_auth() -> None:
     assert revoked.status_code == 200
     assert revoked.json()["revoked_at"] is not None
 
+    # Drop the human session cookie so only the bearer credential is tested.
+    client.cookies.clear()
     dead = client.get(
         "/api/auth/me",
         headers={"Authorization": f"Bearer {raw}"},
     )
     assert dead.status_code == 401
+
+    # Re-establish session for management checks.
+    login = client.post(
+        "/api/auth/login",
+        json={"email": "ops@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
 
     active = client.get("/api/tokens")
     assert active.json() == []
