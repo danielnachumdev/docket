@@ -9,6 +9,7 @@ from docket.models import Artifact, Task, TaskLink
 from docket.schemas import (
     ArtifactCreate,
     ArtifactOut,
+    TaskClaimIn,
     TaskCreate,
     TaskDetailOut,
     TaskLinkCreate,
@@ -21,6 +22,7 @@ from docket.task_links import TaskLinkService
 
 CanRead = Annotated[Principal, Depends(RequirePermission("tasks:read"))]
 CanWrite = Annotated[Principal, Depends(RequirePermission("tasks:write"))]
+CanClaim = Annotated[Principal, Depends(RequirePermission("tasks:claim"))]
 CanAdmin = Annotated[Principal, Depends(RequirePermission("tasks:admin"))]
 CanArtifacts = Annotated[Principal, Depends(RequirePermission("artifacts:write"))]
 
@@ -56,6 +58,24 @@ class TasksApi:
         self.router.add_api_route(
             "/{task_id}/status",
             self.set_status,
+            methods=["POST"],
+            response_model=TaskOut,
+        )
+        self.router.add_api_route(
+            "/{task_id}/claim",
+            self.claim_task,
+            methods=["POST"],
+            response_model=TaskOut,
+        )
+        self.router.add_api_route(
+            "/{task_id}/release",
+            self.release_task,
+            methods=["POST"],
+            response_model=TaskOut,
+        )
+        self.router.add_api_route(
+            "/{task_id}/heartbeat",
+            self.heartbeat_task,
             methods=["POST"],
             response_model=TaskOut,
         )
@@ -138,6 +158,29 @@ class TasksApi:
         self, task_id: int, body: TaskStatusIn, db: DbSession, principal: CanWrite
     ) -> Task:
         return TaskService(db).set_status(principal, task_id, body)
+
+    def claim_task(
+        self,
+        task_id: int,
+        db: DbSession,
+        principal: CanClaim,
+        body: TaskClaimIn | None = None,
+    ) -> Task:
+        return TaskService(db).claim(principal, task_id, body)
+
+    def release_task(
+        self, task_id: int, db: DbSession, principal: CanClaim
+    ) -> Task:
+        return TaskService(db).release(principal, task_id)
+
+    def heartbeat_task(
+        self,
+        task_id: int,
+        db: DbSession,
+        principal: CanClaim,
+        body: TaskClaimIn | None = None,
+    ) -> Task:
+        return TaskService(db).heartbeat(principal, task_id, body)
 
     def archive_task(
         self, task_id: int, db: DbSession, principal: CanWrite

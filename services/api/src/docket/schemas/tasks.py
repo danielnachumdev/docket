@@ -26,6 +26,10 @@ class TaskStatusIn(BaseModel):
     status: str = Field(pattern="^(open|in_progress|blocked|done|cancelled)$")
 
 
+class TaskClaimIn(BaseModel):
+    lease_seconds: int = Field(default=900, ge=1, le=86_400)
+
+
 class TaskOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,6 +43,8 @@ class TaskOut(BaseModel):
     rank: float
     source: str
     due_at: datetime | None
+    claimed_by_token_id: int | None
+    claim_expires_at: datetime | None
     completed_at: datetime | None
     cancelled_at: datetime | None
     archived_at: datetime | None
