@@ -19,7 +19,7 @@ type TaskNode = Task & { children: TaskNode[] }
 type StatusChip = 'active' | 'all' | (typeof STATUSES)[number]
 
 function nestTasks(tasks: Task[]): TaskNode[] {
-  const byId = new Map<number, TaskNode>()
+  const byId = new Map<string, TaskNode>()
   for (const t of tasks) {
     byId.set(t.id, { ...t, children: [] })
   }
@@ -30,7 +30,7 @@ function nestTasks(tasks: Task[]): TaskNode[] {
     else roots.push(node)
   }
   const sortNodes = (nodes: TaskNode[]) => {
-    nodes.sort((a, b) => a.rank - b.rank || a.id - b.id)
+    nodes.sort((a, b) => a.rank - b.rank || a.number - b.number)
     for (const n of nodes) sortNodes(n.children)
   }
   sortNodes(roots)
@@ -41,7 +41,7 @@ function filterTree(
   nodes: TaskNode[],
   filter: FilterKey,
   query: string,
-  pinned: Set<number>,
+  pinned: Set<string>,
   userId: number | null,
 ): TaskNode[] {
   const out: TaskNode[] = []
@@ -57,8 +57,8 @@ function filterTree(
   return out
 }
 
-function collectIds(nodes: TaskNode[]): number[] {
-  const ids: number[] = []
+function collectIds(nodes: TaskNode[]): string[] {
+  const ids: string[] = []
   for (const node of nodes) {
     ids.push(node.id)
     ids.push(...collectIds(node.children))
@@ -68,12 +68,12 @@ function collectIds(nodes: TaskNode[]): number[] {
 
 type RowProps = {
   task: TaskNode
-  totalChildren: Map<number, Task[]>
-  collapsed: Set<number>
-  selected: Set<number>
-  onToggleCollapse: (id: number) => void
+  totalChildren: Map<string, Task[]>
+  collapsed: Set<string>
+  selected: Set<string>
+  onToggleCollapse: (id: string) => void
   onToggleDone: (task: Task) => void
-  onToggleSelect: (id: number) => void
+  onToggleSelect: (id: string) => void
 }
 
 function TaskRow({
@@ -135,7 +135,7 @@ function TaskRow({
                 {kidsDone}/{kids.length}
               </span>
             )}
-            <span className="meta-item mono">#{task.id}</span>
+            <span className="meta-item mono">#{task.number}</span>
           </span>
         </Link>
         <span className="task-status">
@@ -172,10 +172,10 @@ export function TaskListPage() {
   const [activeSavedId, setActiveSavedId] = useState<number | null>(null)
   const [savedViews, setSavedViews] = useState<SavedView[]>([])
   const [query, setQuery] = useState('')
-  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   // Tasks toggled in this view stay visible so a mis-click can be undone.
-  const [pinned, setPinned] = useState<Set<number>>(() => new Set())
-  const [selected, setSelected] = useState<Set<number>>(() => new Set())
+  const [pinned, setPinned] = useState<Set<string>>(() => new Set())
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [bulkStatus, setBulkStatus] = useState<(typeof STATUSES)[number]>('on_hold')
   const [bulkPriority, setBulkPriority] = useState(3)
   const [title, setTitle] = useState('')
@@ -213,7 +213,7 @@ export function TaskListPage() {
   )
   const visibleIds = useMemo(() => collectIds(visible), [visible])
   const childrenById = useMemo(() => {
-    const map = new Map<number, Task[]>()
+    const map = new Map<string, Task[]>()
     for (const t of tasks ?? []) {
       if (t.parent_task_id == null) continue
       const list = map.get(t.parent_task_id) ?? []
@@ -306,7 +306,7 @@ export function TaskListPage() {
     })
   }
 
-  function toggleCollapse(id: number) {
+  function toggleCollapse(id: string) {
     setCollapsed((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -315,7 +315,7 @@ export function TaskListPage() {
     })
   }
 
-  function toggleSelect(id: number) {
+  function toggleSelect(id: string) {
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)

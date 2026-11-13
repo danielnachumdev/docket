@@ -8,13 +8,13 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from docket.api.tasks.task_gateway import TaskGateway
+from docket.api.tasks.task_response_mapper import TaskResponseMapper
 from docket.artifact_storage import ArtifactStorage, ArtifactStorageFactory
 from docket.artifacts.artifact_gateway import ArtifactGateway
 from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
 from docket.config import Settings, get_settings
-from docket.models import Artifact, Task, TaskEvent, TaskLink
-from docket.schemas import ArtifactOut, TaskEventOut, TaskLinkOut, TaskOut
+from docket.models import Artifact, Task
 from docket.task_export.task_export_bundle import TaskExportBundle
 from docket.task_links import TaskLinkService
 
@@ -42,22 +42,24 @@ class TaskExportService:
         self._gateway = TaskGateway(db)
         self._artifacts = ArtifactGateway(db)
         self._access = TaskAccessService(db)
+        self._mapper = TaskResponseMapper(db)
         resolved = settings or get_settings()
         self._storage = storage or ArtifactStorageFactory().build(resolved)
 
-    def export_task(self, principal: Principal, task_id: int) -> TaskExportBundle:
-        task = self._access.get_task(principal, task_id, "tasks:read")
+    def export_task(self, principal: Principal, task_ref: str) -> TaskExportBundle:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
         exported_at = datetime.now(UTC)
         payload = self._assemble_payload(principal, task, exported_at)
         data = self._zip_payload(payload)
         return TaskExportBundle(
             data=data,
-            filename=f"docket-task-{task.id}-export.zip",
+            filename=f"docket-task-{task.public_id}-export.zip",
         )
 
     def _assemble_payload(
         self, principal: Principal, task: Task, exported_at: datetime
     ) -> dict[str, object]:
+        self._mapper.remember([task])
         events = list(reversed(self._gateway.list_events(task.id)))
         links = TaskLinkService(self._db).list_for_task(
             user_id=principal.user_id, task_id=task.id
@@ -72,18 +74,23 @@ class TaskExportService:
                     "format": FORMAT_ID,
                     "exported_at": exported_at.isoformat(),
                     "exported_by_user_id": principal.user_id,
-                    "task_id": task.id,
+                    "task_id": task.public_id,
                 }
             ),
-            "task.json": self._json_bytes(TaskOut.model_validate(task).model_dump(mode="json")),
+            "task.json": self._json_bytes(
+                self._mapper.task_out(task).model_dump(mode="json")
+            ),
             "events.json": self._json_bytes(
-                [self._event_dict(e) for e in events]
+                [self._mapper.event_out(e).model_dump(mode="json") for e in events]
             ),
             "links.json": self._json_bytes(
-                [self._link_dict(link) for link in links]
+                [self._mapper.link_out(link).model_dump(mode="json") for link in links]
             ),
             "children.json": self._json_bytes(
-                [TaskOut.model_validate(c).model_dump(mode="json") for c in children]
+                [
+                    child.model_dump(mode="json")
+                    for child in self._mapper.tasks_out(children)
+                ]
             ),
             "artifacts/index.json": self._json_bytes(artifact_entries),
         }
@@ -100,7 +107,7 @@ class TaskExportService:
         entries: list[dict] = []
         content_files: dict[str, bytes] = {}
         for artifact in artifacts:
-            meta = ArtifactOut.model_validate(artifact).model_dump(mode="json")
+            meta = self._mapper.artifact_out(artifact).model_dump(mode="json")
             path, data, error = self._read_artifact_bytes(artifact)
             entry = {
                 **meta,
@@ -151,12 +158,6 @@ class TaskExportService:
 
     def _json_bytes(self, value: object) -> bytes:
         return json.dumps(value, indent=2, sort_keys=True, default=str).encode("utf-8")
-
-    def _event_dict(self, event: TaskEvent) -> dict:
-        return TaskEventOut.model_validate(event).model_dump(mode="json")
-
-    def _link_dict(self, link: TaskLink) -> dict:
-        return TaskLinkOut.model_validate(link).model_dump(mode="json")
 
     def _safe_filename(self, title: str) -> str:
         cleaned = _SAFE_NAME.sub("_", title.strip())[:80].strip("._")

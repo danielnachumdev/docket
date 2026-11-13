@@ -68,26 +68,26 @@ class ArtifactService:
         resolved = settings or get_settings()
         self._storage = storage or ArtifactStorageFactory().build(resolved)
 
-    def list_artifacts(self, principal: Principal, task_id: int) -> list[Artifact]:
-        task = self._access.get_task(principal, task_id, "tasks:read")
+    def list_artifacts(self, principal: Principal, task_ref: str) -> list[Artifact]:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
         return self._gateway.list_for_task(task.id)
 
     def get_artifact(
-        self, principal: Principal, task_id: int, artifact_id: int
+        self, principal: Principal, task_ref: str, artifact_id: int
     ) -> Artifact:
-        self._access.get_task(principal, task_id, "tasks:read")
-        return self._require_artifact(task_id, artifact_id)
+        task = self._access.get_task(principal, task_ref, "tasks:read")
+        return self._require_artifact(task.id, artifact_id)
 
     def get_content(
-        self, principal: Principal, task_id: int, artifact_id: int
+        self, principal: Principal, task_ref: str, artifact_id: int
     ) -> ArtifactContent:
-        artifact = self.get_artifact(principal, task_id, artifact_id)
+        artifact = self.get_artifact(principal, task_ref, artifact_id)
         return self._read_content(artifact)
 
     def create(
-        self, principal: Principal, task_id: int, body: ArtifactCreate
+        self, principal: Principal, task_ref: str, body: ArtifactCreate
     ) -> Artifact:
-        task = self._access.get_task(principal, task_id, "artifacts:write")
+        task = self._access.get_task(principal, task_ref, "artifacts:write")
         storage_key, content_type, content_text = self._prepare_create_payload(
             task.id, body
         )
@@ -120,11 +120,11 @@ class ArtifactService:
     def update(
         self,
         principal: Principal,
-        task_id: int,
+        task_ref: str,
         artifact_id: int,
         body: ArtifactUpdate,
     ) -> Artifact:
-        task = self._access.get_task(principal, task_id, "artifacts:write")
+        task = self._access.get_task(principal, task_ref, "artifacts:write")
         artifact = self._require_artifact(task.id, artifact_id)
         changes = self._apply_update(artifact, body)
         if changes:
@@ -140,9 +140,9 @@ class ArtifactService:
         return artifact
 
     def delete(
-        self, principal: Principal, task_id: int, artifact_id: int
+        self, principal: Principal, task_ref: str, artifact_id: int
     ) -> None:
-        task = self._access.get_task(principal, task_id, "artifacts:write")
+        task = self._access.get_task(principal, task_ref, "artifacts:write")
         artifact = self._require_artifact(task.id, artifact_id)
         storage_key = artifact.storage_key
         title = artifact.title

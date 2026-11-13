@@ -29,18 +29,21 @@ class TaskAccessService:
         return select(Task).where(Task.id.in_(self.accessible_task_ids_select(user_id)))
 
     def get_task(
-        self, principal: Principal, task_id: int, permission: str
+        self, principal: Principal, task_ref: str, permission: str
     ) -> Task:
-        task = self._db.get(Task, task_id)
+        task = self._lookup(task_ref)
         if task is None or not self._may_access(principal, task, permission):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
         return task
 
-    def require_owner(self, principal: Principal, task_id: int) -> Task:
-        task = self._db.get(Task, task_id)
+    def require_owner(self, principal: Principal, task_ref: str) -> Task:
+        task = self._lookup(task_ref)
         if task is None or task.owner_user_id != principal.user_id:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
         return task
+
+    def _lookup(self, task_ref: str) -> Task | None:
+        return self._db.scalar(select(Task).where(Task.public_id == task_ref))
 
     def _may_access(
         self, principal: Principal, task: Task, permission: str

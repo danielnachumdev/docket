@@ -13,7 +13,7 @@ class TaskCommentIn(BaseModel):
 
 class TaskCommentOut(BaseModel):
     event_id: int
-    task_id: int
+    task_id: str
     body: str
     mentioned_user_ids: list[int]
 
@@ -23,7 +23,7 @@ class NotificationOut(BaseModel):
 
     id: int
     user_id: int
-    task_id: int | None
+    task_id: str | None
     kind: str
     title: str
     body: str | None

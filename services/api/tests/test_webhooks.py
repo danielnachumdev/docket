@@ -195,7 +195,7 @@ def _assert_signed_delivery(
     *,
     secret: str,
     event_type: str,
-    task_id: int,
+    task_id: str,
     data_subset: dict | None = None,
 ) -> None:
     body = call["content"]

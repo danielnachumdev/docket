@@ -7,7 +7,7 @@ import { initials } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 
 type Props = {
-  taskId: number
+  taskId: string
   shares: TaskShare[]
   isOwner: boolean
   onChanged: () => Promise<void>

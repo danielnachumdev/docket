@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 
 type Props = {
-  taskId: number
+  taskId: string
   artifactId: number
   title: string
 }

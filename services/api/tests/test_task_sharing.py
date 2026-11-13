@@ -163,11 +163,15 @@ def test_share_upserts_role() -> None:
 
     session = database.session()
     try:
+        from docket.models import Task
+
+        internal_id = session.scalar(select(Task.id).where(Task.public_id == task_id))
+        assert internal_id is not None
         count = len(
             session.scalars(
                 select(Membership).where(
                     Membership.scope_type == "task",
-                    Membership.scope_task_id == task_id,
+                    Membership.scope_task_id == internal_id,
                 )
             ).all()
         )

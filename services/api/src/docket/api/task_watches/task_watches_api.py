@@ -36,17 +36,17 @@ class TaskWatchesApi:
         )
 
     def get_watch(
-        self, task_id: int, db: DbSession, principal: CanRead
+        self, task_id: str, db: DbSession, principal: CanRead
     ) -> TaskWatchOut:
         return TaskWatchService(db).get(principal, task_id)
 
     def watch(
-        self, task_id: int, db: DbSession, principal: CanRead
+        self, task_id: str, db: DbSession, principal: CanRead
     ) -> TaskWatchOut:
         return TaskWatchService(db).watch(principal, task_id)
 
     def unwatch(
-        self, task_id: int, db: DbSession, principal: CanRead
+        self, task_id: str, db: DbSession, principal: CanRead
     ) -> None:
         TaskWatchService(db).unwatch(principal, task_id)
 

@@ -9,7 +9,7 @@ import { PRIORITIES, isClosed, priorityLabel } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 
 type Props = {
-  taskId: number
+  taskId: string
   subtasks: Task[]
   onChanged: () => Promise<void>
 }

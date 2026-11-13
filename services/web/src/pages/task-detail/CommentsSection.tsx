@@ -6,7 +6,7 @@ import { Section } from '../../components/Section'
 import { useAction } from '../../lib/useAction'
 
 type Props = {
-  taskId: number
+  taskId: string
   onChanged: () => Promise<void>
 }
 

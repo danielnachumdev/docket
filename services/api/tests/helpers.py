@@ -6,8 +6,25 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from docket.db import database
-from docket.models import ApiToken, Role
+from docket.models import ApiToken, Role, Task
 from docket.security import api_token_hasher
+
+
+def task_by_public_id(public_id: str) -> Task:
+    """Load a task ORM row by API SOT id (public_id)."""
+    db = database.SessionLocal()
+    try:
+        task = db.scalar(select(Task).where(Task.public_id == public_id))
+        assert task is not None
+        db.expunge(task)
+        return task
+    finally:
+        db.close()
+
+
+def internal_task_id(public_id: str) -> int:
+    return task_by_public_id(public_id).id
+
 
 
 def bootstrap_owner(client: TestClient) -> dict:

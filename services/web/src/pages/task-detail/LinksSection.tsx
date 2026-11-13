@@ -23,9 +23,9 @@ const INCOMING: Record<string, string> = {
 }
 
 type Props = {
-  taskId: number
+  taskId: string
   links: TaskLink[]
-  tasksById: Map<number, Task>
+  tasksById: Map<string, Task>
   onChanged: () => Promise<void>
 }
 
@@ -39,10 +39,9 @@ export function LinksSection({ taskId, links, tasksById, onChanged }: Props) {
 
   function onAdd(e: FormEvent) {
     e.preventDefault()
-    const toTaskId = Number(target)
-    if (!toTaskId) return
+    if (!target) return
     void run(async () => {
-      await api.createLink(taskId, { to_task_id: toTaskId, kind })
+      await api.createLink(taskId, { to_task_id: target, kind })
       setTarget('')
       await onChanged()
     }, 'Could not link tasks')
@@ -94,7 +93,7 @@ export function LinksSection({ taskId, links, tasksById, onChanged }: Props) {
           <option value="">Link to a task…</option>
           {choices.map((t) => (
             <option key={t.id} value={t.id}>
-              #{t.id} · {t.title}
+              #{t.number} · {t.title}
             </option>
           ))}
         </select>

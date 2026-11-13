@@ -10,7 +10,7 @@ class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     body: str | None = None
     priority: int = Field(default=3, ge=1, le=4)
-    parent_task_id: int | None = None
+    parent_task_id: str | None = None
     due_at: datetime | None = None
     external_id: str | None = Field(default=None, min_length=1, max_length=255)
     require_artifact_on_done: bool = False
@@ -22,7 +22,7 @@ class TaskUpdate(BaseModel):
     body: str | None = None
     priority: int | None = Field(default=None, ge=1, le=4)
     rank: float | None = None
-    parent_task_id: int | None = None
+    parent_task_id: str | None = None
     due_at: datetime | None = None
     clear_due_at: bool = False
     clear_parent: bool = False
@@ -40,7 +40,7 @@ class TaskStatusIn(BaseModel):
 
 
 class TaskBulkUpdate(BaseModel):
-    task_ids: list[int] = Field(min_length=1, max_length=200)
+    task_ids: list[str] = Field(min_length=1, max_length=200)
     status: str | None = Field(default=None, pattern=_STATUS_PATTERN)
     priority: int | None = Field(default=None, ge=1, le=4)
 
@@ -56,11 +56,14 @@ class TaskClaimIn(BaseModel):
 
 
 class TaskOut(BaseModel):
+    """API task identity: `id` is public_id (SOT); `number` is per-owner display #."""
+
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: str
+    number: int
     owner_user_id: int
-    parent_task_id: int | None
+    parent_task_id: str | None
     external_id: str | None
     title: str
     body: str | None
@@ -92,7 +95,7 @@ class TaskEventOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    task_id: int
+    task_id: str
     type: str
     actor_user_id: int
     actor_token_id: int | None
@@ -122,7 +125,7 @@ class ArtifactOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    task_id: int
+    task_id: str
     kind: str
     title: str
     content_text: str | None
@@ -133,7 +136,7 @@ class ArtifactOut(BaseModel):
 
 
 class TaskLinkCreate(BaseModel):
-    to_task_id: int
+    to_task_id: str
     kind: str = Field(
         min_length=1,
         max_length=32,
@@ -146,8 +149,8 @@ class TaskLinkOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    from_task_id: int
-    to_task_id: int
+    from_task_id: str
+    to_task_id: str
     kind: str
     created_by_user_id: int
     created_by_token_id: int | None
