@@ -1298,6 +1298,23 @@ a.list-row:hover {
   background: var(--accent);
 }
 
+.shared-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  line-height: 0;
+}
+
+.tag.shared-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .unread-toggle {
   flex: none;
   color: var(--muted);

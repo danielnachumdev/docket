@@ -83,6 +83,7 @@ class TaskOut(BaseModel):
     cancelled_at: datetime | None
     archived_at: datetime | None
     unread: bool = False
+    shared: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -94,6 +95,11 @@ class TaskOut(BaseModel):
     @field_validator("unread", mode="before")
     @classmethod
     def _default_unread(cls, value: object) -> object:
+        return False if value is None else value
+
+    @field_validator("shared", mode="before")
+    @classmethod
+    def _default_shared(cls, value: object) -> object:
         return False if value is None else value
 
 

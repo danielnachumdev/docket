@@ -55,6 +55,7 @@ export type Task = {
   cancelled_at: string | null
   archived_at: string | null
   unread: boolean
+  shared: boolean
   created_at: string
   updated_at: string
 }

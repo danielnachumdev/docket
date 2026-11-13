@@ -90,6 +90,7 @@ function TaskRow({
   const closed = isClosed(task.status)
   const done = task.status === 'done'
   const unread = Boolean(task.unread)
+  const shared = Boolean(task.shared)
   const kids = totalChildren.get(task.id) ?? []
   const kidsDone = kids.filter((k) => k.status === 'done').length
   const isCollapsed = collapsed.has(task.id)
@@ -130,6 +131,11 @@ function TaskRow({
         <Link to={`/tasks/${task.id}`} className="task-main">
           <span className="task-title-row">
             {unread && <span className="unread-dot" aria-hidden="true" />}
+            {shared && (
+              <span className="shared-mark" title="Shared" aria-label="Shared">
+                <Icon name="users" size={12} />
+              </span>
+            )}
             <span className={unread ? 'task-title unread' : 'task-title'}>{task.title}</span>
           </span>
           <span className="task-meta">

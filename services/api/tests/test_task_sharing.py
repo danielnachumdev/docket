@@ -48,6 +48,7 @@ def test_share_task_grants_read_and_list() -> None:
     created = client.post("/api/tasks", json={"title": "Shared board", "priority": 2})
     assert created.status_code == 201
     task_id = created.json()["id"]
+    assert created.json()["shared"] is False
 
     _create_user("alex@example.com", "Alex", "password123")
 
@@ -64,16 +65,24 @@ def test_share_task_grants_read_and_list() -> None:
     assert listed_shares.status_code == 200
     assert len(listed_shares.json()) == 1
 
+    owner_listed = client.get("/api/tasks?roots_only=true")
+    assert owner_listed.status_code == 200
+    owner_row = next(t for t in owner_listed.json() if t["id"] == task_id)
+    assert owner_row["shared"] is True
+    assert client.get(f"/api/tasks/{task_id}").json()["task"]["shared"] is True
+
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")
 
     listed = client.get("/api/tasks?roots_only=true")
     assert listed.status_code == 200
     assert [t["id"] for t in listed.json()] == [task_id]
+    assert listed.json()[0]["shared"] is True
 
     detail = client.get(f"/api/tasks/{task_id}")
     assert detail.status_code == 200
     assert detail.json()["task"]["title"] == "Shared board"
+    assert detail.json()["task"]["shared"] is True
 
     denied = client.patch(f"/api/tasks/{task_id}", json={"title": "Nope"})
     assert denied.status_code == 403
@@ -82,6 +91,7 @@ def test_share_task_grants_read_and_list() -> None:
     _login(client, "ops@example.com", "password1234")
     unshare = client.delete(f"/api/tasks/{task_id}/shares/{membership_id}")
     assert unshare.status_code == 204
+    assert client.get(f"/api/tasks/{task_id}").json()["task"]["shared"] is False
 
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")
