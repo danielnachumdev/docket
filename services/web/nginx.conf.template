@@ -4,6 +4,19 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Defense-in-depth browser headers (SPA + same-origin /api proxy).
+    # HSTS (Strict-Transport-Security) belongs at the TLS edge (Cloudflare /
+    # docket-deploy), not on this plain-HTTP :80 listener — enabling it here
+    # would break local compose HTTP. Set HSTS only where HTTPS terminates.
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    # Practical CSP for the Vite SPA: same-origin assets + /api; inline theme
+    # boot script and React style={{}} need 'unsafe-inline'; blob:/data: for
+    # artifact previews. frame-ancestors backs X-Frame-Options.
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'" always;
+
     # API_UPSTREAM is substituted at container start (e.g. api:8000 or docket-api:8000).
     location /api/ {
         proxy_pass http://${API_UPSTREAM};

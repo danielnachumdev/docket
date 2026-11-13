@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     session_secret: str = "dev-only-session-secret"
     session_cookie: str = "docket_session"
     session_max_age_seconds: int = 60 * 60 * 24 * 30
+    # Set True behind HTTPS (production / TLS edge). Leave False for local HTTP.
+    session_cookie_secure: bool = False
     # Artifact blob storage: local (default) or gcs.
     artifact_storage: str = "local"
     artifact_local_root: str = str(ROOT / "data" / "artifacts")

@@ -76,6 +76,7 @@ class AuthApi:
             key=settings.session_cookie,
             value=session_codec.dump(user_id),
             httponly=True,
+            secure=settings.session_cookie_secure,
             samesite="lax",
             max_age=settings.session_max_age_seconds,
             path="/",
@@ -83,7 +84,13 @@ class AuthApi:
 
     def _clear_session_cookie(self, response: Response) -> None:
         settings = get_settings()
-        response.delete_cookie(settings.session_cookie, path="/")
+        response.delete_cookie(
+            settings.session_cookie,
+            path="/",
+            secure=settings.session_cookie_secure,
+            httponly=True,
+            samesite="lax",
+        )
 
 
 auth_api = AuthApi()
