@@ -3,7 +3,7 @@ name: CI
 # Thin orchestrator. Soft-protect with the check name this workflow reports (local aggregate → "CI"; see actions HOW-TO-USE → Required check names).
 # Monorepo: Python and Node live under different services/, so we call the
 # reusable lanes directly (umbrella detect uses one working-directory).
-# Semver omitted: this app does not publish versioned artifacts.
+# Semver: require exactly one bump label on PRs; soft-protect "Semver / Semver".
 # Prefer @latest (CD moves floating latest after each release).
 
 on:
@@ -50,6 +50,13 @@ jobs:
       alembic-root: services/api/alembic
       base-ref: origin/main
 
+  semver:
+    name: Semver
+    if: github.event_name == 'pull_request'
+    uses: danielnachumdev/actions/.github/workflows/semver-ci.yml@latest
+    with:
+      standards-ref: latest
+
   # Aggregate required check "CI" (local job name; soft protection + DAM gate).
   ci:
     name: CI
@@ -69,14 +76,15 @@ jobs:
           test "${{ needs.github-yaml.result }}" = "success"
           test "${{ needs.rebase-guard.result }}" = "success"
 
-  # Opt-in Dependabot merge after aggregate CI (HOW-TO-USE.md).
+  # Opt-in Dependabot merge after aggregate CI + Semver (HOW-TO-USE.md).
   # Aggregate uses if: always() → DAM must continue with always() + result gate.
   dependabot-auto-merge:
     name: Merge Dependabot PR
-    needs: [ci]
+    needs: [ci, semver]
     if: >-
       always() &&
       needs.ci.result == 'success' &&
+      needs.semver.result == 'success' &&
       github.event_name == 'pull_request' &&
       github.event.pull_request.user.login == 'dependabot[bot]'
     permissions:

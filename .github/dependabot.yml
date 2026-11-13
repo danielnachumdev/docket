@@ -1,5 +1,5 @@
 # Copied from danielnachumdev/actions templates/github/dependabot.yml.
-# noBump labels omitted: Semver is not adopted on this repo.
+# Semver adopted: Dependabot PRs get noBump so Semver CI passes.
 # Monorepo directories match services/ layout.
 version: 2
 updates:
@@ -10,6 +10,7 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+      - "noBump"
     groups:
       pip-production:
         dependency-type: "production"
@@ -23,6 +24,7 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+      - "noBump"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -31,3 +33,4 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
+      - "noBump"

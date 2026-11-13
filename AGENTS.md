@@ -19,8 +19,8 @@ Product pitch: [`README.md`](README.md).
 | CI hub | Shared reusable workflows pinned `@latest` |
 | Thin orchestrator | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | CAPA | [`capabilities.yaml`](capabilities.yaml) — run `capa install` (do not hand-edit generated `.cursor/` / `.claude/`) |
-| Semver | **Omitted** until the repo publishes releases |
-| Images | CD on `main` pushes `ghcr.io/danielnachumdev/docket-api` + `docket-web` (`:main` and `:<sha>`) |
+| Semver | PR labels `bumpPatch` / `bumpMinor` / `bumpMajor` / `noBump`; CD creates GitHub Releases + retags `latest` |
+| Images | CD on `main` pushes `ghcr.io/danielnachumdev/docket-api` + `docket-web` (`:latest`, `:main`, `:<sha>`) |
 | VPS deploy | [`danielnachumdev/docket-deploy`](https://github.com/danielnachumdev/docket-deploy) — Raft manifests only (not this repo) |
 | Secrets | Never commit tokens, keys, live DB, or operator inventory; use dummy data in fixtures/PRs |
 
@@ -35,4 +35,5 @@ Product pitch: [`README.md`](README.md).
 ## After template bootstrap
 
 1. Language lanes: `services/api/pyproject.toml` + `services/web/package.json` — keep `allow-empty` **off**.
-2. Soft-protect `main`: require **`CI`**; Dependabot auto-merge per actions hub HOW-TO-USE.
+2. Soft-protect `main`: require **`CI`** and **`Semver / Semver`**; Dependabot auto-merge per actions hub HOW-TO-USE.
+3. Every PR needs exactly one of `bumpPatch` \| `bumpMinor` \| `bumpMajor` \| `noBump` (Dependabot gets `noBump`).
