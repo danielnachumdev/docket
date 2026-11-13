@@ -133,7 +133,23 @@ export function TaskDetailPage() {
       setLoadError('Invalid task id')
       return
     }
-    load().catch((err: Error) => setLoadError(err.message))
+    let cancelled = false
+    void (async () => {
+      try {
+        await load()
+        if (cancelled) return
+        const task = await api.markTaskRead(taskId)
+        if (cancelled) return
+        setDetail((prev) =>
+          prev ? { ...prev, task: { ...prev.task, unread: task.unread } } : prev,
+        )
+      } catch (err) {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [load, taskId])
 
   const tasksById = useMemo(() => new Map(allTasks.map((t) => [t.id, t])), [allTasks])
@@ -254,6 +270,20 @@ export function TaskDetailPage() {
     }, 'Could not update watch')
   }
 
+  function toggleUnread() {
+    if (!detail) return
+    const next = !detail.task.unread
+    setDetail((prev) =>
+      prev ? { ...prev, task: { ...prev.task, unread: next } } : prev,
+    )
+    void run(async () => {
+      const task = next
+        ? await api.markTaskUnread(taskId)
+        : await api.markTaskRead(taskId)
+      setDetail((prev) => (prev ? { ...prev, task: { ...prev.task, unread: task.unread } } : prev))
+    }, 'Could not update read state')
+  }
+
   function remove() {
     if (!detail || !window.confirm(`Delete “${detail.task.title}” permanently? This cannot be undone.`)) return
     const parentId = detail.task.parent_task_id
@@ -362,6 +392,17 @@ export function TaskDetailPage() {
           </span>
           {task.source && task.source !== 'ui' && <span className="tag">via {task.source}</span>}
           <span className="detail-actions">
+            <button
+              type="button"
+              className={`btn ghost small${task.unread ? ' unread-active' : ''}`}
+              disabled={busy}
+              aria-pressed={task.unread}
+              onClick={toggleUnread}
+              title={task.unread ? 'Mark read' : 'Mark unread'}
+            >
+              <Icon name={task.unread ? 'mail' : 'mailOpen'} />
+              {task.unread ? 'Unread' : 'Read'}
+            </button>
             <button
               type="button"
               className="btn ghost small"

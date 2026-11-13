@@ -50,6 +50,7 @@ class TaskResponseMapper:
             completed_at=task.completed_at,
             cancelled_at=task.cancelled_at,
             archived_at=task.archived_at,
+            unread=bool(task.unread),
             created_at=task.created_at,
             updated_at=task.updated_at,
         )

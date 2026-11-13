@@ -114,6 +114,18 @@ class TasksApi:
             response_model=TaskOut,
         )
         self.router.add_api_route(
+            "/{task_id}/read",
+            self.mark_task_read,
+            methods=["POST"],
+            response_model=TaskOut,
+        )
+        self.router.add_api_route(
+            "/{task_id}/unread",
+            self.mark_task_unread,
+            methods=["POST"],
+            response_model=TaskOut,
+        )
+        self.router.add_api_route(
             "/{task_id}",
             self.delete_task,
             methods=["DELETE"],
@@ -248,6 +260,16 @@ class TasksApi:
         self, task_id: str, db: DbSession, principal: CanWrite
     ) -> TaskOut:
         return TaskService(db).unarchive(principal, task_id)
+
+    def mark_task_read(
+        self, task_id: str, db: DbSession, principal: CanRead
+    ) -> TaskOut:
+        return TaskService(db).mark_read(principal, task_id)
+
+    def mark_task_unread(
+        self, task_id: str, db: DbSession, principal: CanRead
+    ) -> TaskOut:
+        return TaskService(db).mark_unread(principal, task_id)
 
     def delete_task(
         self, task_id: str, db: DbSession, principal: CanAdmin

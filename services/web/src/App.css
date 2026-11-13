@@ -1272,11 +1272,48 @@ a.list-row:hover {
   color: inherit;
 }
 
+.task-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .task-title {
   overflow: hidden;
   font-weight: 550;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.task-title.unread {
+  font-weight: 650;
+}
+
+.unread-dot {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.unread-toggle {
+  flex: none;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+
+.task-row:hover .unread-toggle,
+.unread-toggle.active,
+.unread-toggle:focus-visible {
+  opacity: 1;
+}
+
+.unread-toggle.active {
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .task-main:hover .task-title {
@@ -1287,6 +1324,11 @@ a.list-row:hover {
   color: var(--muted);
   text-decoration: line-through;
   text-decoration-color: var(--border-strong);
+}
+
+.btn.unread-active {
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .task-meta {

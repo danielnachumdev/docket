@@ -54,6 +54,7 @@ export type Task = {
   completed_at: string | null
   cancelled_at: string | null
   archived_at: string | null
+  unread: boolean
   created_at: string
   updated_at: string
 }
@@ -306,6 +307,10 @@ export const api = {
   archive: (id: string) => request<Task>(`/api/tasks/${id}/archive`, { method: 'POST' }),
   unarchive: (id: string) =>
     request<Task>(`/api/tasks/${id}/unarchive`, { method: 'POST' }),
+  markTaskRead: (id: string) =>
+    request<Task>(`/api/tasks/${id}/read`, { method: 'POST' }),
+  markTaskUnread: (id: string) =>
+    request<Task>(`/api/tasks/${id}/unread`, { method: 'POST' }),
   deleteTask: (id: string) =>
     request<void>(`/api/tasks/${id}`, { method: 'DELETE' }),
   addArtifact: (
