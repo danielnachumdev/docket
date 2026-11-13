@@ -1,7 +1,7 @@
 """registration invites
 
 Revision ID: e6f7a8b9c0d1
-Revises: c3d4e5f6a7b8
+Revises: d4e5f6a7b8c9
 Create Date: 2026-11-13 22:30:00.000000
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "e6f7a8b9c0d1"
-down_revision: Union[str, Sequence[str], None] = "c3d4e5f6a7b8"
+down_revision: Union[str, Sequence[str], None] = "d4e5f6a7b8c9"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

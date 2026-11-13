@@ -17,7 +17,7 @@ def _bootstrap(client: TestClient, email: str = "ops@example.com") -> None:
         json={
             "email": email,
             "display_name": "Ops",
-            "password": "password123",
+            "password": "password1234",
         },
     )
     assert res.status_code == 200
