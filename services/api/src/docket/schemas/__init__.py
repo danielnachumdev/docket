@@ -11,6 +11,11 @@ from docket.schemas.notifications import (
     TaskWatchOut,
     UnreadCountOut,
 )
+from docket.schemas.saved_views import (
+    SavedViewCreate,
+    SavedViewOut,
+    SavedViewUpdate,
+)
 from docket.schemas.tasks import (
     ArtifactCreate,
     ArtifactOut,
@@ -47,6 +52,9 @@ __all__ = [
     "LoginIn",
     "NotificationOut",
     "RoleOut",
+    "SavedViewCreate",
+    "SavedViewOut",
+    "SavedViewUpdate",
     "TaskClaimIn",
     "TaskCommentIn",
     "TaskCommentOut",

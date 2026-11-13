@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { api, type Task } from '../api'
+import { api, type SavedView, type Task } from '../api'
+import { useAuth } from '../auth'
 import { DueBadge, PriorityBadge, StatusBadge } from '../components/Badges'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { PRIORITIES, STATUSES, isClosed, priorityLabel, statusLabel } from '../lib/format'
+import {
+  SMART_FILTERS,
+  filterLabel,
+  isSmartFilter,
+  matchesFilterKey,
+  type FilterKey,
+} from '../lib/smartFilters'
 import { useAction } from '../lib/useAction'
 
 type TaskNode = Task & { children: TaskNode[] }
-type Filter = 'active' | 'all' | (typeof STATUSES)[number]
+type StatusChip = 'active' | 'all' | (typeof STATUSES)[number]
 
 function nestTasks(tasks: Task[]): TaskNode[] {
   const byId = new Map<number, TaskNode>()
@@ -29,18 +37,20 @@ function nestTasks(tasks: Task[]): TaskNode[] {
   return roots
 }
 
-function matchesFilter(task: Task, filter: Filter, query: string, pinned: Set<number>) {
-  if (query && !task.title.toLowerCase().includes(query)) return false
-  if (filter === 'all' || pinned.has(task.id)) return true
-  if (filter === 'active') return !isClosed(task.status)
-  return task.status === filter
-}
-
-function filterTree(nodes: TaskNode[], filter: Filter, query: string, pinned: Set<number>): TaskNode[] {
+function filterTree(
+  nodes: TaskNode[],
+  filter: FilterKey,
+  query: string,
+  pinned: Set<number>,
+  userId: number | null,
+): TaskNode[] {
   const out: TaskNode[] = []
   for (const node of nodes) {
-    const children = filterTree(node.children, filter, query, pinned)
-    if (children.length > 0 || matchesFilter(node, filter, query, pinned)) {
+    const children = filterTree(node.children, filter, query, pinned, userId)
+    if (
+      children.length > 0 ||
+      matchesFilterKey(node, filter, { userId, query, pinned })
+    ) {
       out.push({ ...node, children })
     }
   }
@@ -126,8 +136,12 @@ function TaskRow({ task, totalChildren, collapsed, onToggleCollapse, onToggleDon
 export function TaskListPage() {
   const [searchParams] = useSearchParams()
   const archived = searchParams.get('view') === 'archived'
+  const { status: auth } = useAuth()
+  const userId = auth?.user?.id ?? null
   const [tasks, setTasks] = useState<Task[] | null>(null)
-  const [filter, setFilter] = useState<Filter>('active')
+  const [filter, setFilter] = useState<FilterKey>('active')
+  const [activeSavedId, setActiveSavedId] = useState<number | null>(null)
+  const [savedViews, setSavedViews] = useState<SavedView[]>([])
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set())
   // Tasks toggled in this view stay visible so a mis-click can be undone.
@@ -141,17 +155,28 @@ export function TaskListPage() {
     setTasks(rows)
   }, [archived])
 
+  const loadViews = useCallback(async () => {
+    if (archived) {
+      setSavedViews([])
+      return
+    }
+    const rows = await api.listSavedViews()
+    setSavedViews(rows)
+  }, [archived])
+
   useEffect(() => {
     setTasks(null)
     setFilter(archived ? 'all' : 'active')
+    setActiveSavedId(null)
     setPinned(new Set())
     load().catch((err: Error) => setError(err.message))
-  }, [archived, load, setError])
+    loadViews().catch((err: Error) => setError(err.message))
+  }, [archived, load, loadViews, setError])
 
   const tree = useMemo(() => nestTasks(tasks ?? []), [tasks])
   const visible = useMemo(
-    () => filterTree(tree, filter, query.trim().toLowerCase(), pinned),
-    [tree, filter, query, pinned],
+    () => filterTree(tree, filter, query.trim().toLowerCase(), pinned, userId),
+    [tree, filter, query, pinned, userId],
   )
   const childrenById = useMemo(() => {
     const map = new Map<number, Task[]>()
@@ -170,8 +195,34 @@ export function TaskListPage() {
       if (!isClosed(t.status)) c.active = (c.active ?? 0) + 1
       c[t.status] = (c[t.status] ?? 0) + 1
     }
+    for (const key of SMART_FILTERS) {
+      c[key] = (tasks ?? []).filter((t) =>
+        matchesFilterKey(t, key, {
+          userId,
+          query: '',
+          pinned: new Set(),
+        }),
+      ).length
+    }
     return c
-  }, [tasks])
+  }, [tasks, userId])
+
+  function selectFilter(next: FilterKey, savedId: number | null = null) {
+    setFilter(next)
+    setActiveSavedId(savedId)
+    setPinned(new Set())
+  }
+
+  function selectSavedView(view: SavedView) {
+    const key = (isSmartFilter(view.filter_key) ||
+    view.filter_key === 'active' ||
+    view.filter_key === 'all' ||
+    (STATUSES as readonly string[]).includes(view.filter_key)
+      ? view.filter_key
+      : 'active') as FilterKey
+    setQuery(view.query)
+    selectFilter(key, view.id)
+  }
 
   function onCreate(e: FormEvent) {
     e.preventDefault()
@@ -181,6 +232,30 @@ export function TaskListPage() {
       setTitle('')
       await load()
     }, 'Could not create task')
+  }
+
+  function onSaveView() {
+    const name = window.prompt('Name for this saved view')
+    if (!name?.trim()) return
+    void run(async () => {
+      const created = await api.createSavedView({
+        name: name.trim(),
+        filter_key: filter,
+        query: query.trim(),
+        position: savedViews.length,
+      })
+      setSavedViews((prev) => [...prev, created])
+      setActiveSavedId(created.id)
+    }, 'Could not save view')
+  }
+
+  function onDeleteSavedView(view: SavedView) {
+    if (!window.confirm(`Delete saved view “${view.name}”?`)) return
+    void run(async () => {
+      await api.deleteSavedView(view.id)
+      setSavedViews((prev) => prev.filter((v) => v.id !== view.id))
+      if (activeSavedId === view.id) setActiveSavedId(null)
+    }, 'Could not delete view')
   }
 
   function toggleDone(task: Task) {
@@ -202,7 +277,7 @@ export function TaskListPage() {
     })
   }
 
-  const filters: Filter[] = ['active', 'all', ...STATUSES]
+  const statusChips: StatusChip[] = ['active', 'all', ...STATUSES]
 
   return (
     <main className="page">
@@ -258,21 +333,21 @@ export function TaskListPage() {
             placeholder="Search tasks"
             aria-label="Search tasks"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setActiveSavedId(null)
+            }}
           />
         </label>
         <div className="chips" role="tablist" aria-label="Filter by status">
-          {filters.map((f) => (
+          {statusChips.map((f) => (
             <button
               key={f}
               type="button"
               role="tab"
-              aria-selected={filter === f}
-              className={filter === f ? 'chip active' : 'chip'}
-              onClick={() => {
-                setFilter(f)
-                setPinned(new Set())
-              }}
+              aria-selected={activeSavedId == null && filter === f}
+              className={activeSavedId == null && filter === f ? 'chip active' : 'chip'}
+              onClick={() => selectFilter(f)}
             >
               {f === 'active' ? 'Active' : f === 'all' ? 'All' : statusLabel(f)}
               <span className="chip-count">{counts[f] ?? 0}</span>
@@ -280,6 +355,58 @@ export function TaskListPage() {
           ))}
         </div>
       </div>
+
+      {!archived && (
+        <div className="views-bar" aria-label="Smart and saved views">
+          <div className="chips views-chips" role="tablist" aria-label="Smart filters">
+            {SMART_FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                role="tab"
+                aria-selected={activeSavedId == null && filter === f}
+                className={
+                  activeSavedId == null && filter === f ? 'chip smart active' : 'chip smart'
+                }
+                onClick={() => selectFilter(f)}
+              >
+                {filterLabel(f)}
+                <span className="chip-count">{counts[f] ?? 0}</span>
+              </button>
+            ))}
+            {savedViews.map((view) => (
+              <span key={view.id} className="saved-chip-wrap">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeSavedId === view.id}
+                  className={activeSavedId === view.id ? 'chip saved active' : 'chip saved'}
+                  onClick={() => selectSavedView(view)}
+                >
+                  {view.name}
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn ghost chip-remove"
+                  aria-label={`Delete saved view ${view.name}`}
+                  title="Delete saved view"
+                  onClick={() => onDeleteSavedView(view)}
+                >
+                  <Icon name="x" size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="btn ghost save-view-btn"
+            disabled={busy}
+            onClick={onSaveView}
+          >
+            Save view
+          </button>
+        </div>
+      )}
 
       {tasks == null ? (
         <Skeleton rows={5} />
