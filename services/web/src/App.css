@@ -1063,6 +1063,51 @@ a.list-row:hover {
   font-variant-numeric: tabular-nums;
 }
 
+.views-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: -0.15rem;
+}
+
+.views-chips {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.chip.smart {
+  border-style: dashed;
+}
+
+.chip.saved {
+  background: var(--surface-2);
+}
+
+.saved-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex: none;
+}
+
+.chip-remove {
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  color: var(--muted);
+}
+
+.chip-remove:hover {
+  color: var(--text);
+}
+
+.save-view-btn {
+  flex: none;
+  font-size: 0.84rem;
+  padding: 0.32rem 0.7rem;
+}
+
 .task-tree,
 .task-children {
   margin: 0;

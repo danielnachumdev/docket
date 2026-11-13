@@ -32,6 +32,16 @@ export type Task = {
   updated_at: string
 }
 
+export type SavedView = {
+  id: number
+  name: string
+  filter_key: string
+  query: string
+  position: number
+  created_at: string
+  updated_at: string
+}
+
 export type TaskEvent = {
   id: number
   task_id: number
@@ -294,4 +304,30 @@ export const api = {
     }),
   revokeToken: (id: number) =>
     request<ApiToken>(`/api/tokens/${id}/revoke`, { method: 'POST' }),
+  listSavedViews: () => request<SavedView[]>('/api/saved-views'),
+  createSavedView: (body: {
+    name: string
+    filter_key: string
+    query?: string
+    position?: number
+  }) =>
+    request<SavedView>('/api/saved-views', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateSavedView: (
+    id: number,
+    body: {
+      name?: string
+      filter_key?: string
+      query?: string
+      position?: number
+    },
+  ) =>
+    request<SavedView>(`/api/saved-views/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  deleteSavedView: (id: number) =>
+    request<void>(`/api/saved-views/${id}`, { method: 'DELETE' }),
 }
