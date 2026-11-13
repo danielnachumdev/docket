@@ -1,18 +1,23 @@
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from docket.api.task_watches.task_watch_service import TaskWatchService
 from docket.api.tasks.task_gateway import TaskGateway
 from docket.artifacts import ArtifactGateway
 from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
 from docket.events import task_event_recorder
-from docket.models import Task
+from docket.models import Membership, Task
+from docket.notifications import mention_resolver, notification_dispatcher
 from docket.schemas import (
     ArtifactOut,
     TaskClaimIn,
+    TaskCommentIn,
+    TaskCommentOut,
     TaskCreate,
     TaskDetailOut,
     TaskEventOut,
@@ -120,6 +125,9 @@ class TaskService:
         links = TaskLinkService(self._db).list_for_task(
             user_id=principal.user_id, task_id=task.id
         )
+        watching = TaskWatchService(self._db).is_watching(
+            principal.user_id, task.id
+        )
         return TaskDetailOut(
             task=TaskOut.model_validate(task),
             events=[
@@ -134,6 +142,7 @@ class TaskService:
                 TaskOut.model_validate(c) for c in self._gateway.list_children(task.id)
             ],
             links=[TaskLinkOut.model_validate(link) for link in links],
+            watching=watching,
         )
 
     def update(self, principal: Principal, task_id: int, body: TaskUpdate) -> Task:
@@ -176,9 +185,83 @@ class TaskService:
             actor=principal,
             payload=payload,
         )
+        notification_dispatcher(self._db).notify_watchers(
+            task=task,
+            actor=principal,
+            kind="status_changed",
+            title=f"Status → {body.status}",
+            body=f"“{task.title}” moved from {old} to {body.status}",
+            payload=payload,
+        )
         self._gateway.commit()
         self._gateway.refresh(task)
         return task
+
+    def add_comment(
+        self, principal: Principal, task_id: int, body: TaskCommentIn
+    ) -> TaskCommentOut:
+        task = self._access.get_task(principal, task_id, "tasks:write")
+        text = body.body.strip()
+        if not text:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Comment cannot be empty")
+        mentioned = self._accessible_mention_ids(principal, task, text)
+        event = task_event_recorder.record(
+            self._db,
+            task_id=task.id,
+            event_type="commented",
+            actor=principal,
+            payload={"body": text, "mentioned_user_ids": mentioned},
+        )
+        dispatcher = notification_dispatcher(self._db)
+        mentioned_set = set(mentioned)
+        dispatcher.notify_users(
+            user_ids=mentioned,
+            task=task,
+            actor=principal,
+            kind="mentioned",
+            title=f"Mentioned on “{task.title}”",
+            body=text,
+            payload={"body": text},
+        )
+        dispatcher.notify_watchers(
+            task=task,
+            actor=principal,
+            kind="commented",
+            title=f"Comment on “{task.title}”",
+            body=text,
+            payload={"body": text},
+            exclude_user_ids=mentioned_set,
+        )
+        self._gateway.commit()
+        self._gateway.refresh(event)
+        return TaskCommentOut(
+            event_id=event.id,
+            task_id=task.id,
+            body=text,
+            mentioned_user_ids=mentioned,
+        )
+
+    def _accessible_mention_ids(
+        self, principal: Principal, task: Task, text: str
+    ) -> list[int]:
+        resolved = mention_resolver.resolve_user_ids(self._db, text)
+        return [
+            user_id
+            for user_id in resolved
+            if user_id != principal.user_id and self._user_can_see_task(user_id, task)
+        ]
+
+    def _user_can_see_task(self, user_id: int, task: Task) -> bool:
+        if task.owner_user_id == user_id:
+            return True
+        shared = self._db.scalar(
+            select(Membership.id).where(
+                Membership.user_id == user_id,
+                Membership.scope_type == "task",
+                Membership.scope_task_id == task.id,
+            )
+        )
+        return shared is not None
 
     def claim(
         self,

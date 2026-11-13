@@ -18,6 +18,7 @@ import { useAction } from '../lib/useAction'
 import { ActivitySection } from './task-detail/ActivitySection'
 import { ArtifactsSection } from './task-detail/ArtifactsSection'
 import { ClaimLeaseSection } from './task-detail/ClaimLeaseSection'
+import { CommentsSection } from './task-detail/CommentsSection'
 import { LinksSection } from './task-detail/LinksSection'
 import { SharingSection } from './task-detail/SharingSection'
 import { SubtasksSection } from './task-detail/SubtasksSection'
@@ -191,6 +192,15 @@ export function TaskDetailPage() {
     }, 'Could not download export')
   }
 
+  function toggleWatch() {
+    if (!detail) return
+    void run(async () => {
+      if (detail.watching) await api.unwatchTask(taskId)
+      else await api.watchTask(taskId)
+      await load()
+    }, 'Could not update watch')
+  }
+
   function remove() {
     if (!detail || !window.confirm(`Delete “${detail.task.title}” permanently? This cannot be undone.`)) return
     const parentId = detail.task.parent_task_id
@@ -309,6 +319,16 @@ export function TaskDetailPage() {
               <Icon name="download" />
               Export
             </button>
+            <button
+              type="button"
+              className={`btn ghost small${detail.watching ? ' watching' : ''}`}
+              disabled={busy}
+              aria-pressed={detail.watching}
+              onClick={toggleWatch}
+            >
+              <Icon name={detail.watching ? 'eye' : 'eyeOff'} />
+              {detail.watching ? 'Watching' : 'Watch'}
+            </button>
             {!task.archived_at && (
               <button type="button" className="btn ghost small" disabled={busy} onClick={toggleArchive}>
                 <Icon name="archive" />
@@ -338,6 +358,7 @@ export function TaskDetailPage() {
           </section>
           <SubtasksSection taskId={taskId} subtasks={detail.children} onChanged={load} />
           <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
+          <CommentsSection taskId={taskId} onChanged={load} />
           <ClaimLeaseSection task={task} events={detail.events} />
           <ActivitySection
             events={detail.events}

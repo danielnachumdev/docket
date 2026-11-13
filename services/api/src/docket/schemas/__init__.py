@@ -4,6 +4,13 @@ from docket.schemas.auth import (
     LoginIn,
     UserOut,
 )
+from docket.schemas.notifications import (
+    NotificationOut,
+    TaskCommentIn,
+    TaskCommentOut,
+    TaskWatchOut,
+    UnreadCountOut,
+)
 from docket.schemas.tasks import (
     ArtifactCreate,
     ArtifactOut,
@@ -38,8 +45,11 @@ __all__ = [
     "AuthStatusOut",
     "BootstrapIn",
     "LoginIn",
+    "NotificationOut",
     "RoleOut",
     "TaskClaimIn",
+    "TaskCommentIn",
+    "TaskCommentOut",
     "TaskCreate",
     "TaskDetailOut",
     "TaskEventOut",
@@ -50,6 +60,8 @@ __all__ = [
     "TaskShareOut",
     "TaskStatusIn",
     "TaskUpdate",
+    "TaskWatchOut",
+    "UnreadCountOut",
     "UserOut",
     "VersionStatusOut",
 ]

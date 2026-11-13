@@ -69,6 +69,8 @@ function describe(event: TaskEvent, payload: Payload | null) {
       return payload?.error
         ? `failed to ${String(payload.operation ?? 'operate')}: ${String(payload.error)}`
         : humanize(event.type).toLowerCase()
+    case 'commented':
+      return payload?.body ? `commented: ${String(payload.body)}` : 'commented'
     default:
       return humanize(event.type).toLowerCase()
   }

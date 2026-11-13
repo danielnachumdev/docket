@@ -4,6 +4,7 @@ import { AppLayout } from './components/AppLayout'
 import { Spinner } from './components/Feedback'
 import { useTheme } from './lib/theme'
 import { LoginPage } from './pages/LoginPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { TaskDetailPage } from './pages/TaskDetailPage'
 import { TaskListPage } from './pages/TaskListPage'
 import { TokensPage } from './pages/TokensPage'
@@ -35,6 +36,7 @@ function Shell() {
       <Routes>
         <Route path="/" element={<TaskListPage />} />
         <Route path="/tasks/:id" element={<TaskDetailPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/tokens" element={<TokensPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
