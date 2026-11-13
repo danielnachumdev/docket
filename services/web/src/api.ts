@@ -107,6 +107,17 @@ export type VersionStatus = {
   release_url: string | null
 }
 
+async function requestError(res: Response): Promise<never> {
+  let detail = res.statusText
+  try {
+    const body = (await res.json()) as { detail?: string }
+    if (typeof body.detail === 'string') detail = body.detail
+  } catch {
+    /* ignore */
+  }
+  throw new Error(detail || `HTTP ${res.status}`)
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: 'include',
@@ -116,18 +127,28 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
     ...init,
   })
-  if (!res.ok) {
-    let detail = res.statusText
-    try {
-      const body = (await res.json()) as { detail?: string }
-      if (typeof body.detail === 'string') detail = body.detail
-    } catch {
-      /* ignore */
-    }
-    throw new Error(detail || `HTTP ${res.status}`)
-  }
+  if (!res.ok) await requestError(res)
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
+}
+
+async function downloadBlob(path: string, fallbackFilename: string): Promise<void> {
+  const res = await fetch(path, { credentials: 'include' })
+  if (!res.ok) await requestError(res)
+  const blob = await res.blob()
+  const header = res.headers.get('content-disposition')
+  const match = header?.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i)
+  const encoded = match?.[1]
+  const plain = match?.[2]
+  const filename = encoded
+    ? decodeURIComponent(encoded)
+    : plain || fallbackFilename
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 export const api = {
@@ -189,26 +210,13 @@ export const api = {
   deleteArtifact: (id: number, artifactId: number) =>
     request<void>(`/api/tasks/${id}/artifacts/${artifactId}`, { method: 'DELETE' }),
   downloadArtifactContent: async (id: number, artifactId: number, filename: string) => {
-    const res = await fetch(`/api/tasks/${id}/artifacts/${artifactId}/content`, {
-      credentials: 'include',
-    })
-    if (!res.ok) {
-      let detail = res.statusText
-      try {
-        const body = (await res.json()) as { detail?: string }
-        if (typeof body.detail === 'string') detail = body.detail
-      } catch {
-        /* ignore */
-      }
-      throw new Error(detail || `HTTP ${res.status}`)
-    }
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = filename
-    anchor.click()
-    URL.revokeObjectURL(url)
+    await downloadBlob(
+      `/api/tasks/${id}/artifacts/${artifactId}/content`,
+      filename,
+    )
+  },
+  downloadTaskExport: async (id: number) => {
+    await downloadBlob(`/api/tasks/${id}/export`, `docket-task-${id}-export.zip`)
   },
   createLink: (id: number, body: { to_task_id: number; kind: string }) =>
     request<TaskLink>(`/api/tasks/${id}/links`, {
