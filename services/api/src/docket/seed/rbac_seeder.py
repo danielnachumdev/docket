@@ -10,6 +10,7 @@ PERMISSIONS: list[tuple[str, str]] = [
     ("tasks:admin", "Archive, hard-delete, and manage others' tasks"),
     ("artifacts:write", "Attach artifacts to tasks"),
     ("tokens:manage", "Create and revoke API tokens"),
+    ("webhooks:manage", "Create and manage outbound webhooks"),
     ("users:admin", "Manage users and memberships"),
 ]
 
@@ -23,6 +24,7 @@ ROLES: dict[str, tuple[str, list[str]]] = {
             "tasks:admin",
             "artifacts:write",
             "tokens:manage",
+            "webhooks:manage",
             "users:admin",
         ],
     ),

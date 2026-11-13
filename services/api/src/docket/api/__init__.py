@@ -9,6 +9,7 @@ from docket.api.task_watches import task_watches_api
 from docket.api.tasks import tasks_api
 from docket.api.tokens import tokens_api
 from docket.api.version import version_api
+from docket.api.webhooks import webhooks_api
 
 __all__ = [
     "artifacts_api",
@@ -20,4 +21,5 @@ __all__ = [
     "tasks_api",
     "tokens_api",
     "version_api",
+    "webhooks_api",
 ]

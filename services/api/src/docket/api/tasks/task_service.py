@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -12,7 +13,7 @@ from docket.artifacts import ArtifactGateway
 from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
 from docket.events import task_event_recorder
-from docket.models import Membership, Task
+from docket.models import Membership, Task, TaskEvent
 from docket.notifications import mention_resolver, notification_dispatcher
 from docket.schemas import (
     ArtifactOut,
@@ -31,6 +32,8 @@ from docket.schemas import (
 from docket.task_claims import TaskClaimService
 from docket.task_links import TaskLinkService
 from docket.task_outcomes import DoneOutcomeEnforcer, OutcomeSchemaCodec
+from docket.webhooks import WebhookDeliveryService
+
 
 
 class TaskService:
@@ -191,7 +194,7 @@ class TaskService:
             payload["last_error"] = task.last_error
         if task.outcome_json is not None and body.status == "done":
             payload["outcome"] = True
-        task_event_recorder.record(
+        event = task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="status_changed",
@@ -206,9 +209,7 @@ class TaskService:
             body=f"“{task.title}” moved from {old} to {body.status}",
             payload=payload,
         )
-        self._gateway.commit()
-        self._gateway.refresh(task)
-        return task
+        return self._commit_and_dispatch(task, event, payload)
 
     def add_comment(
         self, principal: Principal, task_id: int, body: TaskCommentIn
@@ -218,12 +219,16 @@ class TaskService:
         if not text:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Comment cannot be empty")
         mentioned = self._accessible_mention_ids(principal, task, text)
+        payload: dict[str, Any] = {
+            "body": text,
+            "mentioned_user_ids": mentioned,
+        }
         event = task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="commented",
             actor=principal,
-            payload={"body": text, "mentioned_user_ids": mentioned},
+            payload=payload,
         )
         dispatcher = notification_dispatcher(self._db)
         mentioned_set = set(mentioned)
@@ -245,8 +250,7 @@ class TaskService:
             payload={"body": text},
             exclude_user_ids=mentioned_set,
         )
-        self._gateway.commit()
-        self._gateway.refresh(event)
+        self._commit_and_dispatch(task, event, payload)
         return TaskCommentOut(
             event_id=event.id,
             task_id=task.id,
@@ -309,17 +313,17 @@ class TaskService:
     ) -> Task:
         task = self._access.get_task(principal, task_id, "tasks:claim")
         lease_seconds = (body or TaskClaimIn()).lease_seconds
-        self._claims.claim(task, principal, lease_seconds=lease_seconds)
-        self._gateway.commit()
-        self._gateway.refresh(task)
-        return task
+        event = self._claims.claim(task, principal, lease_seconds=lease_seconds)
+        return self._commit_and_dispatch(task, event)
 
     def release(self, principal: Principal, task_id: int) -> Task:
         task = self._access.get_task(principal, task_id, "tasks:claim")
-        self._claims.release(task, principal)
-        self._gateway.commit()
-        self._gateway.refresh(task)
-        return task
+        event = self._claims.release(task, principal)
+        if event is None:
+            self._gateway.commit()
+            self._gateway.refresh(task)
+            return task
+        return self._commit_and_dispatch(task, event)
 
     def heartbeat(
         self,
@@ -533,6 +537,31 @@ class TaskService:
         if schema is None:
             return None
         return self._schema_codec.encode(schema)
+
+    def _commit_and_dispatch(
+        self,
+        task: Task,
+        event: TaskEvent,
+        data: dict[str, Any] | None = None,
+    ) -> Task:
+        self._gateway.commit()
+        self._gateway.refresh(task)
+        self._gateway.refresh(event)
+        payload = data if data is not None else self._event_payload(event)
+        WebhookDeliveryService(self._db).deliver_for_event(
+            task=task, event=event, data=payload
+        )
+        return task
+
+    @staticmethod
+    def _event_payload(event: TaskEvent) -> dict[str, Any]:
+        if not event.payload_json:
+            return {}
+        try:
+            raw = json.loads(event.payload_json)
+        except json.JSONDecodeError:
+            return {}
+        return raw if isinstance(raw, dict) else {}
 
     def _utcnow(self) -> datetime:
         return datetime.now(UTC)

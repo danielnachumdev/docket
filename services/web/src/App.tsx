@@ -8,6 +8,7 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { TaskDetailPage } from './pages/TaskDetailPage'
 import { TaskListPage } from './pages/TaskListPage'
 import { TokensPage } from './pages/TokensPage'
+import { WebhooksPage } from './pages/WebhooksPage'
 import './App.css'
 
 function Shell() {
@@ -38,6 +39,7 @@ function Shell() {
         <Route path="/tasks/:id" element={<TaskDetailPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/tokens" element={<TokensPage />} />
+        <Route path="/webhooks" element={<WebhooksPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

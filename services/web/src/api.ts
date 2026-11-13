@@ -141,6 +141,22 @@ export type ApiTokenCreated = ApiToken & {
   token: string
 }
 
+export type Webhook = {
+  id: number
+  name: string
+  url: string
+  event_types: string[]
+  enabled: boolean
+  created_at: string
+  last_delivered_at: string | null
+  last_status_code: number | null
+  last_error: string | null
+}
+
+export type WebhookCreated = Webhook & {
+  secret: string
+}
+
 export type VersionStatus = {
   version: string
   latest_version: string | null
@@ -342,4 +358,25 @@ export const api = {
     }),
   deleteSavedView: (id: number) =>
     request<void>(`/api/saved-views/${id}`, { method: 'DELETE' }),
+  listWebhooks: () => request<Webhook[]>('/api/webhooks'),
+  createWebhook: (body: { name: string; url: string; event_types?: string[] }) =>
+    request<WebhookCreated>('/api/webhooks', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateWebhook: (
+    id: number,
+    body: {
+      name?: string
+      url?: string
+      event_types?: string[]
+      enabled?: boolean
+    },
+  ) =>
+    request<Webhook>(`/api/webhooks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  deleteWebhook: (id: number) =>
+    request<void>(`/api/webhooks/${id}`, { method: 'DELETE' }),
 }

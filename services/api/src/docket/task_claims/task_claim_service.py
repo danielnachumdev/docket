@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from docket.auth.principal import Principal
 from docket.events import task_event_recorder
-from docket.models import Task
+from docket.models import Task, TaskEvent
 
 DEFAULT_LEASE_SECONDS = 900
 MAX_LEASE_SECONDS = 86_400
@@ -28,7 +28,7 @@ class TaskClaimService:
         principal: Principal,
         *,
         lease_seconds: int = DEFAULT_LEASE_SECONDS,
-    ) -> Task:
+    ) -> TaskEvent:
         token_id = self._require_token_principal(principal)
         seconds = self._normalize_lease_seconds(lease_seconds)
         holder = self._active_holder_token_id(task)
@@ -45,7 +45,7 @@ class TaskClaimService:
         task.claimed_by_token = principal.token
         task.claim_expires_at = expires
         task.last_error = None
-        task_event_recorder.record(
+        return task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="claimed",
@@ -56,24 +56,22 @@ class TaskClaimService:
                 "lease_seconds": seconds,
             },
         )
-        return task
 
-    def release(self, task: Task, principal: Principal) -> Task:
+    def release(self, task: Task, principal: Principal) -> TaskEvent | None:
         if not self._has_claim(task):
-            return task
+            return None
         self._assert_may_release(task, principal)
         previous = task.claimed_by_token_id
         task.claimed_by_token_id = None
         task.claimed_by_token = None
         task.claim_expires_at = None
-        task_event_recorder.record(
+        return task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="released",
             actor=principal,
             payload={"previous_claimed_by_token_id": previous},
         )
-        return task
 
     def renew(
         self,
@@ -81,7 +79,7 @@ class TaskClaimService:
         principal: Principal,
         *,
         lease_seconds: int = DEFAULT_LEASE_SECONDS,
-    ) -> Task:
+    ) -> TaskEvent:
         token_id = self._require_token_principal(principal)
         seconds = self._normalize_lease_seconds(lease_seconds)
         holder = self._active_holder_token_id(task)
@@ -103,7 +101,7 @@ class TaskClaimService:
             )
         expires = self._utcnow() + timedelta(seconds=seconds)
         task.claim_expires_at = expires
-        task_event_recorder.record(
+        return task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="claim_renewed",
@@ -114,7 +112,6 @@ class TaskClaimService:
                 "lease_seconds": seconds,
             },
         )
-        return task
 
     def _assert_may_release(self, task: Task, principal: Principal) -> None:
         # Session owner: may override any lease. Token: only its own active lease.

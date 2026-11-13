@@ -15,6 +15,7 @@ from docket.api import (
     tasks_api,
     tokens_api,
     version_api,
+    webhooks_api,
 )
 from docket.auth import AuthnMiddleware
 from docket.config import ROOT, get_settings
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(notifications_api.router)
     app.include_router(saved_views_api.router)
     app.include_router(tokens_api.router)
+    app.include_router(webhooks_api.router)
     app.include_router(version_api.router)
     return app
 
