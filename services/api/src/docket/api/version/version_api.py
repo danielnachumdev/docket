@@ -37,6 +37,7 @@ class VersionApi:
             )
             self._service = VersionCheckService(
                 gateway,
+                running_version=settings.running_version,
                 cache_ttl_seconds=settings.version_check_cache_ttl_seconds,
             )
         return self._service

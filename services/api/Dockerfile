@@ -21,6 +21,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.12.10-slim-bookworm AS runtime
 WORKDIR /app
 
+ARG DOCKET_VERSION=
+
 RUN groupadd --system --gid 1000 docket \
     && useradd --system --uid 1000 --gid docket --home /app --shell /usr/sbin/nologin docket \
     && mkdir -p /data \
@@ -32,7 +34,8 @@ RUN chmod +x /app/entrypoint.sh
 
 ENV PATH="/app/.venv/bin:$PATH" \
     DATABASE_URL=sqlite:////data/docket.db \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    DOCKET_VERSION=${DOCKET_VERSION}
 
 USER docket
 EXPOSE 8000

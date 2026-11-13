@@ -3,6 +3,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from docket import __version__
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -32,10 +34,17 @@ class Settings(BaseSettings):
     github_repo_owner: str = "danielnachumdev"
     github_repo_name: str = "docket"
     version_check_cache_ttl_seconds: float = 900.0
+    # Baked at image build (CD). Empty → package __version__ for local dev.
+    docket_version: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def running_version(self) -> str:
+        baked = self.docket_version.strip()
+        return baked if baked else __version__
 
 
 @lru_cache
