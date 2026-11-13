@@ -20,6 +20,9 @@ export type Task = {
   rank: number
   source: string
   due_at: string | null
+  claimed_by_token_id?: number | null
+  claim_expires_at?: string | null
+  last_error: string | null
   completed_at: string | null
   cancelled_at: string | null
   archived_at: string | null

@@ -72,3 +72,34 @@ def test_task_status_on_hold() -> None:
 
     bad = client.post(f"/api/tasks/{task_id}/status", json={"status": "paused"})
     assert bad.status_code == 422
+
+
+def test_task_status_failed_with_last_error() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    created = client.post("/api/tasks", json={"title": "Agent job", "priority": 2})
+    assert created.status_code == 201
+    task_id = created.json()["id"]
+
+    failed = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "failed", "last_error": "tool timed out after 30s"},
+    )
+    assert failed.status_code == 200, failed.text
+    body = failed.json()
+    assert body["status"] == "failed"
+    assert body["last_error"] == "tool timed out after 30s"
+    assert body["completed_at"] is None
+    assert body["cancelled_at"] is None
+
+    detail = client.get(f"/api/tasks/{task_id}")
+    assert detail.status_code == 200
+    events = detail.json()["events"]
+    status_events = [e for e in events if e["type"] == "status_changed"]
+    assert status_events
+    assert "tool timed out after 30s" in (status_events[0]["payload_json"] or "")
+
+    reopen = client.post(f"/api/tasks/{task_id}/status", json={"status": "open"})
+    assert reopen.status_code == 200
+    assert reopen.json()["status"] == "open"
+    assert reopen.json()["last_error"] is None
