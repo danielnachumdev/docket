@@ -40,8 +40,8 @@
   flex: none;
 }
 
-.status-open {
-  --st: var(--st-open);
+.status-backlog {
+  --st: var(--st-backlog);
 }
 .status-in_progress {
   --st: var(--st-in_progress);

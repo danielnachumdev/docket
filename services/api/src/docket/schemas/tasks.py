@@ -3,7 +3,7 @@ from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-_STATUS_PATTERN = "^(open|in_progress|blocked|on_hold|failed|done|cancelled)$"
+_STATUS_PATTERN = "^(backlog|in_progress|blocked|on_hold|failed|done|cancelled)$"
 
 
 class TaskCreate(BaseModel):

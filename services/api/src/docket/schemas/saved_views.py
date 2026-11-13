@@ -10,10 +10,11 @@ ALLOWED_FILTER_KEYS = frozenset(
         "claimed",
         "active",
         "all",
-        "open",
+        "backlog",
         "in_progress",
         "blocked",
         "on_hold",
+        "failed",
         "done",
         "cancelled",
     }

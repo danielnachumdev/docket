@@ -1,5 +1,5 @@
 export const STATUSES = [
-  'open',
+  'backlog',
   'in_progress',
   'blocked',
   'on_hold',
@@ -12,7 +12,9 @@ export type Status = (typeof STATUSES)[number]
 export const PRIORITIES = [1, 2, 3, 4] as const
 
 const STATUS_LABELS: Record<string, string> = {
-  open: 'Open',
+  backlog: 'Backlog',
+  // Legacy event payloads may still say "open".
+  open: 'Backlog',
   in_progress: 'In progress',
   blocked: 'Blocked',
   on_hold: 'On hold',

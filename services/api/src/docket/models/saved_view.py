@@ -16,7 +16,7 @@ class SavedView(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(120))
     # Builtin smart keys or status chips: my_open, due_soon, on_hold_stale, claimed,
-    # active, all, open, in_progress, blocked, on_hold, done, cancelled
+    # active, all, backlog, in_progress, blocked, on_hold, failed, done, cancelled
     filter_key: Mapped[str] = mapped_column(String(64))
     query: Mapped[str] = mapped_column(String(500), default="")
     position: Mapped[int] = mapped_column(Integer, default=0)

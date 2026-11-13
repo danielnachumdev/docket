@@ -77,7 +77,7 @@ def test_bulk_update_unknown_task_is_404_and_atomic() -> None:
         json={"task_ids": [task_id, 999_999], "status": "on_hold"},
     )
     assert res.status_code == 404
-    assert client.get(f"/api/tasks/{task_id}").json()["task"]["status"] == "open"
+    assert client.get(f"/api/tasks/{task_id}").json()["task"]["status"] == "backlog"
 
 
 def test_bulk_update_editor_share_can_write_unowned_denied() -> None:

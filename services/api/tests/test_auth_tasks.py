@@ -99,7 +99,7 @@ def test_task_status_failed_with_last_error() -> None:
     assert status_events
     assert "tool timed out after 30s" in (status_events[0]["payload_json"] or "")
 
-    reopen = client.post(f"/api/tasks/{task_id}/status", json={"status": "open"})
+    reopen = client.post(f"/api/tasks/{task_id}/status", json={"status": "backlog"})
     assert reopen.status_code == 200
-    assert reopen.json()["status"] == "open"
+    assert reopen.json()["status"] == "backlog"
     assert reopen.json()["last_error"] is None
