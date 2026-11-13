@@ -1,5 +1,8 @@
-import { Link, Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth'
+import { AppLayout } from './components/AppLayout'
+import { Spinner } from './components/Feedback'
+import { useTheme } from './lib/theme'
 import { LoginPage } from './pages/LoginPage'
 import { TaskDetailPage } from './pages/TaskDetailPage'
 import { TaskListPage } from './pages/TaskListPage'
@@ -8,11 +11,12 @@ import './App.css'
 
 function Shell() {
   const { status, loading, logout } = useAuth()
+  const { theme, toggle } = useTheme()
 
   if (loading) {
     return (
-      <main className="shell">
-        <p className="muted">Loading…</p>
+      <main className="splash">
+        <Spinner />
       </main>
     )
   }
@@ -22,29 +26,19 @@ function Shell() {
   }
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">Docket</span>
-          <span className="muted small">human control plane</span>
-        </div>
-        <div className="topbar-right">
-          <Link to="/tokens" className="nav-link muted small">
-            Tokens
-          </Link>
-          <span className="muted small">{status.user.display_name}</span>
-          <button type="button" className="ghost" onClick={() => void logout()}>
-            Log out
-          </button>
-        </div>
-      </header>
+    <AppLayout
+      user={status.user}
+      theme={theme}
+      onToggleTheme={toggle}
+      onLogout={() => void logout()}
+    >
       <Routes>
         <Route path="/" element={<TaskListPage />} />
         <Route path="/tasks/:id" element={<TaskDetailPage />} />
         <Route path="/tokens" element={<TokensPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </div>
+    </AppLayout>
   )
 }
 

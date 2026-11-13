@@ -1,5 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth'
+import { Logo } from '../components/AppLayout'
+import { Alert } from '../components/Feedback'
+import { useAction } from '../lib/useAction'
 
 export function LoginPage() {
   const { status, bootstrap, login, error: authError } = useAuth()
@@ -7,76 +10,79 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const { busy, error, run } = useAction()
 
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      if (needsBootstrap) {
-        await bootstrap({
-          email,
-          display_name: displayName || email.split('@')[0] || 'Owner',
-          password,
-        })
-      } else {
-        await login({ email, password })
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed')
-    } finally {
-      setBusy(false)
-    }
+    void run(
+      () =>
+        needsBootstrap
+          ? bootstrap({
+              email,
+              display_name: displayName || email.split('@')[0] || 'Owner',
+              password,
+            })
+          : login({ email, password }),
+      needsBootstrap ? 'Could not create account' : 'Sign in failed',
+    )
   }
 
   return (
-    <main className="shell narrow">
-      <h1>Docket</h1>
-      <p className="tagline">
-        {needsBootstrap
-          ? 'Create the first owner account to start.'
-          : 'Sign in to manage tasks.'}
-      </p>
-      {(error || authError) && <p className="err">{error || authError}</p>}
-      <form className="panel form" onSubmit={(e) => void onSubmit(e)}>
-        <label>
-          Email
-          <input
-            type="email"
-            autoComplete="username"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        {needsBootstrap && (
-          <label>
-            Display name
+    <main className="auth-page">
+      <div className="auth-card">
+        <div className="auth-header">
+          <Logo />
+          <h1>{needsBootstrap ? 'Welcome to Docket' : 'Sign in to Docket'}</h1>
+          <p className="muted">
+            {needsBootstrap
+              ? 'Create the first owner account to get started.'
+              : 'Your task system of record — for you and your agents.'}
+          </p>
+        </div>
+
+        {(error || authError) && <Alert>{error || authError}</Alert>}
+
+        <form className="stack" onSubmit={onSubmit}>
+          <label className="field">
+            <span>Email</span>
             <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="You"
+              type="email"
+              autoComplete="username"
+              autoFocus
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
             />
           </label>
-        )}
-        <label>
-          Password
-          <input
-            type="password"
-            autoComplete={needsBootstrap ? 'new-password' : 'current-password'}
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Working…' : needsBootstrap ? 'Create owner' : 'Sign in'}
-        </button>
-      </form>
+          {needsBootstrap && (
+            <label className="field">
+              <span>Display name</span>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="How should we call you?"
+              />
+            </label>
+          )}
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="password"
+              autoComplete={needsBootstrap ? 'new-password' : 'current-password'}
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+            />
+          </label>
+          <button type="submit" className="btn primary block" disabled={busy}>
+            {busy ? 'Working…' : needsBootstrap ? 'Create owner account' : 'Sign in'}
+          </button>
+        </form>
+      </div>
     </main>
   )
 }
