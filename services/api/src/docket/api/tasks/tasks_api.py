@@ -10,6 +10,8 @@ from docket.db import DbSession
 from docket.models import Task, TaskLink
 from docket.schemas import (
     TaskClaimIn,
+    TaskCommentIn,
+    TaskCommentOut,
     TaskCreate,
     TaskDetailOut,
     TaskLinkCreate,
@@ -66,6 +68,13 @@ class TasksApi:
             self.set_status,
             methods=["POST"],
             response_model=TaskOut,
+        )
+        self.router.add_api_route(
+            "/{task_id}/comments",
+            self.add_comment,
+            methods=["POST"],
+            response_model=TaskCommentOut,
+            status_code=status.HTTP_201_CREATED,
         )
         self.router.add_api_route(
             "/{task_id}/claim",
@@ -185,6 +194,15 @@ class TasksApi:
         self, task_id: int, body: TaskStatusIn, db: DbSession, principal: CanWrite
     ) -> Task:
         return TaskService(db).set_status(principal, task_id, body)
+
+    def add_comment(
+        self,
+        task_id: int,
+        body: TaskCommentIn,
+        db: DbSession,
+        principal: CanWrite,
+    ) -> TaskCommentOut:
+        return TaskService(db).add_comment(principal, task_id, body)
 
     def claim_task(
         self,

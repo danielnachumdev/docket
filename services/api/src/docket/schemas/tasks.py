@@ -133,6 +133,7 @@ class TaskDetailOut(BaseModel):
     artifacts: list[ArtifactOut]
     children: list[TaskOut]
     links: list[TaskLinkOut] = []
+    watching: bool = False
 
 
 class TaskShareCreate(BaseModel):

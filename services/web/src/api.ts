@@ -72,6 +72,31 @@ export type TaskDetail = {
   artifacts: Artifact[]
   children: Task[]
   links: TaskLink[]
+  watching: boolean
+}
+
+export type Notification = {
+  id: number
+  user_id: number
+  task_id: number | null
+  kind: string
+  title: string
+  body: string | null
+  payload_json: string | null
+  actor_user_id: number
+  read_at: string | null
+  created_at: string
+}
+
+export type UnreadCount = {
+  count: number
+}
+
+export type TaskComment = {
+  event_id: number
+  task_id: number
+  body: string
+  mentioned_user_ids: number[]
 }
 
 export type TaskShare = {
@@ -237,6 +262,28 @@ export const api = {
     }),
   unshareTask: (id: number, membershipId: number) =>
     request<void>(`/api/tasks/${id}/shares/${membershipId}`, { method: 'DELETE' }),
+  watchTask: (id: number) =>
+    request<{ watching: boolean }>(`/api/tasks/${id}/watch`, { method: 'PUT' }),
+  unwatchTask: (id: number) =>
+    request<void>(`/api/tasks/${id}/watch`, { method: 'DELETE' }),
+  addComment: (id: number, body: string) =>
+    request<TaskComment>(`/api/tasks/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  listNotifications: (opts?: { unreadOnly?: boolean; limit?: number }) => {
+    const params = new URLSearchParams()
+    if (opts?.unreadOnly) params.set('unread_only', 'true')
+    if (opts?.limit != null) params.set('limit', String(opts.limit))
+    const qs = params.toString()
+    return request<Notification[]>(`/api/notifications${qs ? `?${qs}` : ''}`)
+  },
+  unreadNotificationCount: () =>
+    request<UnreadCount>('/api/notifications/unread-count'),
+  markNotificationRead: (id: number) =>
+    request<Notification>(`/api/notifications/${id}/read`, { method: 'POST' }),
+  markAllNotificationsRead: () =>
+    request<UnreadCount>('/api/notifications/read-all', { method: 'POST' }),
   listTokens: (includeRevoked = false) =>
     request<ApiToken[]>(`/api/tokens?include_revoked=${includeRevoked}`),
   listAssignableRoles: () => request<Role[]>('/api/tokens/roles'),

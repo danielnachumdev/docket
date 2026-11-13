@@ -1,14 +1,20 @@
-import type { ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import type { User } from '../api'
+import { api, type User } from '../api'
 import { initials } from '../lib/format'
 import type { Theme } from '../lib/theme'
 import { AppVersion, useAppVersion } from './AppVersion'
 import { Icon, type IconName } from './Icon'
 
-type NavItem = { to: string; label: string; icon: IconName; match: (path: string, search: string) => boolean }
+type NavItem = {
+  to: string
+  label: string
+  icon: IconName
+  match: (path: string, search: string) => boolean
+  badge?: number
+}
 
-const NAV: NavItem[] = [
+const NAV_BASE: Omit<NavItem, 'badge'>[] = [
   {
     to: '/',
     label: 'Tasks',
@@ -21,6 +27,12 @@ const NAV: NavItem[] = [
     label: 'Archived',
     icon: 'archive',
     match: (path, search) => path === '/' && search.includes('view=archived'),
+  },
+  {
+    to: '/notifications',
+    label: 'Inbox',
+    icon: 'bell',
+    match: (path) => path === '/notifications',
   },
   { to: '/tokens', label: 'API tokens', icon: 'key', match: (path) => path === '/tokens' },
 ]
@@ -44,9 +56,39 @@ type Props = {
 export function AppLayout({ user, theme, onToggleTheme, onLogout, children }: Props) {
   const { pathname, search } = useLocation()
   const version = useAppVersion()
+  const [unread, setUnread] = useState(0)
   const themeLabel = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
 
-  const links = NAV.map((item) => {
+  const refreshUnread = useCallback(() => {
+    void api
+      .unreadNotificationCount()
+      .then((body) => setUnread(body.count))
+      .catch(() => setUnread(0))
+  }, [])
+
+  useEffect(() => {
+    refreshUnread()
+    const onFocus = () => refreshUnread()
+    const onCustom = () => refreshUnread()
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('docket:notifications', onCustom)
+    const timer = window.setInterval(refreshUnread, 30_000)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('docket:notifications', onCustom)
+      window.clearInterval(timer)
+    }
+  }, [refreshUnread])
+
+  useEffect(() => {
+    refreshUnread()
+  }, [pathname, refreshUnread])
+
+  const nav: NavItem[] = NAV_BASE.map((item) =>
+    item.to === '/notifications' ? { ...item, badge: unread } : item,
+  )
+
+  const links = nav.map((item) => {
     const active = item.match(pathname, search)
     return (
       <Link
@@ -55,7 +97,14 @@ export function AppLayout({ user, theme, onToggleTheme, onLogout, children }: Pr
         className={active ? 'nav-item active' : 'nav-item'}
         aria-current={active ? 'page' : undefined}
       >
-        <Icon name={item.icon} size={18} />
+        <span className="nav-icon-wrap">
+          <Icon name={item.icon} size={18} />
+          {item.badge != null && item.badge > 0 && (
+            <span className="nav-badge" aria-label={`${item.badge} unread`}>
+              {item.badge > 99 ? '99+' : item.badge}
+            </span>
+          )}
+        </span>
         <span>{item.label}</span>
       </Link>
     )
