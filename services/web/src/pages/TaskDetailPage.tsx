@@ -400,7 +400,7 @@ export function TaskDetailPage() {
               onClick={toggleUnread}
               title={task.unread ? 'Mark read' : 'Mark unread'}
             >
-              <Icon name={task.unread ? 'bell' : 'eye'} />
+              <Icon name={task.unread ? 'mail' : 'mailOpen'} />
               {task.unread ? 'Unread' : 'Read'}
             </button>
             <button

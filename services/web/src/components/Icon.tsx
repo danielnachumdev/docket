@@ -34,6 +34,10 @@ const PATHS = {
   webhook:
     'M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93M14 11a5 5 0 0 0-7.07 0L5.52 12.4a5 5 0 0 0 7.07 7.07L14 18.07',
   message: 'M4 5h16v11H8l-4 4V5z',
+  // Closed envelope = unread; open flap = read (Gmail-style).
+  mail: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM3.5 6.5 12 13l8.5-6.5',
+  mailOpen:
+    'M22 7l-9 5.7a2 2 0 0 1-2 0L2 7M22 17V7l-10 6.4L2 7v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z',
 } as const
 
 export type IconName = keyof typeof PATHS

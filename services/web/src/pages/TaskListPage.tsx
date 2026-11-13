@@ -152,7 +152,7 @@ function TaskRow({
           title={unread ? 'Mark read' : 'Mark unread'}
           onClick={() => onToggleUnread(task)}
         >
-          <Icon name={unread ? 'bell' : 'eye'} size={14} />
+          <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
         </button>
         <span className="task-status">
           <StatusBadge status={task.status} />
