@@ -1,4 +1,11 @@
-export const STATUSES = ['open', 'in_progress', 'blocked', 'done', 'cancelled'] as const
+export const STATUSES = [
+  'open',
+  'in_progress',
+  'blocked',
+  'on_hold',
+  'done',
+  'cancelled',
+] as const
 export type Status = (typeof STATUSES)[number]
 
 export const PRIORITIES = [1, 2, 3, 4] as const
@@ -7,6 +14,7 @@ const STATUS_LABELS: Record<string, string> = {
   open: 'Open',
   in_progress: 'In progress',
   blocked: 'Blocked',
+  on_hold: 'On hold',
   done: 'Done',
   cancelled: 'Cancelled',
 }

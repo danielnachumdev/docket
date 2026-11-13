@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from docket.main import create_app
+from tests.helpers import bootstrap_owner
 
 
 def test_bootstrap_login_and_tasks() -> None:
@@ -54,3 +55,20 @@ def test_bootstrap_login_and_tasks() -> None:
     detail2 = client.get(f"/api/tasks/{task_id}")
     assert len(detail2.json()["artifacts"]) == 1
     assert any(e["type"] == "status_changed" for e in detail2.json()["events"])
+
+
+def test_task_status_on_hold() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    created = client.post("/api/tasks", json={"title": "Paused work", "priority": 3})
+    assert created.status_code == 201
+    task_id = created.json()["id"]
+
+    hold = client.post(f"/api/tasks/{task_id}/status", json={"status": "on_hold"})
+    assert hold.status_code == 200
+    assert hold.json()["status"] == "on_hold"
+    assert hold.json()["completed_at"] is None
+    assert hold.json()["cancelled_at"] is None
+
+    bad = client.post(f"/api/tasks/{task_id}/status", json={"status": "paused"})
+    assert bad.status_code == 422

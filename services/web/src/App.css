@@ -49,6 +49,9 @@
 .status-blocked {
   --st: var(--st-blocked);
 }
+.status-on_hold {
+  --st: var(--st-on_hold);
+}
 .status-done {
   --st: var(--st-done);
 }
