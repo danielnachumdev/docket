@@ -222,6 +222,15 @@ export const api = {
   }) => request<Task>('/api/tasks', { method: 'POST', body: JSON.stringify(body) }),
   updateTask: (id: number, body: Record<string, unknown>) =>
     request<Task>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  bulkUpdateTasks: (body: {
+    task_ids: number[]
+    status?: string
+    priority?: number
+  }) =>
+    request<Task[]>('/api/tasks/bulk', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   setStatus: (id: number, status: string) =>
     request<Task>(`/api/tasks/${id}/status`, {
       method: 'POST',

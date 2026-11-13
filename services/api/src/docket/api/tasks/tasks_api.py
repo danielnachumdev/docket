@@ -9,6 +9,7 @@ from docket.auth import Principal, RequirePermission
 from docket.db import DbSession
 from docket.models import Task, TaskLink
 from docket.schemas import (
+    TaskBulkUpdate,
     TaskClaimIn,
     TaskCommentIn,
     TaskCommentOut,
@@ -49,6 +50,12 @@ class TasksApi:
             "/inbox",
             self.list_inbox,
             methods=["GET"],
+            response_model=list[TaskOut],
+        )
+        self.router.add_api_route(
+            "/bulk",
+            self.bulk_update_tasks,
+            methods=["POST"],
             response_model=list[TaskOut],
         )
         self.router.add_api_route(
@@ -189,6 +196,11 @@ class TasksApi:
         self, task_id: int, body: TaskUpdate, db: DbSession, principal: CanWrite
     ) -> Task:
         return TaskService(db).update(principal, task_id, body)
+
+    def bulk_update_tasks(
+        self, body: TaskBulkUpdate, db: DbSession, principal: CanWrite
+    ) -> list[Task]:
+        return TaskService(db).bulk_update(principal, body)
 
     def set_status(
         self, task_id: int, body: TaskStatusIn, db: DbSession, principal: CanWrite
