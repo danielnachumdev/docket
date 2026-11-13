@@ -1,4 +1,4 @@
-from sqlalchemy import and_, or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from docket.models import Membership, Permission, Role, RolePermission
@@ -30,7 +30,11 @@ class RbacGateway:
         return set(rows)
 
     def permission_codes_for_task(self, user_id: int, task_id: int) -> set[str]:
-        """Global memberships plus memberships scoped to ``task_id``."""
+        """Permissions from task-scoped memberships only (shares).
+
+        Global roles must not grant access to another user's task; ownership
+        is checked separately via TaskAccessService.
+        """
         rows = self._db.scalars(
             select(Permission.code)
             .join(RolePermission, RolePermission.permission_id == Permission.id)
@@ -38,13 +42,8 @@ class RbacGateway:
             .join(Membership, Membership.role_id == Role.id)
             .where(
                 Membership.user_id == user_id,
-                or_(
-                    Membership.scope_type == "global",
-                    and_(
-                        Membership.scope_type == "task",
-                        Membership.scope_task_id == task_id,
-                    ),
-                ),
+                Membership.scope_type == "task",
+                Membership.scope_task_id == task_id,
             )
         ).all()
         return set(rows)
