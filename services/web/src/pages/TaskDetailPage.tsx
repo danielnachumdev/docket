@@ -387,6 +387,12 @@ export function TaskDetailPage() {
         <div className="detail-meta">
           <StatusBadge status={task.status} />
           <PriorityBadge priority={task.priority} />
+          {task.shared && (
+            <span className="tag shared-tag" title="Shared with other people">
+              <Icon name="users" size={12} />
+              Shared
+            </span>
+          )}
           <span className="muted small" title={formatDateTime(task.created_at)}>
             Created {formatRelative(task.created_at)}
           </span>

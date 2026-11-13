@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from docket.models import Artifact, Notification, Task, TaskEvent, TaskLink
+from docket.models import Artifact, Membership, Notification, Task, TaskEvent, TaskLink
 from docket.schemas import (
     ArtifactOut,
     NotificationOut,
@@ -20,6 +20,8 @@ class TaskResponseMapper:
     def __init__(self, db: Session) -> None:
         self._db = db
         self._public_by_internal: dict[int, str] = {}
+        self._shared_ids: set[int] = set()
+        self._shared_checked: set[int] = set()
 
     def remember(self, tasks: Iterable[Task]) -> None:
         for task in tasks:
@@ -27,6 +29,7 @@ class TaskResponseMapper:
 
     def task_out(self, task: Task) -> TaskOut:
         self.remember([task])
+        self.prefetch_shared([task.id])
         return TaskOut(
             id=task.public_id,
             number=task.owner_task_number,
@@ -51,6 +54,7 @@ class TaskResponseMapper:
             cancelled_at=task.cancelled_at,
             archived_at=task.archived_at,
             unread=bool(task.unread),
+            shared=task.id in self._shared_ids,
             created_at=task.created_at,
             updated_at=task.updated_at,
         )
@@ -58,7 +62,25 @@ class TaskResponseMapper:
     def tasks_out(self, tasks: list[Task]) -> list[TaskOut]:
         self.remember(tasks)
         self.prefetch([t.parent_task_id for t in tasks if t.parent_task_id])
+        self.prefetch_shared(t.id for t in tasks)
         return [self.task_out(task) for task in tasks]
+
+    def prefetch_shared(self, internal_ids: Iterable[int]) -> None:
+        missing = {i for i in internal_ids if i not in self._shared_checked}
+        if not missing:
+            return
+        rows = self._db.execute(
+            select(Membership.scope_task_id)
+            .where(
+                Membership.scope_type == "task",
+                Membership.scope_task_id.in_(missing),
+            )
+            .distinct()
+        ).all()
+        for (scope_task_id,) in rows:
+            if scope_task_id is not None:
+                self._shared_ids.add(int(scope_task_id))
+        self._shared_checked.update(missing)
 
     def event_out(self, event: TaskEvent) -> TaskEventOut:
         return TaskEventOut(
