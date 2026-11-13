@@ -1,5 +1,4 @@
 from datetime import datetime
-from uuid import uuid4
 
 from sqlalchemy import (
     Boolean,
@@ -15,11 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from docket.db import Base
-
-
-def new_task_public_id() -> str:
-    """Canonical task SOT for APIs, URLs, and sharing (not the per-owner display number)."""
-    return str(uuid4())
+from docket.models.task_public_id import PUBLIC_ID_LENGTH, new_task_public_id
 
 
 class Task(Base):
@@ -40,9 +35,9 @@ class Task(Base):
 
     # Internal PK for SQLite FKs only — not the public/API identity.
     id: Mapped[int] = mapped_column(primary_key=True)
-    # Globally unique SOT for fetch/share/link/API/URL identity.
+    # Globally unique short SOT for fetch/share/link/API/URL identity.
     public_id: Mapped[str] = mapped_column(
-        String(36), default=new_task_public_id, nullable=False
+        String(PUBLIC_ID_LENGTH), default=new_task_public_id, nullable=False
     )
     # Per-owner display enumeration ("my task #N"); not globally unique.
     owner_task_number: Mapped[int] = mapped_column(Integer, nullable=False)

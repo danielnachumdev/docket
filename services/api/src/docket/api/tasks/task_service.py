@@ -16,7 +16,7 @@ from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
 from docket.events import task_event_recorder
 from docket.models import Membership, Task, TaskEvent
-from docket.models.task import new_task_public_id
+from docket.models.task_public_id import new_task_public_id
 from docket.notifications import mention_resolver, notification_dispatcher
 from docket.schemas import (
     TaskBulkUpdate,
