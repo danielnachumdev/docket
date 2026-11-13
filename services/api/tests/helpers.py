@@ -33,7 +33,7 @@ def bootstrap_owner(client: TestClient) -> dict:
         json={
             "email": "ops@example.com",
             "display_name": "Ops",
-            "password": "password123",
+            "password": "password1234",
         },
     )
     assert response.status_code == 200, response.text

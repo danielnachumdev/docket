@@ -1,10 +1,12 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth'
 import { AppLayout } from './components/AppLayout'
 import { Spinner } from './components/Feedback'
 import { useTheme } from './lib/theme'
+import { InvitesPage } from './pages/InvitesPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotificationsPage } from './pages/NotificationsPage'
+import { RegisterPage } from './pages/RegisterPage'
 import { TaskDetailPage } from './pages/TaskDetailPage'
 import { TaskListPage } from './pages/TaskListPage'
 import { TokensPage } from './pages/TokensPage'
@@ -14,6 +16,7 @@ import './App.css'
 function Shell() {
   const { status, loading, logout } = useAuth()
   const { theme, toggle } = useTheme()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -23,13 +26,18 @@ function Shell() {
     )
   }
 
+  const onRegister = location.pathname === '/register'
   if (!status?.user) {
+    if (onRegister) return <RegisterPage />
     return <LoginPage />
   }
+
+  const canInvite = status.permissions?.includes('users:admin') ?? false
 
   return (
     <AppLayout
       user={status.user}
+      canInvite={canInvite}
       theme={theme}
       onToggleTheme={toggle}
       onLogout={() => void logout()}
@@ -40,6 +48,7 @@ function Shell() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/tokens" element={<TokensPage />} />
         <Route path="/webhooks" element={<WebhooksPage />} />
+        {canInvite && <Route path="/invites" element={<InvitesPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

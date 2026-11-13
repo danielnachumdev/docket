@@ -7,6 +7,28 @@ export type User = {
 export type AuthStatus = {
   bootstrapped: boolean
   user: User | null
+  permissions: string[]
+}
+
+export type RegistrationInvite = {
+  id: number
+  email: string | null
+  expires_at: string
+  consumed_at: string | null
+  consumed_by_user_id: number | null
+  created_at: string
+}
+
+export type RegistrationInviteCreated = RegistrationInvite & {
+  token: string
+  register_path: string
+}
+
+export type InvitePreview = {
+  valid: boolean
+  email: string | null
+  email_bound: boolean
+  expires_at: string
 }
 
 export type Task = {
@@ -224,7 +246,24 @@ export const api = {
     request<User>('/api/auth/bootstrap', { method: 'POST', body: JSON.stringify(body) }),
   login: (body: { email: string; password: string }) =>
     request<User>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  register: (body: {
+    token: string
+    email: string
+    display_name: string
+    password: string
+  }) =>
+    request<User>('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+  previewInvite: (token: string) =>
+    request<InvitePreview>(`/api/auth/invites/${encodeURIComponent(token)}`),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
+  listInvites: () => request<RegistrationInvite[]>('/api/invites'),
+  createInvite: (body: { email?: string | null } = {}) =>
+    request<RegistrationInviteCreated>('/api/invites', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  revokeInvite: (id: number) =>
+    request<void>(`/api/invites/${id}`, { method: 'DELETE' }),
   listTasks: (opts?: {
     archived?: boolean
     rootsOnly?: boolean

@@ -9,7 +9,7 @@ def _bootstrap(client: TestClient) -> None:
         json={
             "email": "ops@example.com",
             "display_name": "Ops",
-            "password": "password123",
+            "password": "password1234",
         },
     )
     assert res.status_code == 200

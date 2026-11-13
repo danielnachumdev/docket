@@ -3,6 +3,7 @@ from docket.models.artifact import Artifact
 from docket.models.membership import Membership
 from docket.models.notification import Notification
 from docket.models.permission import Permission
+from docket.models.registration_invite import RegistrationInvite
 from docket.models.role import Role
 from docket.models.role_permission import RolePermission
 from docket.models.saved_view import SavedView
@@ -19,6 +20,7 @@ __all__ = [
     "Membership",
     "Notification",
     "Permission",
+    "RegistrationInvite",
     "Role",
     "RolePermission",
     "SavedView",

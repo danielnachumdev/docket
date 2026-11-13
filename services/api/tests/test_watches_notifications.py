@@ -12,7 +12,7 @@ def _bootstrap(client: TestClient) -> None:
         json={
             "email": "ops@example.com",
             "display_name": "Ops",
-            "password": "password123",
+            "password": "password1234",
         },
     )
     assert res.status_code == 200
@@ -64,7 +64,7 @@ def test_watch_status_change_creates_notification() -> None:
     assert detail.json()["watching"] is True
 
     client.post("/api/auth/logout")
-    _login(client, "ops@example.com", "password123")
+    _login(client, "ops@example.com", "password1234")
     status_res = client.post(
         f"/api/tasks/{task_id}/status", json={"status": "in_progress"}
     )
@@ -113,7 +113,7 @@ def test_comment_mentions_and_watchers() -> None:
     assert client.put(f"/api/tasks/{task_id}/watch").status_code == 200
 
     client.post("/api/auth/logout")
-    _login(client, "ops@example.com", "password123")
+    _login(client, "ops@example.com", "password1234")
     commented = client.post(
         f"/api/tasks/{task_id}/comments",
         json={"body": "Please review @alex@example.com — thanks"},
@@ -157,7 +157,7 @@ def test_unwatch_stops_notifications_and_actor_skipped() -> None:
     assert client.get(f"/api/tasks/{task_id}/watch").json() == {"watching": False}
 
     client.post("/api/auth/logout")
-    _login(client, "ops@example.com", "password123")
+    _login(client, "ops@example.com", "password1234")
     client.put(f"/api/tasks/{task_id}/watch")
     client.post(f"/api/tasks/{task_id}/status", json={"status": "done"})
 
@@ -183,7 +183,7 @@ def test_mark_all_read() -> None:
     client.put(f"/api/tasks/{task_id}/watch")
 
     client.post("/api/auth/logout")
-    _login(client, "ops@example.com", "password123")
+    _login(client, "ops@example.com", "password1234")
     client.post(f"/api/tasks/{task_id}/status", json={"status": "blocked"})
     client.post(f"/api/tasks/{task_id}/status", json={"status": "backlog"})
 

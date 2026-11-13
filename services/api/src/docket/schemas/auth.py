@@ -12,7 +12,7 @@ class UserOut(BaseModel):
 class BootstrapIn(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     display_name: str = Field(min_length=1, max_length=200)
-    password: str = Field(min_length=8, max_length=200)
+    password: str = Field(min_length=12, max_length=200)
 
 
 class LoginIn(BaseModel):
@@ -23,3 +23,4 @@ class LoginIn(BaseModel):
 class AuthStatusOut(BaseModel):
     bootstrapped: bool
     user: UserOut | None = None
+    permissions: list[str] = []

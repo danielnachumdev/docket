@@ -12,7 +12,7 @@ def _bootstrap(client: TestClient) -> None:
         json={
             "email": "ops@example.com",
             "display_name": "Ops",
-            "password": "password123",
+            "password": "password1234",
         },
     )
     assert res.status_code == 200
@@ -95,7 +95,7 @@ def test_token_mint_list_revoke_and_bearer_auth() -> None:
     # Re-establish session for management checks.
     login = client.post(
         "/api/auth/login",
-        json={"email": "ops@example.com", "password": "password123"},
+        json={"email": "ops@example.com", "password": "password1234"},
     )
     assert login.status_code == 200
 

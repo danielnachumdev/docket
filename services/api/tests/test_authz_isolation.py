@@ -16,7 +16,7 @@ from tests.helpers import bearer, bootstrap_owner, internal_task_id, mint_api_to
 
 OPS = "ops@example.com"
 OTHER = "other@example.com"
-PASSWORD = "password123"
+PASSWORD = "password1234"
 
 
 def _create_user(email: str, display_name: str) -> User:

@@ -142,7 +142,7 @@ def test_export_allows_shared_viewer_not_stranger() -> None:
     assert denied.status_code == 403
 
     client.post("/api/auth/logout")
-    _login(client, "ops@example.com", "password123")
+    _login(client, "ops@example.com", "password1234")
     share = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "viewer"},

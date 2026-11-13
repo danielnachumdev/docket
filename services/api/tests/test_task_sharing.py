@@ -13,7 +13,7 @@ def _bootstrap(client: TestClient) -> None:
         json={
             "email": "ops@example.com",
             "display_name": "Ops",
-            "password": "password123",
+            "password": "password1234",
         },
     )
     assert res.status_code == 200
@@ -79,7 +79,7 @@ def test_share_task_grants_read_and_list() -> None:
     assert denied.status_code == 403
 
     client.post("/api/auth/logout")
-    _login(client, "ops@example.com", "password123")
+    _login(client, "ops@example.com", "password1234")
     unshare = client.delete(f"/api/tasks/{task_id}/shares/{membership_id}")
     assert unshare.status_code == 204
 

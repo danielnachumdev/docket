@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Response, status
 
-from docket.auth import AuthenticatedPrincipal, OptionalPrincipal
 from docket.api.auth.auth_service import AuthService
+from docket.api.invites.invite_service import InviteService
+from docket.auth import AuthenticatedPrincipal, OptionalPrincipal
 from docket.config import get_settings
 from docket.db import DbSession
 from docket.models import User
 from docket.schemas import AuthStatusOut, BootstrapIn, LoginIn, UserOut
+from docket.schemas.invites import InvitePreviewOut, RegisterIn
 from docket.security import session_codec
 
 
@@ -33,6 +35,18 @@ class AuthApi:
             self.login,
             methods=["POST"],
             response_model=UserOut,
+        )
+        self.router.add_api_route(
+            "/register",
+            self.register,
+            methods=["POST"],
+            response_model=UserOut,
+        )
+        self.router.add_api_route(
+            "/invites/{token}",
+            self.preview_invite,
+            methods=["GET"],
+            response_model=InvitePreviewOut,
         )
         self.router.add_api_route(
             "/logout",
@@ -63,6 +77,21 @@ class AuthApi:
         user = self._service.login(db, body)
         self._set_session_cookie(response, user.id)
         return user
+
+    def register(
+        self, body: RegisterIn, db: DbSession, response: Response
+    ) -> User:
+        user = InviteService(db).register(
+            token=body.token,
+            email=body.email,
+            display_name=body.display_name,
+            password=body.password,
+        )
+        self._set_session_cookie(response, user.id)
+        return user
+
+    def preview_invite(self, token: str, db: DbSession) -> InvitePreviewOut:
+        return InviteService(db).preview(token)
 
     def logout(self, response: Response) -> None:
         self._clear_session_cookie(response)
