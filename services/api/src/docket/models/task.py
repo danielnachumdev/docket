@@ -1,6 +1,16 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from docket.db import Base
@@ -44,6 +54,11 @@ class Task(Base):
     created_by_token_id: Mapped[int | None] = mapped_column(
         ForeignKey("api_tokens.id", ondelete="SET NULL"), nullable=True
     )
+    require_artifact_on_done: Mapped[bool] = mapped_column(Boolean, default=False)
+    # JSON Schema (object) for structured completion payload; null = not required.
+    outcome_schema_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Validated outcome JSON recorded when status → done.
+    outcome_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
