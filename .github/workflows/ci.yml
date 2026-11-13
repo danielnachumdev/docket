@@ -1,6 +1,6 @@
 name: CI
 
-# Thin orchestrator. Prefer requiring check "CI / CI".
+# Thin orchestrator. Soft-protect with the check name this workflow reports (local aggregate → "CI"; see actions HOW-TO-USE → Required check names).
 # Monorepo: Python and Node live under different services/, so we call the
 # reusable lanes directly (umbrella detect uses one working-directory).
 # Semver omitted: this app does not publish versioned artifacts.
@@ -50,7 +50,7 @@ jobs:
       alembic-root: services/api/alembic
       base-ref: origin/main
 
-  # Aggregate required check "CI / CI" (HOW-TO-USE soft protection + DAM gate).
+  # Aggregate required check "CI" (local job name; soft protection + DAM gate).
   ci:
     name: CI
     needs: [python, node, github-yaml, rebase-guard]

@@ -35,4 +35,4 @@ Product pitch: [`README.md`](README.md).
 ## After template bootstrap
 
 1. Language lanes: `services/api/pyproject.toml` + `services/web/package.json` — keep `allow-empty` **off**.
-2. Soft-protect `main`: require **`CI / CI`**; Dependabot auto-merge per actions hub HOW-TO-USE.
+2. Soft-protect `main`: require **`CI`**; Dependabot auto-merge per actions hub HOW-TO-USE.
