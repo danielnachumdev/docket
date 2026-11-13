@@ -47,6 +47,22 @@ class TaskService:
             roots_only=roots_only,
         )
 
+    def list_inbox(
+        self,
+        principal: Principal,
+        *,
+        priority: int | None,
+        due_before: datetime | None,
+        limit: int,
+    ) -> list[Task]:
+        return self._gateway.list_claimable(
+            self._access.accessible_task_ids_select(principal.user_id),
+            now=self._utcnow(),
+            priority=priority,
+            due_before=due_before,
+            limit=limit,
+        )
+
     def create(self, principal: Principal, body: TaskCreate) -> Task:
         if body.parent_task_id is not None:
             parent = self._access.get_task(

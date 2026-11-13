@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -39,6 +40,12 @@ class TasksApi:
             methods=["POST"],
             response_model=TaskOut,
             status_code=status.HTTP_201_CREATED,
+        )
+        self.router.add_api_route(
+            "/inbox",
+            self.list_inbox,
+            methods=["GET"],
+            response_model=list[TaskOut],
         )
         self.router.add_api_route(
             "/{task_id}",
@@ -127,6 +134,21 @@ class TasksApi:
             archived=archived,
             parent_task_id=parent_task_id,
             roots_only=roots_only,
+        )
+
+    def list_inbox(
+        self,
+        db: DbSession,
+        principal: CanClaim,
+        priority: Annotated[int | None, Query(ge=1, le=4)] = None,
+        due_before: Annotated[datetime | None, Query()] = None,
+        limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    ) -> list[Task]:
+        return TaskService(db).list_inbox(
+            principal,
+            priority=priority,
+            due_before=due_before,
+            limit=limit,
         )
 
     def create_task(
