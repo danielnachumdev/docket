@@ -121,12 +121,16 @@ class TaskService:
         old = task.status
         task.status = body.status
         self._apply_status_timestamps(task, body.status)
+        self._apply_status_last_error(task, old=old, body=body)
+        payload: dict = {"from": old, "to": body.status}
+        if task.last_error is not None and body.status == "failed":
+            payload["last_error"] = task.last_error
         task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="status_changed",
             actor=principal,
-            payload={"from": old, "to": body.status},
+            payload=payload,
         )
         self._gateway.commit()
         self._gateway.refresh(task)
@@ -251,6 +255,16 @@ class TaskService:
         else:
             task.completed_at = None
             task.cancelled_at = None
+
+    def _apply_status_last_error(
+        self, task: Task, *, old: str, body: TaskStatusIn
+    ) -> None:
+        if body.last_error is not None:
+            text = body.last_error.strip()
+            task.last_error = text or None
+            return
+        if body.status != "failed" and old == "failed":
+            task.last_error = None
 
     def _utcnow(self) -> datetime:
         return datetime.now(UTC)

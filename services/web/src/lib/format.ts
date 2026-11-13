@@ -3,6 +3,7 @@ export const STATUSES = [
   'in_progress',
   'blocked',
   'on_hold',
+  'failed',
   'done',
   'cancelled',
 ] as const
@@ -15,6 +16,7 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: 'In progress',
   blocked: 'Blocked',
   on_hold: 'On hold',
+  failed: 'Failed',
   done: 'Done',
   cancelled: 'Cancelled',
 }

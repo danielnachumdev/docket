@@ -24,8 +24,9 @@ class TaskUpdate(BaseModel):
 
 class TaskStatusIn(BaseModel):
     status: str = Field(
-        pattern="^(open|in_progress|blocked|on_hold|done|cancelled)$"
+        pattern="^(open|in_progress|blocked|on_hold|failed|done|cancelled)$"
     )
+    last_error: str | None = Field(default=None, max_length=4000)
 
 
 class TaskClaimIn(BaseModel):
@@ -47,6 +48,7 @@ class TaskOut(BaseModel):
     due_at: datetime | None
     claimed_by_token_id: int | None
     claim_expires_at: datetime | None
+    last_error: str | None
     completed_at: datetime | None
     cancelled_at: datetime | None
     archived_at: datetime | None

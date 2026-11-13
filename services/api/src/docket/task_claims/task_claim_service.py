@@ -33,13 +33,17 @@ class TaskClaimService:
         seconds = self._normalize_lease_seconds(lease_seconds)
         holder = self._active_holder_token_id(task)
         if holder is not None and holder != token_id:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Task is claimed by another agent",
+            self._record_ops_failure_and_raise(
+                task,
+                principal,
+                operation="claim",
+                detail="Task is claimed by another agent",
+                code=status.HTTP_409_CONFLICT,
             )
         expires = self._utcnow() + timedelta(seconds=seconds)
         task.claimed_by_token_id = token_id
         task.claim_expires_at = expires
+        task.last_error = None
         task_event_recorder.record(
             self._db,
             task_id=task.id,
@@ -80,14 +84,20 @@ class TaskClaimService:
         seconds = self._normalize_lease_seconds(lease_seconds)
         holder = self._active_holder_token_id(task)
         if holder is None:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "No active claim to renew",
+            self._record_ops_failure_and_raise(
+                task,
+                principal,
+                operation="heartbeat",
+                detail="No active claim to renew",
+                code=status.HTTP_409_CONFLICT,
             )
         if holder != token_id:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Task is claimed by another agent",
+            self._record_ops_failure_and_raise(
+                task,
+                principal,
+                operation="heartbeat",
+                detail="Task is claimed by another agent",
+                code=status.HTTP_409_CONFLICT,
             )
         expires = self._utcnow() + timedelta(seconds=seconds)
         task.claim_expires_at = expires
@@ -110,10 +120,33 @@ class TaskClaimService:
             return
         holder = self._active_holder_token_id(task)
         if holder is not None and holder != principal.token_id:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Task is claimed by another agent",
+            self._record_ops_failure_and_raise(
+                task,
+                principal,
+                operation="release",
+                detail="Task is claimed by another agent",
+                code=status.HTTP_409_CONFLICT,
             )
+
+    def _record_ops_failure_and_raise(
+        self,
+        task: Task,
+        principal: Principal,
+        *,
+        operation: str,
+        detail: str,
+        code: int,
+    ) -> None:
+        task.last_error = detail
+        task_event_recorder.record(
+            self._db,
+            task_id=task.id,
+            event_type=f"{operation}_failed",
+            actor=principal,
+            payload={"error": detail, "operation": operation},
+        )
+        self._db.commit()
+        raise HTTPException(code, detail)
 
     def _require_token_principal(self, principal: Principal) -> int:
         if principal.token_id is None:

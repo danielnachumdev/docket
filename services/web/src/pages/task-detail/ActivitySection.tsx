@@ -52,6 +52,18 @@ function describe(event: TaskEvent, payload: Payload | null) {
       return `shared with${quoted(payload?.email)}`
     case 'unshared':
       return `stopped sharing with${quoted(payload?.email)}`
+    case 'claimed':
+      return 'claimed this task'
+    case 'released':
+      return 'released the claim'
+    case 'claim_renewed':
+      return 'renewed the claim'
+    case 'claim_failed':
+    case 'release_failed':
+    case 'heartbeat_failed':
+      return payload?.error
+        ? `failed to ${String(payload.operation ?? 'operate')}: ${String(payload.error)}`
+        : humanize(event.type).toLowerCase()
     default:
       return humanize(event.type).toLowerCase()
   }

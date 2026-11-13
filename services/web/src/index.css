@@ -22,6 +22,7 @@
   --st-in_progress: #2563eb;
   --st-blocked: #d97706;
   --st-on_hold: #0d9488;
+  --st-failed: #dc2626;
   --st-done: #16a34a;
   --st-cancelled: #9ca3af;
 
@@ -75,6 +76,7 @@
   --st-in_progress: #60a5fa;
   --st-blocked: #fbbf24;
   --st-on_hold: #2dd4bf;
+  --st-failed: #f87171;
   --st-done: #4ade80;
   --st-cancelled: #6b7280;
 

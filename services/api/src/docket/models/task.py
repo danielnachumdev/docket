@@ -16,7 +16,7 @@ class Task(Base):
     )
     title: Mapped[str] = mapped_column(String(500))
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # open | in_progress | blocked | on_hold | done | cancelled
+    # open | in_progress | blocked | on_hold | failed | done | cancelled
     status: Mapped[str] = mapped_column(String(32), default="open")
     priority: Mapped[int] = mapped_column(Integer, default=3)
     rank: Mapped[float] = mapped_column(Float, default=0.0)
@@ -29,6 +29,8 @@ class Task(Base):
     claim_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Last claim/release/heartbeat conflict or agent-reported failure message.
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_by_token_id: Mapped[int | None] = mapped_column(
         ForeignKey("api_tokens.id", ondelete="SET NULL"), nullable=True

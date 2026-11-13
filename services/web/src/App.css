@@ -52,6 +52,9 @@
 .status-on_hold {
   --st: var(--st-on_hold);
 }
+.status-failed {
+  --st: var(--st-failed);
+}
 .status-done {
   --st: var(--st-done);
 }
@@ -364,6 +367,12 @@
   border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
   background: var(--warning-soft);
   color: var(--warning);
+}
+
+.notice-error {
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .empty-state {

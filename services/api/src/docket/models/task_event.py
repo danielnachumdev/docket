@@ -11,7 +11,8 @@ class TaskEvent(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
-    # created | updated | status_changed | claimed | released | commented |
+    # created | updated | status_changed | claimed | released | claim_renewed |
+    # claim_failed | release_failed | heartbeat_failed | commented |
     # artifact_added | archived | linked | ...
     type: Mapped[str] = mapped_column(String(64))
     actor_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))

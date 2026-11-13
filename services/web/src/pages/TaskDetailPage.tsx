@@ -245,6 +245,16 @@ export function TaskDetailPage() {
       </nav>
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
+      {task.last_error && (
+        <div className="notice notice-error" role="status">
+          <Icon name="alert" />
+          <span>
+            <strong>Last error</strong>
+            {': '}
+            {task.last_error}
+          </span>
+        </div>
+      )}
       {task.archived_at && (
         <div className="notice">
           <Icon name="archive" />
