@@ -37,6 +37,9 @@ def test_token_claim_release_and_events() -> None:
     claimed_events = [e for e in events if e["type"] == "claimed"]
     assert claimed_events[0]["actor_token_id"] == token_id
     assert claimed_events[0]["actor_token_name"] == "demo-api"
+    assert claimed_events[0]["actor_role_name"] == "agent_worker"
+    assert body["claimed_by_token_name"] == "demo-api"
+    assert detail.json()["task"]["claimed_by_token_name"] == "demo-api"
 
     released = client.post(f"/api/tasks/{task_id}/release", headers=bearer(raw))
     assert released.status_code == 200
@@ -67,6 +70,43 @@ def test_task_detail_events_include_actor_token_name() -> None:
     assert created_events
     assert created_events[0]["actor_token_id"] == token_id
     assert created_events[0]["actor_token_name"] == "demo-api"
+    assert created_events[0]["actor_role_name"] == "agent_worker"
+
+
+def test_claim_lease_timeline_events_include_actor_role() -> None:
+    client = TestClient(create_app())
+    user = bootstrap_owner(client)
+    task_id = _create_task(client)
+    raw, token_id = mint_api_token(user_id=user["id"], name="demo-api")
+
+    assert (
+        client.post(
+            f"/api/tasks/{task_id}/claim",
+            json={"lease_seconds": 60},
+            headers=bearer(raw),
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/api/tasks/{task_id}/heartbeat",
+            json={"lease_seconds": 120},
+            headers=bearer(raw),
+        ).status_code
+        == 200
+    )
+    assert client.post(f"/api/tasks/{task_id}/release", headers=bearer(raw)).status_code == 200
+
+    detail = client.get(f"/api/tasks/{task_id}")
+    assert detail.status_code == 200, detail.text
+    by_type = {e["type"]: e for e in detail.json()["events"]}
+    for event_type in ("claimed", "claim_renewed", "released"):
+        event = by_type[event_type]
+        assert event["actor_token_id"] == token_id
+        assert event["actor_token_name"] == "demo-api"
+        assert event["actor_role_name"] == "agent_worker"
+    assert detail.json()["task"]["claimed_by_token_id"] is None
+    assert detail.json()["task"]["claimed_by_token_name"] is None
 
 
 def test_double_claim_rejected_while_lease_valid() -> None:

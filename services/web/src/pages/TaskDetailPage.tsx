@@ -17,6 +17,7 @@ import {
 import { useAction } from '../lib/useAction'
 import { ActivitySection } from './task-detail/ActivitySection'
 import { ArtifactsSection } from './task-detail/ArtifactsSection'
+import { ClaimLeaseSection } from './task-detail/ClaimLeaseSection'
 import { LinksSection } from './task-detail/LinksSection'
 import { SharingSection } from './task-detail/SharingSection'
 import { SubtasksSection } from './task-detail/SubtasksSection'
@@ -224,11 +225,15 @@ export function TaskDetailPage() {
   const isOwner = me?.id === task.owner_user_id
   const names = new Map<number, string>(shares.map((s) => [s.user_id, s.display_name]))
 
+  const actorUserLabel = (ev: TaskEvent) =>
+    ev.actor_user_id === me?.id ? 'You' : (names.get(ev.actor_user_id) ?? `User #${ev.actor_user_id}`)
+
   const actorName = (ev: TaskEvent) => {
-    const who = ev.actor_user_id === me?.id ? 'You' : (names.get(ev.actor_user_id) ?? `User #${ev.actor_user_id}`)
+    const who = actorUserLabel(ev)
     if (ev.actor_token_id == null) return who
     const tokenLabel = ev.actor_token_name ? `token:${ev.actor_token_name}` : 'API token'
-    return `${who} (${tokenLabel})`
+    const role = ev.actor_role_name ? ` · ${ev.actor_role_name}` : ''
+    return `${who} (${tokenLabel}${role})`
   }
 
   return (
@@ -333,7 +338,12 @@ export function TaskDetailPage() {
           </section>
           <SubtasksSection taskId={taskId} subtasks={detail.children} onChanged={load} />
           <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
-          <ActivitySection events={detail.events} actorName={actorName} />
+          <ClaimLeaseSection task={task} events={detail.events} />
+          <ActivitySection
+            events={detail.events}
+            actorName={actorName}
+            actorUserLabel={actorUserLabel}
+          />
         </div>
 
         <aside className="detail-side detail-props">

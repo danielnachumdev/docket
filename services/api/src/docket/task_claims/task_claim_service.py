@@ -42,6 +42,7 @@ class TaskClaimService:
             )
         expires = self._utcnow() + timedelta(seconds=seconds)
         task.claimed_by_token_id = token_id
+        task.claimed_by_token = principal.token
         task.claim_expires_at = expires
         task.last_error = None
         task_event_recorder.record(
@@ -63,6 +64,7 @@ class TaskClaimService:
         self._assert_may_release(task, principal)
         previous = task.claimed_by_token_id
         task.claimed_by_token_id = None
+        task.claimed_by_token = None
         task.claim_expires_at = None
         task_event_recorder.record(
             self._db,
