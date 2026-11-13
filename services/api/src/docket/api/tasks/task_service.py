@@ -336,6 +336,22 @@ class TaskService:
         self._gateway.delete(task)
         self._gateway.commit()
 
+    def mark_read(self, principal: Principal, task_ref: str) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
+        if task.unread:
+            task.unread = False
+            self._gateway.commit()
+            self._gateway.refresh(task)
+        return self._mapper.task_out(task)
+
+    def mark_unread(self, principal: Principal, task_ref: str) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
+        if not task.unread:
+            task.unread = True
+            self._gateway.commit()
+            self._gateway.refresh(task)
+        return self._mapper.task_out(task)
+
     def _build_new_task(
         self,
         principal: Principal,

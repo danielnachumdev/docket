@@ -74,6 +74,7 @@ type RowProps = {
   onToggleCollapse: (id: string) => void
   onToggleDone: (task: Task) => void
   onToggleSelect: (id: string) => void
+  onToggleUnread: (task: Task) => void
 }
 
 function TaskRow({
@@ -84,9 +85,11 @@ function TaskRow({
   onToggleCollapse,
   onToggleDone,
   onToggleSelect,
+  onToggleUnread,
 }: RowProps) {
   const closed = isClosed(task.status)
   const done = task.status === 'done'
+  const unread = Boolean(task.unread)
   const kids = totalChildren.get(task.id) ?? []
   const kidsDone = kids.filter((k) => k.status === 'done').length
   const isCollapsed = collapsed.has(task.id)
@@ -125,7 +128,10 @@ function TaskRow({
           <Icon name="check" size={12} />
         </button>
         <Link to={`/tasks/${task.id}`} className="task-main">
-          <span className="task-title">{task.title}</span>
+          <span className="task-title-row">
+            {unread && <span className="unread-dot" aria-hidden="true" />}
+            <span className={unread ? 'task-title unread' : 'task-title'}>{task.title}</span>
+          </span>
           <span className="task-meta">
             <PriorityBadge priority={task.priority} />
             <DueBadge due={task.due_at} closed={closed} />
@@ -138,6 +144,16 @@ function TaskRow({
             <span className="meta-item mono">#{task.number}</span>
           </span>
         </Link>
+        <button
+          type="button"
+          className={unread ? 'icon-btn ghost unread-toggle active' : 'icon-btn ghost unread-toggle'}
+          aria-label={unread ? `Mark “${task.title}” read` : `Mark “${task.title}” unread`}
+          aria-pressed={unread}
+          title={unread ? 'Mark read' : 'Mark unread'}
+          onClick={() => onToggleUnread(task)}
+        >
+          <Icon name={unread ? 'bell' : 'eye'} size={14} />
+        </button>
         <span className="task-status">
           <StatusBadge status={task.status} />
         </span>
@@ -154,6 +170,7 @@ function TaskRow({
               onToggleCollapse={onToggleCollapse}
               onToggleDone={onToggleDone}
               onToggleSelect={onToggleSelect}
+              onToggleUnread={onToggleUnread}
             />
           ))}
         </ul>
@@ -299,8 +316,21 @@ export function TaskListPage() {
   function toggleDone(task: Task) {
     const next = task.status === 'done' ? 'backlog' : 'done'
     setPinned((prev) => new Set(prev).add(task.id))
-    setTasks((prev) => prev?.map((t) => (t.id === task.id ? { ...t, status: next } : t)) ?? null)
+    setTasks(
+      (prev) =>
+        prev?.map((t) => (t.id === task.id ? { ...t, status: next, unread: true } : t)) ?? null,
+    )
     api.setStatus(task.id, next).catch((err: Error) => {
+      setError(err.message)
+      void load()
+    })
+  }
+
+  function toggleUnread(task: Task) {
+    const next = !task.unread
+    setTasks((prev) => prev?.map((t) => (t.id === task.id ? { ...t, unread: next } : t)) ?? null)
+    const req = next ? api.markTaskUnread(task.id) : api.markTaskRead(task.id)
+    req.catch((err: Error) => {
       setError(err.message)
       void load()
     })
@@ -535,6 +565,7 @@ export function TaskListPage() {
                 onToggleCollapse={toggleCollapse}
                 onToggleDone={toggleDone}
                 onToggleSelect={toggleSelect}
+                onToggleUnread={toggleUnread}
               />
             ))}
           </ul>

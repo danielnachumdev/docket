@@ -82,12 +82,18 @@ class TaskOut(BaseModel):
     completed_at: datetime | None
     cancelled_at: datetime | None
     archived_at: datetime | None
+    unread: bool = False
     created_at: datetime
     updated_at: datetime
 
     @field_validator("require_artifact_on_done", mode="before")
     @classmethod
     def _default_require_artifact(cls, value: object) -> object:
+        return False if value is None else value
+
+    @field_validator("unread", mode="before")
+    @classmethod
+    def _default_unread(cls, value: object) -> object:
         return False if value is None else value
 
 
