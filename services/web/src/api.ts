@@ -13,6 +13,7 @@ export type Task = {
   id: number
   owner_user_id: number
   parent_task_id: number | null
+  external_id: string | null
   title: string
   body: string | null
   status: string
@@ -180,6 +181,7 @@ export const api = {
     priority?: number
     parent_task_id?: number | null
     due_at?: string | null
+    external_id?: string | null
   }) => request<Task>('/api/tasks', { method: 'POST', body: JSON.stringify(body) }),
   updateTask: (id: number, body: Record<string, unknown>) =>
     request<Task>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),

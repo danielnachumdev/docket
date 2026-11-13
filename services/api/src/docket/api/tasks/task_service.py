@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from docket.api.tasks.task_gateway import TaskGateway
@@ -63,7 +64,19 @@ class TaskService:
             limit=limit,
         )
 
-    def create(self, principal: Principal, body: TaskCreate) -> Task:
+    def create(self, principal: Principal, body: TaskCreate) -> tuple[Task, bool]:
+        """Create a task, or return the existing one when external_id matches.
+
+        Returns (task, created) where created is False on idempotent external_id hit.
+        """
+        external_id = self._normalize_external_id(body.external_id)
+        if external_id is not None:
+            existing = self._gateway.get_by_owner_external_id(
+                principal.user_id, external_id
+            )
+            if existing is not None:
+                return existing, False
+
         if body.parent_task_id is not None:
             parent = self._access.get_task(
                 principal, body.parent_task_id, "tasks:write"
@@ -74,6 +87,7 @@ class TaskService:
         task = Task(
             owner_user_id=principal.user_id,
             parent_task_id=body.parent_task_id,
+            external_id=external_id,
             title=body.title.strip(),
             body=body.body,
             priority=body.priority,
@@ -82,17 +96,24 @@ class TaskService:
             created_by_user_id=principal.user_id,
             created_by_token_id=principal.token_id,
         )
-        self._gateway.add(task)
-        task_event_recorder.record(
-            self._db,
-            task_id=task.id,
-            event_type="created",
-            actor=principal,
-            payload={"title": task.title, "priority": task.priority},
-        )
-        self._gateway.commit()
+        try:
+            self._gateway.add(task)
+            task_event_recorder.record(
+                self._db,
+                task_id=task.id,
+                event_type="created",
+                actor=principal,
+                payload={
+                    "title": task.title,
+                    "priority": task.priority,
+                    "external_id": task.external_id,
+                },
+            )
+            self._gateway.commit()
+        except IntegrityError:
+            return self._recover_external_id_race(principal.user_id, external_id)
         self._gateway.refresh(task)
-        return task
+        return task, True
 
     def get_detail(self, principal: Principal, task_id: int) -> TaskDetailOut:
         task = self._access.get_task(principal, task_id, "tasks:read")
@@ -126,7 +147,14 @@ class TaskService:
                 actor=principal,
                 payload=changes,
             )
-        self._gateway.commit()
+        try:
+            self._gateway.commit()
+        except IntegrityError as exc:
+            self._gateway.rollback()
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "external_id already used by another task for this owner",
+            ) from exc
         self._gateway.refresh(task)
         return task
 
@@ -230,7 +258,39 @@ class TaskService:
             changes["rank"] = task.rank
         self._apply_parent_change(task, principal, body, changes)
         self._apply_due_change(task, body, changes)
+        self._apply_external_id_change(task, body, changes)
         return changes
+
+    def _apply_external_id_change(
+        self, task: Task, body: TaskUpdate, changes: dict
+    ) -> None:
+        if body.clear_external_id:
+            task.external_id = None
+            changes["external_id"] = None
+        elif body.external_id is not None:
+            task.external_id = self._normalize_external_id(body.external_id)
+            changes["external_id"] = task.external_id
+
+    def _normalize_external_id(self, external_id: str | None) -> str | None:
+        if external_id is None:
+            return None
+        stripped = external_id.strip()
+        return stripped or None
+
+    def _recover_external_id_race(
+        self, owner_user_id: int, external_id: str | None
+    ) -> tuple[Task, bool]:
+        self._gateway.rollback()
+        if external_id is None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Could not create task"
+            )
+        existing = self._gateway.get_by_owner_external_id(owner_user_id, external_id)
+        if existing is None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Could not create task"
+            )
+        return existing, False
 
     def _apply_parent_change(
         self,
