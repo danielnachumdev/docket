@@ -16,7 +16,7 @@ class Task(Base):
     )
     title: Mapped[str] = mapped_column(String(500))
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # open | in_progress | blocked | done | cancelled
+    # open | in_progress | blocked | on_hold | done | cancelled
     status: Mapped[str] = mapped_column(String(32), default="open")
     priority: Mapped[int] = mapped_column(Integer, default=3)
     rank: Mapped[float] = mapped_column(Float, default=0.0)

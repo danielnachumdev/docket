@@ -23,7 +23,9 @@ class TaskUpdate(BaseModel):
 
 
 class TaskStatusIn(BaseModel):
-    status: str = Field(pattern="^(open|in_progress|blocked|done|cancelled)$")
+    status: str = Field(
+        pattern="^(open|in_progress|blocked|on_hold|done|cancelled)$"
+    )
 
 
 class TaskClaimIn(BaseModel):
