@@ -62,6 +62,7 @@ class TaskEventOut(BaseModel):
     type: str
     actor_user_id: int
     actor_token_id: int | None
+    actor_token_name: str | None = None
     payload_json: str | None
     created_at: datetime
 

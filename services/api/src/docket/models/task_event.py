@@ -24,3 +24,8 @@ class TaskEvent(Base):
     )
 
     task: Mapped["Task"] = relationship(back_populates="events")
+    actor_token: Mapped["ApiToken | None"] = relationship()
+
+    @property
+    def actor_token_name(self) -> str | None:
+        return self.actor_token.name if self.actor_token is not None else None

@@ -33,6 +33,7 @@ export type TaskEvent = {
   type: string
   actor_user_id: number
   actor_token_id: number | null
+  actor_token_name: string | null
   payload_json: string | null
   created_at: string
 }

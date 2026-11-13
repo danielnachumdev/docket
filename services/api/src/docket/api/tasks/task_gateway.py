@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import Select
 
 from docket.models import Task, TaskEvent
@@ -46,9 +46,12 @@ class TaskGateway:
         return list(
             self._db.scalars(
                 select(TaskEvent)
+                .options(joinedload(TaskEvent.actor_token))
                 .where(TaskEvent.task_id == task_id)
                 .order_by(TaskEvent.created_at.desc(), TaskEvent.id.desc())
-            ).all()
+            )
+            .unique()
+            .all()
         )
 
     def list_children(self, parent_id: int) -> list[Task]:
