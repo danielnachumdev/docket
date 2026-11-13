@@ -90,12 +90,15 @@ jobs:
 
   build-push:
     name: Build and push GHCR images
-    needs: changes
+    # After semver so release tag/version can be baked into the API image.
+    needs: [changes, semver]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.changes.outputs.sha }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: docker/setup-buildx-action@v4
 
@@ -105,12 +108,42 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Bake rule (API DOCKET_VERSION):
+      #   1) semver-cd `version` when a release/bump resolved a semver
+      #   2) else semver-cd `tag` (strip leading v)
+      #   3) else vX.Y.Z tag already pointing at this SHA
+      #   4) else short SHA (noBump / non-release main push)
+      - name: Resolve baked image version
+        id: ver
+        env:
+          SEMVER_VERSION: ${{ needs.semver.outputs.version }}
+          SEMVER_TAG: ${{ needs.semver.outputs.tag }}
+          SHA: ${{ needs.changes.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${SEMVER_VERSION}" ]]; then
+            VER="${SEMVER_VERSION}"
+          elif [[ -n "${SEMVER_TAG}" ]]; then
+            VER="${SEMVER_TAG#v}"
+          else
+            TAG="$(git tag --points-at "${SHA}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)"
+            if [[ -n "${TAG}" ]]; then
+              VER="${TAG#v}"
+            else
+              VER="$(printf '%s' "${SHA}" | cut -c1-7)"
+            fi
+          fi
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "Baking DOCKET_VERSION=${VER}"
+
       - name: Push API image
         uses: docker/build-push-action@v7
         with:
           context: services/api
           file: services/api/Dockerfile
           push: true
+          build-args: |
+            DOCKET_VERSION=${{ steps.ver.outputs.version }}
           tags: |
             ${{ env.API_IMAGE }}:${{ needs.changes.outputs.sha }}
             ${{ env.API_IMAGE }}:main

@@ -4,7 +4,6 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from docket import __version__
 from docket.api import (
     artifacts_api,
     auth_api,
@@ -40,7 +39,11 @@ async def lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.running_version,
+        lifespan=lifespan,
+    )
     # Authn outermost among our middleware so principal is set before routes.
     app.add_middleware(AuthnMiddleware)
     app.add_middleware(
@@ -53,7 +56,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
-        return {"status": "ok", "version": __version__}
+        return {"status": "ok", "version": get_settings().running_version}
 
     app.include_router(auth_api.router)
     app.include_router(tasks_api.router)
