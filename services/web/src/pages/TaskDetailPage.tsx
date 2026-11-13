@@ -19,6 +19,8 @@ import { ActivitySection } from './task-detail/ActivitySection'
 import { ArtifactsSection } from './task-detail/ArtifactsSection'
 import { ClaimLeaseSection } from './task-detail/ClaimLeaseSection'
 import { CommentsSection } from './task-detail/CommentsSection'
+import { CompleteDoneDialog } from './task-detail/CompleteDoneDialog'
+import { CompletionSection } from './task-detail/CompletionSection'
 import { LinksSection } from './task-detail/LinksSection'
 import { SharingSection } from './task-detail/SharingSection'
 import { SubtasksSection } from './task-detail/SubtasksSection'
@@ -29,6 +31,8 @@ type Draft = {
   priority: number
   due: string
   parent: string
+  requireArtifact: boolean
+  outcomeSchema: string
 }
 
 function toLocalInput(iso: string | null) {
@@ -44,6 +48,15 @@ function fromLocalInput(value: string) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
+function prettySchema(raw: string | null) {
+  if (!raw) return ''
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2)
+  } catch {
+    return raw
+  }
+}
+
 function draftFrom(task: Task): Draft {
   return {
     title: task.title,
@@ -51,6 +64,8 @@ function draftFrom(task: Task): Draft {
     priority: task.priority,
     due: toLocalInput(task.due_at),
     parent: task.parent_task_id != null ? String(task.parent_task_id) : '',
+    requireArtifact: Boolean(task.require_artifact_on_done),
+    outcomeSchema: prettySchema(task.outcome_schema_json),
   }
 }
 
@@ -79,6 +94,7 @@ export function TaskDetailPage() {
   const [shares, setShares] = useState<TaskShare[]>([])
   const [draft, setDraft] = useState<Draft | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [completeOpen, setCompleteOpen] = useState(false)
   const { busy, error, setError, run } = useAction()
 
   const load = useCallback(async () => {
@@ -148,11 +164,27 @@ export function TaskDetailPage() {
       if (!draft.parent) patch.clear_parent = true
       else patch.parent_task_id = Number(draft.parent)
     }
+    if (draft.requireArtifact !== saved.requireArtifact) {
+      patch.require_artifact_on_done = draft.requireArtifact
+    }
+    if (draft.outcomeSchema !== saved.outcomeSchema) {
+      const trimmed = draft.outcomeSchema.trim()
+      if (!trimmed) {
+        patch.clear_outcome_schema = true
+      } else {
+        try {
+          patch.outcome_schema = JSON.parse(trimmed) as Record<string, unknown>
+        } catch {
+          setError('Outcome schema must be valid JSON')
+          return
+        }
+      }
+    }
     void run(async () => {
       await api.updateTask(taskId, patch)
       await load()
     }, 'Could not save changes')
-  }, [detail, draft, load, run, taskId])
+  }, [detail, draft, load, run, setError, taskId])
 
   useEffect(() => {
     if (!dirty) return
@@ -171,8 +203,25 @@ export function TaskDetailPage() {
   }
 
   function changeStatus(next: string) {
+    if (!detail) return
+    if (next === 'done') {
+      const needsDialog =
+        detail.task.require_artifact_on_done || Boolean(detail.task.outcome_schema_json)
+      if (needsDialog) {
+        setCompleteOpen(true)
+        return
+      }
+    }
     void run(async () => {
       await api.setStatus(taskId, next)
+      await load()
+    }, 'Could not change status')
+  }
+
+  function confirmDone(outcome?: Record<string, unknown>) {
+    void run(async () => {
+      await api.setStatus(taskId, 'done', outcome)
+      setCompleteOpen(false)
       await load()
     }, 'Could not change status')
   }
@@ -437,6 +486,14 @@ export function TaskDetailPage() {
               </select>
             </label>
           </section>
+
+          <CompletionSection
+            requireArtifact={draft.requireArtifact}
+            schemaText={draft.outcomeSchema}
+            onRequireArtifact={(value) => update('requireArtifact', value)}
+            onSchemaText={(value) => update('outcomeSchema', value)}
+            recordedOutcome={task.outcome_json}
+          />
         </aside>
 
         <aside className="detail-side detail-related">
@@ -444,6 +501,17 @@ export function TaskDetailPage() {
           <SharingSection taskId={taskId} shares={shares} isOwner={isOwner} onChanged={load} />
         </aside>
       </div>
+
+      {completeOpen && (
+        <CompleteDoneDialog
+          requireArtifact={task.require_artifact_on_done}
+          artifactCount={detail.artifacts.length}
+          schemaText={task.outcome_schema_json}
+          busy={busy}
+          onCancel={() => setCompleteOpen(false)}
+          onConfirm={confirmDone}
+        />
+      )}
 
       {dirty && (
         <div className="savebar" role="region" aria-label="Unsaved changes">

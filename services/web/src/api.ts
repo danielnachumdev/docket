@@ -25,6 +25,9 @@ export type Task = {
   claimed_by_token_name: string | null
   claim_expires_at: string | null
   last_error: string | null
+  require_artifact_on_done: boolean
+  outcome_schema_json: string | null
+  outcome_json: string | null
   completed_at: string | null
   cancelled_at: string | null
   archived_at: string | null
@@ -231,10 +234,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  setStatus: (id: number, status: string) =>
+  setStatus: (id: number, status: string, outcome?: Record<string, unknown>) =>
     request<Task>(`/api/tasks/${id}/status`, {
       method: 'POST',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(outcome === undefined ? { status } : { status, outcome }),
     }),
   archive: (id: number) => request<Task>(`/api/tasks/${id}/archive`, { method: 'POST' }),
   unarchive: (id: number) =>

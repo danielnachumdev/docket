@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -29,6 +30,7 @@ from docket.schemas import (
 )
 from docket.task_claims import TaskClaimService
 from docket.task_links import TaskLinkService
+from docket.task_outcomes import DoneOutcomeEnforcer, OutcomeSchemaCodec
 
 
 class TaskService:
@@ -38,6 +40,8 @@ class TaskService:
         self._artifacts = ArtifactGateway(db)
         self._claims = TaskClaimService(db)
         self._access = TaskAccessService(db)
+        self._outcomes = DoneOutcomeEnforcer()
+        self._schema_codec = OutcomeSchemaCodec()
 
     def list_tasks(
         self,
@@ -101,6 +105,8 @@ class TaskService:
             source="api" if principal.token else "ui",
             created_by_user_id=principal.user_id,
             created_by_token_id=principal.token_id,
+            require_artifact_on_done=body.require_artifact_on_done,
+            outcome_schema_json=self._encode_schema(body.outcome_schema),
         )
         try:
             self._gateway.add(task)
@@ -173,12 +179,18 @@ class TaskService:
     ) -> Task:
         task = self._access.get_task(principal, task_id, "tasks:write")
         old = task.status
+        if body.status == "done":
+            self._apply_done(task, body.outcome)
+        else:
+            task.outcome_json = None
         task.status = body.status
         self._apply_status_timestamps(task, body.status)
         self._apply_status_last_error(task, old=old, body=body)
-        payload: dict = {"from": old, "to": body.status}
+        payload: dict[str, Any] = {"from": old, "to": body.status}
         if task.last_error is not None and body.status == "failed":
             payload["last_error"] = task.last_error
+        if task.outcome_json is not None and body.status == "done":
+            payload["outcome"] = True
         task_event_recorder.record(
             self._db,
             task_id=task.id,
@@ -349,6 +361,14 @@ class TaskService:
         self._gateway.delete(task)
         self._gateway.commit()
 
+    def _apply_done(self, task: Task, outcome: dict[str, Any] | None) -> None:
+        artifact_count = len(self._artifacts.list_for_task(task.id))
+        task.outcome_json = self._outcomes.enforce(
+            task,
+            outcome=outcome,
+            artifact_count=artifact_count,
+        )
+
     def _apply_update(
         self, task: Task, principal: Principal, body: TaskUpdate
     ) -> dict:
@@ -368,6 +388,7 @@ class TaskService:
         self._apply_parent_change(task, principal, body, changes)
         self._apply_due_change(task, body, changes)
         self._apply_external_id_change(task, body, changes)
+        self._apply_outcome_config(task, body, changes)
         return changes
 
     def _apply_external_id_change(
@@ -400,6 +421,20 @@ class TaskService:
                 status.HTTP_409_CONFLICT, "Could not create task"
             )
         return existing, False
+
+    def _apply_outcome_config(
+        self, task: Task, body: TaskUpdate, changes: dict
+    ) -> None:
+        if body.require_artifact_on_done is not None:
+            task.require_artifact_on_done = body.require_artifact_on_done
+            changes["require_artifact_on_done"] = task.require_artifact_on_done
+        if body.clear_outcome_schema:
+            task.outcome_schema_json = None
+            changes["outcome_schema"] = None
+        elif body.outcome_schema is not None:
+            task.outcome_schema_json = self._encode_schema(body.outcome_schema)
+            changes["outcome_schema"] = True
+
 
     def _apply_parent_change(
         self,
@@ -436,11 +471,17 @@ class TaskService:
         old = task.status
         if old == new_status:
             return
+        if new_status == "done":
+            self._apply_done(task, None)
+        else:
+            task.outcome_json = None
         task.status = new_status
         self._apply_status_timestamps(task, new_status)
         if new_status != "failed" and old == "failed":
             task.last_error = None
-        payload: dict = {"from": old, "to": new_status}
+        payload: dict[str, Any] = {"from": old, "to": new_status}
+        if task.outcome_json is not None and new_status == "done":
+            payload["outcome"] = True
         task_event_recorder.record(
             self._db,
             task_id=task.id,
@@ -487,6 +528,11 @@ class TaskService:
             seen.add(task_id)
             ordered.append(task_id)
         return ordered
+
+    def _encode_schema(self, schema: dict[str, Any] | None) -> str | None:
+        if schema is None:
+            return None
+        return self._schema_codec.encode(schema)
 
     def _utcnow(self) -> datetime:
         return datetime.now(UTC)

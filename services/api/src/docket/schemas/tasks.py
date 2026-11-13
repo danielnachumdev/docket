@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Self
+from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _STATUS_PATTERN = "^(open|in_progress|blocked|on_hold|failed|done|cancelled)$"
 
@@ -13,6 +13,8 @@ class TaskCreate(BaseModel):
     parent_task_id: int | None = None
     due_at: datetime | None = None
     external_id: str | None = Field(default=None, min_length=1, max_length=255)
+    require_artifact_on_done: bool = False
+    outcome_schema: dict[str, Any] | None = None
 
 
 class TaskUpdate(BaseModel):
@@ -26,11 +28,15 @@ class TaskUpdate(BaseModel):
     clear_parent: bool = False
     external_id: str | None = Field(default=None, min_length=1, max_length=255)
     clear_external_id: bool = False
+    require_artifact_on_done: bool | None = None
+    outcome_schema: dict[str, Any] | None = None
+    clear_outcome_schema: bool = False
 
 
 class TaskStatusIn(BaseModel):
     status: str = Field(pattern=_STATUS_PATTERN)
     last_error: str | None = Field(default=None, max_length=4000)
+    outcome: dict[str, Any] | None = None
 
 
 class TaskBulkUpdate(BaseModel):
@@ -43,7 +49,6 @@ class TaskBulkUpdate(BaseModel):
         if self.status is None and self.priority is None:
             raise ValueError("Provide status and/or priority")
         return self
-
 
 
 class TaskClaimIn(BaseModel):
@@ -68,11 +73,19 @@ class TaskOut(BaseModel):
     claimed_by_token_name: str | None = None
     claim_expires_at: datetime | None
     last_error: str | None
+    require_artifact_on_done: bool = False
+    outcome_schema_json: str | None = None
+    outcome_json: str | None = None
     completed_at: datetime | None
     cancelled_at: datetime | None
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("require_artifact_on_done", mode="before")
+    @classmethod
+    def _default_require_artifact(cls, value: object) -> object:
+        return False if value is None else value
 
 
 class TaskEventOut(BaseModel):

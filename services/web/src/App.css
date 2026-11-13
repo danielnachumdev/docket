@@ -1608,6 +1608,51 @@ details pre {
   margin-top: 0.25rem;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--bg) 35%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  width: min(28rem, 100%);
+  max-height: min(90vh, 40rem);
+  overflow: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.outcome-preview {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 12rem;
+}
+
+.danger-text {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.88rem;
+}
+
+textarea.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .savebar,
 .bulkbar {
   position: fixed;
