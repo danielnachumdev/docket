@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { api, type VersionStatus } from '../api'
 import { Icon } from './Icon'
 
@@ -23,6 +23,37 @@ export function useAppVersion(): VersionStatus | null {
   return info
 }
 
+function ReleaseNotesLink({
+  href,
+  className,
+  title,
+  children,
+}: {
+  href: string | null
+  className?: string
+  title?: string
+  children: ReactNode
+}) {
+  if (!href) {
+    return (
+      <span className={className} title={title}>
+        {children}
+      </span>
+    )
+  }
+  return (
+    <a
+      className={className}
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={title}
+    >
+      {children}
+    </a>
+  )
+}
+
 export function AppVersion({
   info,
   compact = false,
@@ -35,53 +66,42 @@ export function AppVersion({
   const label = `v${info.version}`
   const update = info.update_available
   const href = info.release_url
+  const updateTitle = info.latest_version
+    ? `Update available: v${info.latest_version}`
+    : 'Update available'
 
   if (compact) {
-    if (!update) {
-      return <span className="app-version app-version-compact muted">{label}</span>
-    }
-    if (href) {
-      return (
-        <a
-          className="app-version app-version-compact update"
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          title={`Update available: v${info.latest_version ?? ''}`}
-        >
-          {label}
-          <span className="update-dot" aria-hidden="true" />
-        </a>
-      )
-    }
     return (
-      <span className="app-version app-version-compact update" title="Update available">
+      <ReleaseNotesLink
+        href={href}
+        className={`app-version app-version-compact${update ? ' update' : ' muted'}`}
+        title={update ? updateTitle : href ? 'Release notes' : undefined}
+      >
         {label}
-        <span className="update-dot" aria-hidden="true" />
-      </span>
+        {update ? <span className="update-dot" aria-hidden="true" /> : null}
+      </ReleaseNotesLink>
     )
   }
 
   return (
     <div className="app-version">
-      <span className="muted mono">{label}</span>
-      {update &&
-        (href ? (
-          <a
-            className="update-link"
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            title={info.latest_version ? `v${info.latest_version} available` : 'Update available'}
-          >
-            <Icon name="external" size={12} />
-            Update available
-          </a>
-        ) : (
-          <span className="update-link" title="Update available">
-            Update available
-          </span>
-        ))}
+      <ReleaseNotesLink
+        href={href}
+        className={`mono version-link${href ? '' : ' muted'}`}
+        title={href ? 'Release notes' : undefined}
+      >
+        {label}
+      </ReleaseNotesLink>
+      {update ? (
+        <ReleaseNotesLink
+          href={href}
+          className="update-link"
+          title={info.latest_version ? `v${info.latest_version} available` : 'Update available'}
+        >
+          <Icon name="external" size={12} />
+          Update available
+        </ReleaseNotesLink>
+      ) : null}
     </div>
   )
 }
