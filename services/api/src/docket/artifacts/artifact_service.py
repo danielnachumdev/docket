@@ -16,11 +16,42 @@ from docket.models import Artifact
 from docket.schemas import ArtifactCreate, ArtifactUpdate
 
 
+_IMAGE_MEDIA_BY_EXTENSION = {
+    ".avif": "image/avif",
+    ".bmp": "image/bmp",
+    ".gif": "image/gif",
+    ".ico": "image/x-icon",
+    ".jpeg": "image/jpeg",
+    ".jpg": "image/jpeg",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".webp": "image/webp",
+}
+
+
 @dataclass(frozen=True)
 class ArtifactContent:
     data: bytes
     content_type: str
     filename: str
+
+    @property
+    def is_image(self) -> bool:
+        return self._image_media_type() is not None
+
+    @property
+    def response_media_type(self) -> str:
+        return self._image_media_type() or self.content_type
+
+    def _image_media_type(self) -> str | None:
+        media_type = self.content_type.split(";", 1)[0].strip().lower()
+        if media_type.startswith("image/"):
+            return self.content_type
+        name = self.filename.rsplit("/", 1)[-1].lower()
+        dot = name.rfind(".")
+        if dot < 0:
+            return None
+        return _IMAGE_MEDIA_BY_EXTENSION.get(name[dot:])
 
 
 class ArtifactService:

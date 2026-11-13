@@ -1472,6 +1472,49 @@ a.list-row:hover {
   margin-left: 2.7rem;
 }
 
+.artifact-preview-btn {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.artifact-preview {
+  display: block;
+  max-width: min(100%, 28rem);
+  max-height: 16rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  object-fit: contain;
+}
+
+.artifact-preview-error {
+  margin: 0;
+}
+
+.artifact-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: color-mix(in srgb, var(--bg) 35%, #000 65%);
+  cursor: zoom-out;
+}
+
+.artifact-lightbox img {
+  max-width: min(96vw, 56rem);
+  max-height: 90vh;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  object-fit: contain;
+  cursor: default;
+}
+
 details summary {
   width: fit-content;
   color: var(--muted);

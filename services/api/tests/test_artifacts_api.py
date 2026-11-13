@@ -130,6 +130,84 @@ def test_artifact_file_requires_base64() -> None:
     assert bad.status_code == 400
 
 
+def test_image_artifact_content_disposition_inline(tmp_path: Path, monkeypatch) -> None:
+    artifact_root = tmp_path / "arts"
+    monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(artifact_root))
+    get_settings.cache_clear()
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+
+    # Minimal 1x1 PNG
+    png_bytes = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+    created = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "file",
+            "title": "demo-preview.png",
+            "content_base64": base64.b64encode(png_bytes).decode("ascii"),
+            "content_type": "image/png",
+        },
+    )
+    assert created.status_code == 201
+    artifact_id = created.json()["id"]
+
+    res = client.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}/content")
+    assert res.status_code == 200
+    assert res.content == png_bytes
+    assert res.headers["content-type"].startswith("image/png")
+    disposition = res.headers["content-disposition"]
+    assert disposition.startswith("inline;")
+    assert "demo-preview.png" in disposition
+
+    plain = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "file",
+            "title": "notes.txt",
+            "content_base64": base64.b64encode(b"hello").decode("ascii"),
+            "content_type": "text/plain",
+        },
+    )
+    assert plain.status_code == 201
+    plain_id = plain.json()["id"]
+    plain_res = client.get(f"/api/tasks/{task_id}/artifacts/{plain_id}/content")
+    assert plain_res.status_code == 200
+    assert plain_res.headers["content-disposition"].startswith("attachment;")
+
+
+def test_image_artifact_inline_by_filename_extension(
+    tmp_path: Path, monkeypatch
+) -> None:
+    artifact_root = tmp_path / "arts"
+    monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(artifact_root))
+    get_settings.cache_clear()
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+
+    created = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "file",
+            "title": "shot.JPEG",
+            "content_base64": base64.b64encode(b"not-a-real-jpeg").decode("ascii"),
+            "content_type": "application/octet-stream",
+        },
+    )
+    assert created.status_code == 201
+    artifact_id = created.json()["id"]
+
+    res = client.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}/content")
+    assert res.status_code == 200
+    assert res.headers["content-disposition"].startswith("inline;")
+    assert res.headers["content-type"].startswith("image/jpeg")
+
+
 def test_artifact_link_and_missing() -> None:
     client = TestClient(create_app())
     _bootstrap(client)
