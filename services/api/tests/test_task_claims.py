@@ -18,7 +18,7 @@ def test_token_claim_release_and_events() -> None:
     client = TestClient(create_app())
     user = bootstrap_owner(client)
     task_id = _create_task(client)
-    raw, token_id = mint_api_token(user_id=user["id"])
+    raw, token_id = mint_api_token(user_id=user["id"], name="demo-api")
 
     claimed = client.post(
         f"/api/tasks/{task_id}/claim",
@@ -31,8 +31,12 @@ def test_token_claim_release_and_events() -> None:
     assert body["claim_expires_at"] is not None
 
     detail = client.get(f"/api/tasks/{task_id}", headers=bearer(raw))
-    types = [e["type"] for e in detail.json()["events"]]
+    events = detail.json()["events"]
+    types = [e["type"] for e in events]
     assert "claimed" in types
+    claimed_events = [e for e in events if e["type"] == "claimed"]
+    assert claimed_events[0]["actor_token_id"] == token_id
+    assert claimed_events[0]["actor_token_name"] == "demo-api"
 
     released = client.post(f"/api/tasks/{task_id}/release", headers=bearer(raw))
     assert released.status_code == 200
@@ -42,6 +46,27 @@ def test_token_claim_release_and_events() -> None:
     detail2 = client.get(f"/api/tasks/{task_id}", headers=bearer(raw))
     types2 = [e["type"] for e in detail2.json()["events"]]
     assert "released" in types2
+
+
+def test_task_detail_events_include_actor_token_name() -> None:
+    client = TestClient(create_app())
+    user = bootstrap_owner(client)
+    raw, token_id = mint_api_token(user_id=user["id"], name="demo-api")
+
+    created = client.post(
+        "/api/tasks",
+        json={"title": "Token-authored task", "priority": 3},
+        headers=bearer(raw),
+    )
+    assert created.status_code == 201, created.text
+    task_id = created.json()["id"]
+
+    detail = client.get(f"/api/tasks/{task_id}")
+    assert detail.status_code == 200, detail.text
+    created_events = [e for e in detail.json()["events"] if e["type"] == "created"]
+    assert created_events
+    assert created_events[0]["actor_token_id"] == token_id
+    assert created_events[0]["actor_token_name"] == "demo-api"
 
 
 def test_double_claim_rejected_while_lease_valid() -> None:

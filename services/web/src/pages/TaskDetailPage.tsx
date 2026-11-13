@@ -220,7 +220,9 @@ export function TaskDetailPage() {
 
   const actorName = (ev: TaskEvent) => {
     const who = ev.actor_user_id === me?.id ? 'You' : (names.get(ev.actor_user_id) ?? `User #${ev.actor_user_id}`)
-    return ev.actor_token_id != null ? `${who} (API token)` : who
+    if (ev.actor_token_id == null) return who
+    const tokenLabel = ev.actor_token_name ? `token:${ev.actor_token_name}` : 'API token'
+    return `${who} (${tokenLabel})`
   }
 
   return (
