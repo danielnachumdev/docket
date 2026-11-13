@@ -65,8 +65,8 @@ class ArtifactService:
         self._db = db
         self._gateway = ArtifactGateway(db)
         self._access = TaskAccessService(db)
-        resolved = settings or get_settings()
-        self._storage = storage or ArtifactStorageFactory().build(resolved)
+        self._settings = settings or get_settings()
+        self._storage = storage or ArtifactStorageFactory().build(self._settings)
 
     def list_artifacts(self, principal: Principal, task_ref: str) -> list[Artifact]:
         task = self._access.get_task(principal, task_ref, "tasks:read")
@@ -247,8 +247,19 @@ class ArtifactService:
                 )
             return b""
         try:
-            return base64.b64decode(value, validate=True)
+            data = base64.b64decode(value, validate=True)
         except binascii.Error as exc:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "Invalid content_base64"
             ) from exc
+        self._reject_oversized_payload(data)
+        return data
+
+    def _reject_oversized_payload(self, data: bytes) -> None:
+        limit = self._settings.artifact_max_bytes
+        if len(data) <= limit:
+            return
+        raise HTTPException(
+            status.HTTP_413_CONTENT_TOO_LARGE,
+            f"Artifact exceeds maximum size of {limit} bytes",
+        )

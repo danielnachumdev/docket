@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # Artifact blob storage: local (default) or gcs.
     artifact_storage: str = "local"
     artifact_local_root: str = str(ROOT / "data" / "artifacts")
+    # Max decoded file payload for content_base64 create/replace.
+    artifact_max_bytes: int = 10 * 1024 * 1024
     gcs_bucket: str = ""
     gcs_prefix: str = "artifacts"
     # Public GitHub repo used for "update available" checks.

@@ -130,6 +130,73 @@ def test_artifact_file_requires_base64() -> None:
     assert bad.status_code == 400
 
 
+def test_artifact_file_rejects_over_max_bytes(monkeypatch) -> None:
+    monkeypatch.setenv("ARTIFACT_MAX_BYTES", "8")
+    get_settings.cache_clear()
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+
+    over = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "file",
+            "title": "too-big.bin",
+            "content_base64": base64.b64encode(b"012345678").decode("ascii"),
+            "content_type": "application/octet-stream",
+        },
+    )
+    assert over.status_code == 413
+    assert "8 bytes" in over.json()["detail"]
+
+    created = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "file",
+            "title": "tiny.bin",
+            "content_base64": base64.b64encode(b"ok").decode("ascii"),
+            "content_type": "application/octet-stream",
+        },
+    )
+    assert created.status_code == 201
+    artifact_id = created.json()["id"]
+
+    replace_over = client.patch(
+        f"/api/tasks/{task_id}/artifacts/{artifact_id}",
+        json={
+            "content_base64": base64.b64encode(b"012345678").decode("ascii"),
+        },
+    )
+    assert replace_over.status_code == 413
+
+
+def test_artifact_file_allows_under_max_bytes(monkeypatch) -> None:
+    monkeypatch.setenv("ARTIFACT_MAX_BYTES", "16")
+    get_settings.cache_clear()
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+
+    payload = b"0123456789abcdef"
+    created = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "file",
+            "title": "exact.bin",
+            "content_base64": base64.b64encode(payload).decode("ascii"),
+            "content_type": "application/octet-stream",
+        },
+    )
+    assert created.status_code == 201
+    artifact_id = created.json()["id"]
+    assert (
+        client.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}/content").content
+        == payload
+    )
+
+
 def test_image_artifact_content_disposition_inline(tmp_path: Path, monkeypatch) -> None:
     artifact_root = tmp_path / "arts"
     monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(artifact_root))
