@@ -184,6 +184,12 @@ export function TaskDetailPage() {
     }, 'Could not update archive state')
   }
 
+  function exportCasePack() {
+    void run(async () => {
+      await api.downloadTaskExport(taskId)
+    }, 'Could not download export')
+  }
+
   function remove() {
     if (!detail || !window.confirm(`Delete “${detail.task.title}” permanently? This cannot be undone.`)) return
     const parentId = detail.task.parent_task_id
@@ -288,6 +294,16 @@ export function TaskDetailPage() {
           </span>
           {task.source && task.source !== 'ui' && <span className="tag">via {task.source}</span>}
           <span className="detail-actions">
+            <button
+              type="button"
+              className="btn ghost small"
+              disabled={busy}
+              onClick={exportCasePack}
+              title="Download immutable audit pack (zip)"
+            >
+              <Icon name="download" />
+              Export
+            </button>
             {!task.archived_at && (
               <button type="button" className="btn ghost small" disabled={busy} onClick={toggleArchive}>
                 <Icon name="archive" />

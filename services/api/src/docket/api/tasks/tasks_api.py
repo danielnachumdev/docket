@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Annotated
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from docket.api.tasks.task_service import TaskService
 from docket.auth import Principal, RequirePermission
@@ -17,6 +18,7 @@ from docket.schemas import (
     TaskStatusIn,
     TaskUpdate,
 )
+from docket.task_export import TaskExportService
 from docket.task_links import TaskLinkService
 
 CanRead = Annotated[Principal, Depends(RequirePermission("tasks:read"))]
@@ -100,6 +102,11 @@ class TasksApi:
             self.delete_task,
             methods=["DELETE"],
             status_code=status.HTTP_204_NO_CONTENT,
+        )
+        self.router.add_api_route(
+            "/{task_id}/export",
+            self.export_task,
+            methods=["GET"],
         )
         self.router.add_api_route(
             "/{task_id}/links",
@@ -208,6 +215,20 @@ class TasksApi:
         self, task_id: int, db: DbSession, principal: CanAdmin
     ) -> None:
         TaskService(db).delete(principal, task_id)
+
+    def export_task(
+        self, task_id: int, db: DbSession, principal: CanRead
+    ) -> Response:
+        bundle = TaskExportService(db).export_task(principal, task_id)
+        disposition = f"attachment; filename*=UTF-8''{quote(bundle.filename)}"
+        return Response(
+            content=bundle.data,
+            media_type=bundle.content_type,
+            headers={
+                "Content-Disposition": disposition,
+                "Cache-Control": "no-store",
+            },
+        )
 
     def list_links(
         self, task_id: int, db: DbSession, principal: CanRead

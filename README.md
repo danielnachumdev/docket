@@ -69,6 +69,10 @@ export GCS_BUCKET=your-bucket
 
 Create file artifacts via JSON with `content_base64` (SPA encodes the chosen file). Content is always streamed through `GET /api/tasks/{id}/artifacts/{artifact_id}/content` (local and GCS).
 
+## Task export (audit pack)
+
+`GET /api/tasks/{id}/export` returns a zip snapshot (`docket.task_export.zip`) of the task, events (oldest first), links, children, artifact metadata, and artifact content when available. Authorization matches task read access (`tasks:read` via ownership or share) — not owner-only — so shared viewers can download a case pack. The SPA task detail page exposes an **Export** button.
+
 ## Auth model
 
 - **Authn:** `AuthnMiddleware` resolves session cookie or `Authorization: Bearer` into `request.state.principal`
