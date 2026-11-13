@@ -1,0 +1,8 @@
+# Semver seed only — used by semver-cd when no GitHub Release exists yet.
+# The publishable package lives in services/api/ (see scripts/release/).
+[project]
+name = "docket"
+version = "0.1.0"
+description = "System of record for human + agent tasks"
+readme = "README.md"
+requires-python = ">=3.12"
