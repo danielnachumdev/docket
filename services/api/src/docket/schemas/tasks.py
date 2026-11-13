@@ -9,6 +9,7 @@ class TaskCreate(BaseModel):
     priority: int = Field(default=3, ge=1, le=4)
     parent_task_id: int | None = None
     due_at: datetime | None = None
+    external_id: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 class TaskUpdate(BaseModel):
@@ -20,6 +21,8 @@ class TaskUpdate(BaseModel):
     due_at: datetime | None = None
     clear_due_at: bool = False
     clear_parent: bool = False
+    external_id: str | None = Field(default=None, min_length=1, max_length=255)
+    clear_external_id: bool = False
 
 
 class TaskStatusIn(BaseModel):
@@ -39,6 +42,7 @@ class TaskOut(BaseModel):
     id: int
     owner_user_id: int
     parent_task_id: int | None
+    external_id: str | None
     title: str
     body: str | None
     status: str

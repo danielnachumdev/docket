@@ -18,6 +18,16 @@ class TaskGateway:
     def get(self, task_id: int) -> Task | None:
         return self._db.get(Task, task_id)
 
+    def get_by_owner_external_id(
+        self, owner_user_id: int, external_id: str
+    ) -> Task | None:
+        return self._db.scalar(
+            select(Task).where(
+                Task.owner_user_id == owner_user_id,
+                Task.external_id == external_id,
+            )
+        )
+
     def add(self, task: Task) -> Task:
         self._db.add(task)
         self._db.flush()
@@ -25,6 +35,9 @@ class TaskGateway:
 
     def delete(self, task: Task) -> None:
         self._db.delete(task)
+
+    def rollback(self) -> None:
+        self._db.rollback()
 
     def list_visible(
         self,

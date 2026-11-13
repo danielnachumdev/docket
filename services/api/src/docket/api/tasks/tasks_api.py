@@ -159,9 +159,17 @@ class TasksApi:
         )
 
     def create_task(
-        self, body: TaskCreate, db: DbSession, principal: CanWrite
+        self,
+        body: TaskCreate,
+        db: DbSession,
+        principal: CanWrite,
+        response: Response,
     ) -> Task:
-        return TaskService(db).create(principal, body)
+        task, created = TaskService(db).create(principal, body)
+        response.status_code = (
+            status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+        return task
 
     def get_task(
         self, task_id: int, db: DbSession, principal: CanRead
