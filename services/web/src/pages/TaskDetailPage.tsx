@@ -1,15 +1,37 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, type Task, type TaskDetail, type TaskShare } from '../api'
+import { api, type Task, type TaskDetail, type TaskEvent, type TaskShare } from '../api'
 import { useAuth } from '../auth'
+import { PriorityBadge, StatusBadge } from '../components/Badges'
+import { Alert, Skeleton } from '../components/Feedback'
+import { Icon } from '../components/Icon'
+import {
+  PRIORITIES,
+  STATUSES,
+  formatDateTime,
+  formatRelative,
+  parseDate,
+  priorityLabel,
+  statusLabel,
+} from '../lib/format'
+import { useAction } from '../lib/useAction'
+import { ActivitySection } from './task-detail/ActivitySection'
+import { ArtifactsSection } from './task-detail/ArtifactsSection'
+import { LinksSection } from './task-detail/LinksSection'
+import { SharingSection } from './task-detail/SharingSection'
+import { SubtasksSection } from './task-detail/SubtasksSection'
 
-const STATUSES = ['open', 'in_progress', 'blocked', 'done', 'cancelled'] as const
-const LINK_KINDS = ['blocks', 'related', 'duplicate_of'] as const
+type Draft = {
+  title: string
+  body: string
+  priority: number
+  due: string
+  parent: string
+}
 
 function toLocalInput(iso: string | null) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
+  const d = parseDate(iso)
+  if (!d) return ''
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
@@ -20,13 +42,27 @@ function fromLocalInput(value: string) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
-function descendantIds(taskId: number, all: Task[]): Set<number> {
-  const kids = all.filter((t) => t.parent_task_id === taskId)
-  const ids = new Set<number>()
-  for (const kid of kids) {
-    ids.add(kid.id)
-    for (const d of descendantIds(kid.id, all)) ids.add(d)
+function draftFrom(task: Task): Draft {
+  return {
+    title: task.title,
+    body: task.body ?? '',
+    priority: task.priority,
+    due: toLocalInput(task.due_at),
+    parent: task.parent_task_id != null ? String(task.parent_task_id) : '',
   }
+}
+
+function descendantIds(taskId: number, all: Task[]): Set<number> {
+  const ids = new Set<number>()
+  const walk = (id: number) => {
+    for (const t of all) {
+      if (t.parent_task_id === id && !ids.has(t.id)) {
+        ids.add(t.id)
+        walk(t.id)
+      }
+    }
+  }
+  walk(taskId)
   return ids
 }
 
@@ -36,673 +72,336 @@ export function TaskDetailPage() {
   const { status } = useAuth()
   const taskId = Number(id)
   const [detail, setDetail] = useState<TaskDetail | null>(null)
-  const [parentTask, setParentTask] = useState<{ id: number; title: string } | null>(
-    null,
-  )
-  const [parentChoices, setParentChoices] = useState<Task[]>([])
+  const [allTasks, setAllTasks] = useState<Task[]>([])
+  const [parentTask, setParentTask] = useState<{ id: number; title: string } | null>(null)
   const [shares, setShares] = useState<TaskShare[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [priority, setPriority] = useState(3)
-  const [dueLocal, setDueLocal] = useState('')
-  const [parentSelect, setParentSelect] = useState('')
-  const [subTitle, setSubTitle] = useState('')
-  const [subPriority, setSubPriority] = useState(3)
-  const [artifactTitle, setArtifactTitle] = useState('')
-  const [artifactText, setArtifactText] = useState('')
-  const [artifactKind, setArtifactKind] = useState<'text' | 'link' | 'file'>('text')
-  const [artifactFile, setArtifactFile] = useState<File | null>(null)
-  const [linkToId, setLinkToId] = useState('')
-  const [linkKind, setLinkKind] = useState<(typeof LINK_KINDS)[number]>('related')
-  const [shareEmail, setShareEmail] = useState('')
-  const [shareRole, setShareRole] = useState<'viewer' | 'editor'>('viewer')
-  const [busy, setBusy] = useState(false)
+  const [draft, setDraft] = useState<Draft | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const { busy, error, setError, run } = useAction()
 
   const load = useCallback(async () => {
-    const data = await api.getTask(taskId)
+    const [data, all, shareRows] = await Promise.all([
+      api.getTask(taskId),
+      api.listTasks({ archived: false }),
+      api.listShares(taskId),
+    ])
     setDetail(data)
-    setTitle(data.task.title)
-    setBody(data.task.body ?? '')
-    setPriority(data.task.priority)
-    setDueLocal(toLocalInput(data.task.due_at))
-    setParentSelect(
-      data.task.parent_task_id != null ? String(data.task.parent_task_id) : '',
-    )
+    setDraft(draftFrom(data.task))
+    setAllTasks(all)
+    setShares(shareRows)
 
-    const all = await api.listTasks({ archived: false })
-    const blocked = descendantIds(taskId, all)
-    blocked.add(taskId)
-    setParentChoices(
-      all
-        .filter((t) => !blocked.has(t.id))
-        .sort((a, b) => a.title.localeCompare(b.title) || a.id - b.id),
-    )
-
-    if (data.task.parent_task_id != null) {
-      const parentId = data.task.parent_task_id
+    const parentId = data.task.parent_task_id
+    if (parentId == null) {
+      setParentTask(null)
+    } else {
       const fromList = all.find((t) => t.id === parentId)
       if (fromList) {
         setParentTask({ id: fromList.id, title: fromList.title })
       } else {
-        try {
-          const parentDetail = await api.getTask(parentId)
-          setParentTask({ id: parentDetail.task.id, title: parentDetail.task.title })
-        } catch {
-          setParentTask({ id: parentId, title: `Task #${parentId}` })
-        }
+        const parent = await api.getTask(parentId).catch(() => null)
+        setParentTask({ id: parentId, title: parent?.task.title ?? `Task #${parentId}` })
       }
-    } else {
-      setParentTask(null)
     }
-
-    const shareRows = await api.listShares(taskId)
-    setShares(shareRows)
   }, [taskId])
 
   useEffect(() => {
+    setDetail(null)
+    setLoadError(null)
     if (!Number.isFinite(taskId)) {
-      setError('Invalid task')
+      setLoadError('Invalid task id')
       return
     }
-    void load().catch((err: Error) => setError(err.message))
+    load().catch((err: Error) => setLoadError(err.message))
   }, [load, taskId])
 
-  const parentChanged = useMemo(() => {
-    if (!detail) return false
-    const current =
-      detail.task.parent_task_id != null ? String(detail.task.parent_task_id) : ''
-    return parentSelect !== current
-  }, [detail, parentSelect])
+  const tasksById = useMemo(() => new Map(allTasks.map((t) => [t.id, t])), [allTasks])
 
-  async function save(e: FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      const due = fromLocalInput(dueLocal)
-      const patch: Record<string, unknown> = {
-        title: title.trim(),
-        body,
-        priority,
-        ...(due ? { due_at: due } : { clear_due_at: true }),
-      }
-      if (parentChanged) {
-        if (!parentSelect) patch.clear_parent = true
-        else patch.parent_task_id = Number(parentSelect)
-      }
+  const parentChoices = useMemo(() => {
+    const blocked = descendantIds(taskId, allTasks)
+    blocked.add(taskId)
+    return allTasks
+      .filter((t) => !blocked.has(t.id))
+      .sort((a, b) => a.title.localeCompare(b.title) || a.id - b.id)
+  }, [allTasks, taskId])
+
+  const original = detail ? draftFrom(detail.task) : null
+  const dirty =
+    draft != null &&
+    original != null &&
+    (Object.keys(draft) as (keyof Draft)[]).some((k) => draft[k] !== original[k])
+
+  const save = useCallback(() => {
+    if (!detail || !draft || !draft.title.trim()) return
+    const saved = draftFrom(detail.task)
+    const patch: Record<string, unknown> = {}
+    if (draft.title.trim() !== saved.title) patch.title = draft.title.trim()
+    if (draft.body !== saved.body) patch.body = draft.body
+    if (draft.priority !== saved.priority) patch.priority = draft.priority
+    if (draft.due !== saved.due) {
+      const due = fromLocalInput(draft.due)
+      if (due) patch.due_at = due
+      else patch.clear_due_at = true
+    }
+    if (draft.parent !== saved.parent) {
+      if (!draft.parent) patch.clear_parent = true
+      else patch.parent_task_id = Number(draft.parent)
+    }
+    void run(async () => {
       await api.updateTask(taskId, patch)
       await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
-    } finally {
-      setBusy(false)
+    }, 'Could not save changes')
+  }, [detail, draft, load, run, taskId])
+
+  useEffect(() => {
+    if (!dirty) return
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        save()
+      }
     }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [dirty, save])
+
+  function update<K extends keyof Draft>(key: K, value: Draft[K]) {
+    setDraft((prev) => (prev ? { ...prev, [key]: value } : prev))
   }
 
-  async function setStatus(status: string) {
-    setBusy(true)
-    setError(null)
-    try {
-      await api.setStatus(taskId, status)
+  function changeStatus(next: string) {
+    void run(async () => {
+      await api.setStatus(taskId, next)
       await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Status failed')
-    } finally {
-      setBusy(false)
-    }
+    }, 'Could not change status')
   }
 
-  async function archiveToggle() {
+  function toggleArchive() {
     if (!detail) return
-    setBusy(true)
-    try {
+    void run(async () => {
       if (detail.task.archived_at) await api.unarchive(taskId)
       else await api.archive(taskId)
       await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Archive failed')
-    } finally {
-      setBusy(false)
-    }
+    }, 'Could not update archive state')
   }
 
-  async function remove() {
-    if (!window.confirm('Delete this task permanently?')) return
-    setBusy(true)
-    try {
+  function remove() {
+    if (!detail || !window.confirm(`Delete “${detail.task.title}” permanently? This cannot be undone.`)) return
+    const parentId = detail.task.parent_task_id
+    void run(async () => {
       await api.deleteTask(taskId)
-      navigate(detail?.task.parent_task_id ? `/tasks/${detail.task.parent_task_id}` : '/')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed')
-      setBusy(false)
-    }
+      navigate(parentId ? `/tasks/${parentId}` : '/')
+    }, 'Could not delete task')
   }
 
-  async function addSubtask(e: FormEvent) {
-    e.preventDefault()
-    if (!subTitle.trim()) return
-    setBusy(true)
-    setError(null)
-    try {
-      await api.createTask({
-        title: subTitle.trim(),
-        priority: subPriority,
-        parent_task_id: taskId,
-      })
-      setSubTitle('')
-      setSubPriority(3)
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Subtask create failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function fileToBase64(file: File): Promise<string> {
-    const buffer = await file.arrayBuffer()
-    const bytes = new Uint8Array(buffer)
-    let binary = ''
-    for (let i = 0; i < bytes.length; i += 1) {
-      binary += String.fromCharCode(bytes[i]!)
-    }
-    return btoa(binary)
-  }
-
-  async function addArtifact(e: FormEvent) {
-    e.preventDefault()
-    if (!artifactTitle.trim()) return
-    setBusy(true)
-    setError(null)
-    try {
-      if (artifactKind === 'file') {
-        if (!artifactFile) throw new Error('Choose a file to attach')
-        const content_base64 = await fileToBase64(artifactFile)
-        await api.addArtifact(taskId, {
-          kind: 'file',
-          title: artifactTitle.trim(),
-          content_base64,
-          content_type: artifactFile.type || 'application/octet-stream',
-        })
-        setArtifactFile(null)
-      } else {
-        await api.addArtifact(taskId, {
-          kind: artifactKind,
-          title: artifactTitle.trim(),
-          content_text: artifactText,
-        })
-      }
-      setArtifactTitle('')
-      setArtifactText('')
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Artifact failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function downloadArtifact(artifactId: number, title: string) {
-    setBusy(true)
-    setError(null)
-    try {
-      await api.downloadArtifactContent(taskId, artifactId, title)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Download failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function deleteArtifact(artifactId: number) {
-    setBusy(true)
-    setError(null)
-    try {
-      await api.deleteArtifact(taskId, artifactId)
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function addLink(e: FormEvent) {
-    e.preventDefault()
-    const toTaskId = Number(linkToId)
-    if (!Number.isFinite(toTaskId) || toTaskId <= 0) {
-      setError('Enter a valid task id to link')
-      return
-    }
-    setBusy(true)
-    setError(null)
-    try {
-      await api.createLink(taskId, { to_task_id: toTaskId, kind: linkKind })
-      setLinkToId('')
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Link failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function removeLink(linkId: number) {
-    setBusy(true)
-    setError(null)
-    try {
-      await api.deleteLink(taskId, linkId)
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unlink failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function shareTask(e: FormEvent) {
-    e.preventDefault()
-    if (!shareEmail.trim()) return
-    setBusy(true)
-    setError(null)
-    try {
-      await api.shareTask(taskId, {
-        email: shareEmail.trim().toLowerCase(),
-        role: shareRole,
-      })
-      setShareEmail('')
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Share failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function unshare(membershipId: number) {
-    setBusy(true)
-    setError(null)
-    try {
-      await api.unshareTask(taskId, membershipId)
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unshare failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  if (!detail && !error) {
+  if (loadError) {
     return (
-      <main className="shell">
-        <p className="muted">Loading task…</p>
+      <main className="page">
+        <Alert>{loadError}</Alert>
+        <Link to="/" className="btn">
+          <Icon name="arrowLeft" />
+          Back to tasks
+        </Link>
       </main>
     )
   }
 
-  if (!detail) {
+  if (!detail || !draft) {
     return (
-      <main className="shell">
-        <p className="err">{error}</p>
-        <Link to="/">Back</Link>
+      <main className="page">
+        <Skeleton rows={6} />
       </main>
     )
   }
 
   const task = detail.task
-  const isOwner = status?.user?.id === task.owner_user_id
+  const me = status?.user
+  const isOwner = me?.id === task.owner_user_id
+  const names = new Map<number, string>(shares.map((s) => [s.user_id, s.display_name]))
+
+  const actorName = (ev: TaskEvent) => {
+    const who = ev.actor_user_id === me?.id ? 'You' : (names.get(ev.actor_user_id) ?? `User #${ev.actor_user_id}`)
+    return ev.actor_token_id != null ? `${who} (API token)` : who
+  }
 
   return (
-    <main className="shell">
-      <p className="crumb">
-        <Link to="/">Tasks</Link>
+    <main className={dirty ? 'page has-savebar' : 'page'}>
+      <nav className="breadcrumb" aria-label="Breadcrumb">
+        <Link to={task.archived_at ? '/?view=archived' : '/'}>
+          <Icon name="arrowLeft" size={14} />
+          {task.archived_at ? 'Archived' : 'Tasks'}
+        </Link>
         {parentTask && (
           <>
-            {' / '}
-            <Link to={`/tasks/${parentTask.id}`}>{parentTask.title}</Link>
+            <Icon name="chevronRight" size={12} />
+            <Link to={`/tasks/${parentTask.id}`} className="truncate">
+              {parentTask.title}
+            </Link>
           </>
         )}
-        {' / '}#{task.id}
-      </p>
-      {error && <p className="err">{error}</p>}
+        <Icon name="chevronRight" size={12} />
+        <span className="mono">#{task.id}</span>
+      </nav>
 
-      <form className="panel form" onSubmit={(e) => void save(e)}>
-        <label>
-          Title
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </label>
-        <label>
-          Notes
-          <textarea
-            rows={5}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Context, acceptance notes…"
-          />
-        </label>
-        <div className="form-row">
-          <label>
-            Priority
-            <select
-              value={priority}
-              onChange={(e) => setPriority(Number(e.target.value))}
-            >
-              {[1, 2, 3, 4].map((p) => (
-                <option key={p} value={p}>
-                  P{p}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Deadline
-            <input
-              type="datetime-local"
-              value={dueLocal}
-              onChange={(e) => setDueLocal(e.target.value)}
-            />
-          </label>
-        </div>
-        <label>
-          Parent task
-          <select
-            value={parentSelect}
-            onChange={(e) => setParentSelect(e.target.value)}
-            aria-label="Parent task"
-          >
-            <option value="">None (root)</option>
-            {parentChoices.map((p) => (
-              <option key={p.id} value={p.id}>
-                #{p.id} · {p.title}
-              </option>
-            ))}
-            {parentTask &&
-              !parentChoices.some((p) => p.id === parentTask.id) && (
-                <option value={parentTask.id}>
-                  #{parentTask.id} · {parentTask.title}
-                </option>
-              )}
-          </select>
-        </label>
-        <div className="actions">
-          <button type="submit" className="primary" disabled={busy}>
-            Save
-          </button>
-          <button type="button" className="ghost" disabled={busy} onClick={() => void archiveToggle()}>
-            {task.archived_at ? 'Unarchive' : 'Archive'}
-          </button>
-          <button type="button" className="danger" disabled={busy} onClick={() => void remove()}>
-            Delete
+      {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
+      {task.archived_at && (
+        <div className="notice">
+          <Icon name="archive" />
+          <span>This task was archived {formatRelative(task.archived_at)}.</span>
+          <button type="button" className="btn small" disabled={busy} onClick={toggleArchive}>
+            Restore
           </button>
         </div>
-      </form>
+      )}
 
-      <section className="panel">
-        <h3>Status</h3>
-        <div className="status-pills">
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className={task.status === s ? 'pill on' : 'pill'}
-              disabled={busy}
-              onClick={() => void setStatus(s)}
-            >
-              {s.replace('_', ' ')}
+      <header className="detail-header">
+        <textarea
+          className="title-input"
+          value={draft.title}
+          rows={1}
+          aria-label="Task title"
+          placeholder="Task title"
+          onChange={(e) => update('title', e.target.value.replace(/\n/g, ''))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              save()
+            }
+          }}
+        />
+        <div className="detail-meta">
+          <StatusBadge status={task.status} />
+          <PriorityBadge priority={task.priority} />
+          <span className="muted small" title={formatDateTime(task.created_at)}>
+            Created {formatRelative(task.created_at)}
+          </span>
+          {task.source && task.source !== 'ui' && <span className="tag">via {task.source}</span>}
+          <span className="detail-actions">
+            {!task.archived_at && (
+              <button type="button" className="btn ghost small" disabled={busy} onClick={toggleArchive}>
+                <Icon name="archive" />
+                Archive
+              </button>
+            )}
+            <button type="button" className="btn ghost small danger" disabled={busy} onClick={remove}>
+              <Icon name="trash" />
+              Delete
             </button>
-          ))}
+          </span>
         </div>
-      </section>
+      </header>
 
-      <section className="panel">
-        <h3>Subtasks</h3>
-        <ul className="plain">
-          {detail.children.map((child) => (
-            <li key={child.id}>
-              <Link to={`/tasks/${child.id}`}>
-                P{child.priority} · {child.title}{' '}
-                <span className="muted">({child.status.replace('_', ' ')})</span>
-              </Link>
-            </li>
-          ))}
-          {detail.children.length === 0 && (
-            <li className="muted">No subtasks yet.</li>
-          )}
-        </ul>
-        <form className="form inline" onSubmit={(e) => void addSubtask(e)}>
-          <input
-            type="text"
-            placeholder="New subtask title"
-            value={subTitle}
-            onChange={(e) => setSubTitle(e.target.value)}
-            required
-          />
-          <select
-            value={subPriority}
-            onChange={(e) => setSubPriority(Number(e.target.value))}
-            aria-label="Subtask priority"
-          >
-            {[1, 2, 3, 4].map((p) => (
-              <option key={p} value={p}>
-                P{p}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="primary" disabled={busy}>
-            Add subtask
-          </button>
-        </form>
-      </section>
-
-      <section className="panel">
-        <h3>Links</h3>
-        <ul className="plain">
-          {(detail.links ?? []).map((link) => {
-            const otherId =
-              link.from_task_id === task.id ? link.to_task_id : link.from_task_id
-            const direction = link.from_task_id === task.id ? '→' : '←'
-            return (
-              <li key={link.id} className="link-row">
-                <span className="badge">{link.kind}</span>
-                <span className="muted">{direction}</span>
-                <Link to={`/tasks/${otherId}`}>#{otherId}</Link>
-                <button
-                  type="button"
-                  className="ghost compact"
-                  disabled={busy}
-                  onClick={() => void removeLink(link.id)}
-                >
-                  Remove
-                </button>
-              </li>
-            )
-          })}
-          {(detail.links ?? []).length === 0 && (
-            <li className="muted">No links yet.</li>
-          )}
-        </ul>
-        <form className="form form-row" onSubmit={(e) => void addLink(e)}>
-          <label>
-            Kind
-            <select
-              value={linkKind}
-              onChange={(e) =>
-                setLinkKind(e.target.value as (typeof LINK_KINDS)[number])
-              }
-            >
-              {LINK_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {k}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            To task #
-            <input
-              type="number"
-              min={1}
-              value={linkToId}
-              onChange={(e) => setLinkToId(e.target.value)}
-              placeholder="id"
-              required
-            />
-          </label>
-          <button type="submit" className="primary" disabled={busy}>
-            Add link
-          </button>
-        </form>
-      </section>
-
-
-      <section className="panel">
-        <h3>Sharing</h3>
-        <ul className="plain">
-          {shares.map((s) => (
-            <li key={s.id} className="row-between">
-              <span>
-                {s.display_name}{' '}
-                <span className="muted small">
-                  ({s.email ?? 'no email'}) · {s.role}
-                </span>
-              </span>
-              {isOwner && (
-                <button
-                  type="button"
-                  className="ghost"
-                  disabled={busy}
-                  onClick={() => void unshare(s.id)}
-                >
-                  Unshare
-                </button>
-              )}
-            </li>
-          ))}
-          {shares.length === 0 && <li className="muted">Not shared with anyone.</li>}
-        </ul>
-        {isOwner && (
-          <form className="form inline" onSubmit={(e) => void shareTask(e)}>
-            <input
-              type="email"
-              value={shareEmail}
-              onChange={(e) => setShareEmail(e.target.value)}
-              placeholder="user@example.com"
-              required
-            />
-            <select
-              value={shareRole}
-              onChange={(e) => setShareRole(e.target.value as 'viewer' | 'editor')}
-              aria-label="Share role"
-            >
-              <option value="viewer">viewer</option>
-              <option value="editor">editor</option>
-            </select>
-            <button type="submit" className="primary" disabled={busy}>
-              Share
-            </button>
-          </form>
-        )}
-      </section>
-
-      <section className="panel">
-        <h3>Artifacts</h3>
-        <ul className="plain">
-          {detail.artifacts.map((a) => (
-            <li key={a.id}>
-              <strong>{a.title}</strong>{' '}
-              <span className="muted small">{a.kind}</span>
-              {a.content_type && (
-                <span className="muted small"> · {a.content_type}</span>
-              )}
-              {a.content_text && a.kind !== 'file' && (
-                <pre className="artifact">{a.content_text}</pre>
-              )}
-              <div className="form inline">
-                {(a.storage_key || a.content_text) && (
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={busy}
-                    onClick={() => void downloadArtifact(a.id, a.title)}
-                  >
-                    Download
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="ghost"
-                  disabled={busy}
-                  onClick={() => void deleteArtifact(a.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
-          {detail.artifacts.length === 0 && <li className="muted">None yet.</li>}
-        </ul>
-        <form className="form" onSubmit={(e) => void addArtifact(e)}>
-          <label>
-            Kind
-            <select
-              value={artifactKind}
-              onChange={(e) =>
-                setArtifactKind(e.target.value as 'text' | 'link' | 'file')
-              }
-              aria-label="Artifact kind"
-            >
-              <option value="text">text</option>
-              <option value="link">link</option>
-              <option value="file">file</option>
-            </select>
-          </label>
-          <label>
-            Title
-            <input
-              value={artifactTitle}
-              onChange={(e) => setArtifactTitle(e.target.value)}
-              placeholder="Title"
-              required
-            />
-          </label>
-          {artifactKind === 'file' ? (
-            <label>
-              File
-              <input
-                type="file"
-                onChange={(e) => setArtifactFile(e.target.files?.[0] ?? null)}
-                required
+      <div className="detail-grid">
+        <div className="detail-main">
+          <section className="card">
+            <label className="notes">
+              <span className="card-label">Notes</span>
+              <textarea
+                rows={Math.min(16, Math.max(4, draft.body.split('\n').length + 1))}
+                value={draft.body}
+                onChange={(e) => update('body', e.target.value)}
+                placeholder="Add context, acceptance criteria, or anything an agent should know…"
               />
             </label>
-          ) : (
-            <textarea
-              rows={3}
-              value={artifactText}
-              onChange={(e) => setArtifactText(e.target.value)}
-              placeholder={artifactKind === 'link' ? 'https://example.com/...' : 'Content'}
-            />
-          )}
-          <button type="submit" className="primary" disabled={busy}>
-            Attach
-          </button>
-        </form>
-      </section>
+          </section>
+          <SubtasksSection taskId={taskId} subtasks={detail.children} onChanged={load} />
+          <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
+          <ActivitySection events={detail.events} actorName={actorName} />
+        </div>
 
-      <section className="panel">
-        <h3>History</h3>
-        <ol className="timeline">
-          {detail.events.map((ev) => (
-            <li key={ev.id}>
-              <span className="badge">{ev.type}</span>
-              <span className="muted small">
-                {new Date(ev.created_at).toLocaleString()}
+        <aside className="detail-side detail-props">
+          <section className="card">
+            <span className="card-label">Status</span>
+            <div className="status-picker" role="radiogroup" aria-label="Status">
+              {STATUSES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  role="radio"
+                  aria-checked={task.status === s}
+                  className={`status-option status-${s}${task.status === s ? ' active' : ''}`}
+                  disabled={busy}
+                  onClick={() => task.status !== s && changeStatus(s)}
+                >
+                  <span className="status-dot" aria-hidden="true" />
+                  {statusLabel(s)}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="card stack">
+            <label className="field">
+              <span>Priority</span>
+              <select value={draft.priority} onChange={(e) => update('priority', Number(e.target.value))}>
+                {PRIORITIES.map((p) => (
+                  <option key={p} value={p}>
+                    P{p} · {priorityLabel(p)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Deadline</span>
+              <span className="input-with-action">
+                <input
+                  type="datetime-local"
+                  value={draft.due}
+                  onChange={(e) => update('due', e.target.value)}
+                />
+                {draft.due && (
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label="Clear deadline"
+                    title="Clear deadline"
+                    onClick={() => update('due', '')}
+                  >
+                    <Icon name="x" />
+                  </button>
+                )}
               </span>
-              {ev.payload_json && <code className="payload">{ev.payload_json}</code>}
-            </li>
-          ))}
-        </ol>
-      </section>
+            </label>
+            <label className="field">
+              <span>Parent task</span>
+              <select value={draft.parent} onChange={(e) => update('parent', e.target.value)}>
+                <option value="">None (top level)</option>
+                {parentChoices.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    #{p.id} · {p.title}
+                  </option>
+                ))}
+                {parentTask && !parentChoices.some((p) => p.id === parentTask.id) && (
+                  <option value={parentTask.id}>
+                    #{parentTask.id} · {parentTask.title}
+                  </option>
+                )}
+              </select>
+            </label>
+          </section>
+        </aside>
+
+        <aside className="detail-side detail-related">
+          <LinksSection taskId={taskId} links={detail.links ?? []} tasksById={tasksById} onChanged={load} />
+          <SharingSection taskId={taskId} shares={shares} isOwner={isOwner} onChanged={load} />
+        </aside>
+      </div>
+
+      {dirty && (
+        <div className="savebar" role="region" aria-label="Unsaved changes">
+          <span>
+            <strong>Unsaved changes</strong>
+            <span className="muted small hide-mobile"> · Ctrl/⌘ + S to save</span>
+          </span>
+          <span className="actions">
+            <button type="button" className="btn ghost" disabled={busy} onClick={() => setDraft(draftFrom(task))}>
+              Discard
+            </button>
+            <button type="button" className="btn primary" disabled={busy || !draft.title.trim()} onClick={save}>
+              {busy ? 'Saving…' : 'Save'}
+            </button>
+          </span>
+        </div>
+      )}
     </main>
   )
 }
