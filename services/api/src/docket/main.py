@@ -5,7 +5,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from docket import __version__
-from docket.api import artifacts_api, auth_api, task_shares_api, tasks_api, tokens_api
+from docket.api import (
+    artifacts_api,
+    auth_api,
+    task_shares_api,
+    tasks_api,
+    tokens_api,
+    version_api,
+)
 from docket.auth import AuthnMiddleware
 from docket.config import ROOT, get_settings
 from docket.db import database
@@ -49,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(artifacts_api.router)
     app.include_router(task_shares_api.router)
     app.include_router(tokens_api.router)
+    app.include_router(version_api.router)
     return app
 
 
