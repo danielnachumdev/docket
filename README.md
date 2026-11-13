@@ -1,42 +1,46 @@
 # Docket
 
-System of record for **human + agent** tasks. Humans use the web UI (and often WhatsApp via an external assistant); agents talk to the same state over a token-authenticated API. Docket owns the data — the AI stays external.
+**Agent-native task management** — for humans, agents, and both working the same queue.
 
-## Stack
+Docket is the system of record for work you and your agents share: create tasks, claim them, update status, leave artifacts, comment, and invite collaborators. The AI stays outside. Docket owns the state.
 
-- **API:** FastAPI + SQLAlchemy + Alembic + SQLite (`services/api`)
-- **UI:** Vite + React + TypeScript (`services/web`)
-- **Local deploy:** `compose.yml` (API + nginx SPA)
-- **Images (CD on `main`):** `ghcr.io/danielnachumdev/docket-api` + `docket-web` (`:latest`, `:main`, `:<sha>`)
-- **Releases:** Semver via PR labels → GitHub Release + floating git tag `latest`
-- **VPS:** Raft manifests in [`docket-deploy`](https://github.com/danielnachumdev/docket-deploy) (`docket.danielnachum.com`)
+## Why builders care
 
-## Layout
+Most “AI task” tools either bury agents in a chat UI or bolt a bot onto a human tracker. Docket flips that: the **API is first-class**, the **web UI is the human control plane**, and every change lands in one durable ledger.
+
+You get:
+
+- One source of truth humans and agents both trust
+- Token auth + RBAC so agents can work with scoped permissions
+- Sharing and invites so more than one person (or agent owner) can operate on the same tasks
+- History, watches, webhooks, and export when you need an audit trail
+
+## How it fits together
 
 ```text
-services/
-  api/     FastAPI app, Alembic, Dockerfile
-  web/     SPA, nginx Dockerfile
-compose.yml
+Human  →  Web UI  ─┐
+                   ├─→  Docket (tasks, events, artifacts, shares)
+Agent  →  API token─┘
 ```
 
-## Local development (without Docker)
+- **Humans** run the board: prioritize, share, review outcomes, invite teammates.
+- **Agents** claim work, push status / outcomes / artifacts, and move on — without owning the database.
+- **External assistants** (chat, WhatsApp, custom runners) stay replaceable; Docket does not embed a model.
 
-```bash
-# API
-cd services/api
-uv sync --group dev
-uv run alembic upgrade head
-uv run docket
-# → http://127.0.0.1:8000/api/health
+## What’s in
 
-# UI (separate terminal)
-cd services/web
-npm install && npm run dev
-# → http://127.0.0.1:5173/  (proxies /api → :8000)
-```
+- Task lifecycle: backlog → in progress → on hold / blocked / failed → done / cancelled
+- Per-owner task numbers with short public IDs for URLs and sharing
+- Agent inbox + claim/lease so workers pick up eligible work safely
+- Structured outcomes, artifacts (including image preview), links, and subtasks
+- Task sharing, watches / in-app notifications, bulk updates, saved views
+- Invite-only registration (owner mints links; no open signup after bootstrap)
+- Outbound webhooks and immutable task export packs
+- SQLite-backed, compose-friendly, images on GHCR with semver releases
 
-## Local deployment (Compose)
+## Try it
+
+**Compose (fastest):**
 
 ```bash
 docker compose up --build
@@ -44,41 +48,22 @@ docker compose up --build
 # API → http://127.0.0.1:8000/api/health
 ```
 
-SQLite persists in the `docket-data` volume. Override `TOKEN_PEPPER` via env for non-dev use. Host port `8088` avoids common local `8080` clashes.
+Bootstrap the first owner in the UI, mint an API token, then point an agent at the same tasks.
 
-## Artifact storage
+**Images:** `ghcr.io/danielnachumdev/docket-api:latest` and `docket-web:latest`  
+**Production manifests:** [`docket-deploy`](https://github.com/danielnachumdev/docket-deploy)
 
-Blob-backed artifacts (`kind=file`) use a pluggable storage backend. Metadata stays in SQLite (`storage_key`, `content_type`); bytes live in storage.
+Local API/UI without Docker, migrations, artifact backends, and contributor conventions live in [`AGENTS.md`](AGENTS.md).
 
-| Env | Default | Meaning |
-| --- | ------- | ------- |
-| `ARTIFACT_STORAGE` | `local` | `local` or `gcs` |
-| `ARTIFACT_LOCAL_ROOT` | `services/api/data/artifacts` | Root directory for local blobs |
-| `GCS_BUCKET` | _(empty)_ | Required when `ARTIFACT_STORAGE=gcs` |
-| `GCS_PREFIX` | `artifacts` | Object key prefix in the bucket |
+## Stack (short)
 
-Local (default) needs no extra deps. GCS needs the optional extra and ADC/credentials as usual:
-
-```bash
-cd services/api
-uv sync --extra gcs --group dev
-export ARTIFACT_STORAGE=gcs
-export GCS_BUCKET=your-bucket
-# optional: GCS_PREFIX=artifacts
-```
-
-Create file artifacts via JSON with `content_base64` (SPA encodes the chosen file). Content is always streamed through `GET /api/tasks/{id}/artifacts/{artifact_id}/content` (local and GCS).
-
-## Task export (audit pack)
-
-`GET /api/tasks/{id}/export` returns a zip snapshot (`docket.task_export.zip`) of the task, events (oldest first), links, children, artifact metadata, and artifact content when available. Authorization matches task read access (`tasks:read` via ownership or share) — not owner-only — so shared viewers can download a case pack. The SPA task detail page exposes an **Export** button.
-
-## Auth model
-
-- **Authn:** `AuthnMiddleware` resolves session cookie or `Authorization: Bearer` into `request.state.principal`
-- **Authz:** route `Depends(require("tasks:write"))` (etc.) checks RBAC for that principal
+| Piece | Choice |
+| ----- | ------ |
+| API | FastAPI + SQLAlchemy + Alembic + SQLite |
+| UI | Vite + React + TypeScript |
+| Auth | Session cookie (humans) + Bearer API tokens (agents), RBAC |
+| Ship | Compose locally; GHCR images + semver releases on `main` |
 
 ## Status
 
-Human UI + task API + authn/authz + API token mint/list/revoke (`tokens:manage`) are in.
-Next: claim/lease, links, and Instinct/agent docs.
+Actively used and extended. If the pitch clicks, open an issue or PR — or just run Compose and put an agent on the API.
