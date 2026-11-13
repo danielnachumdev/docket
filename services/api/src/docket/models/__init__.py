@@ -11,6 +11,7 @@ from docket.models.task_event import TaskEvent
 from docket.models.task_link import TaskLink
 from docket.models.task_watch import TaskWatch
 from docket.models.user import User
+from docket.models.webhook_subscription import WebhookSubscription
 
 __all__ = [
     "ApiToken",
@@ -26,4 +27,5 @@ __all__ = [
     "TaskLink",
     "TaskWatch",
     "User",
+    "WebhookSubscription",
 ]

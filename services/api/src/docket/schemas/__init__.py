@@ -40,6 +40,12 @@ from docket.schemas.tokens import (
     RoleOut,
 )
 from docket.schemas.version import VersionStatusOut
+from docket.schemas.webhooks import (
+    WebhookCreate,
+    WebhookCreatedOut,
+    WebhookOut,
+    WebhookUpdate,
+)
 
 __all__ = [
     "ApiTokenCreate",
@@ -74,4 +80,8 @@ __all__ = [
     "UnreadCountOut",
     "UserOut",
     "VersionStatusOut",
+    "WebhookCreate",
+    "WebhookCreatedOut",
+    "WebhookOut",
+    "WebhookUpdate",
 ]

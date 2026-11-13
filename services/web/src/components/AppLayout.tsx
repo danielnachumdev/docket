@@ -35,6 +35,7 @@ const NAV_BASE: Omit<NavItem, 'badge'>[] = [
     match: (path) => path === '/notifications',
   },
   { to: '/tokens', label: 'API tokens', icon: 'key', match: (path) => path === '/tokens' },
+  { to: '/webhooks', label: 'Webhooks', icon: 'webhook', match: (path) => path === '/webhooks' },
 ]
 
 export function Logo() {

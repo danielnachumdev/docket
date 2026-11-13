@@ -26,7 +26,7 @@ export function CommentsSection({ taskId, onChanged }: Props) {
   }
 
   return (
-    <Section icon="activity" title="Comments">
+    <Section icon="message" title="Comments">
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       <form className="comment-form" onSubmit={onSubmit}>
         <label className="field">

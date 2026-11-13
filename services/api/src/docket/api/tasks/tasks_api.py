@@ -15,6 +15,7 @@ from docket.schemas import (
     TaskCommentOut,
     TaskCreate,
     TaskDetailOut,
+    TaskEventOut,
     TaskLinkCreate,
     TaskLinkOut,
     TaskOut,
