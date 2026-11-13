@@ -1,6 +1,4 @@
-"""Per-owner task numbers + public_id SOT for sharing/API identity."""
-
-from uuid import UUID
+"""Per-owner task numbers + short public_id SOT for sharing/API identity."""
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
@@ -8,7 +6,14 @@ from sqlalchemy import select, text
 from docket.db import database
 from docket.main import create_app
 from docket.models import Membership, Role, Task, User
+from docket.models.task_public_id import PUBLIC_ID_LENGTH
 from docket.security import password_hasher
+
+
+def _assert_short_public_id(value: str) -> None:
+    assert len(value) == PUBLIC_ID_LENGTH
+    assert value.isalnum()
+
 
 
 def _bootstrap(client: TestClient, email: str = "ops@example.com") -> None:
@@ -65,8 +70,8 @@ def test_two_owners_share_same_local_number_with_distinct_public_ids() -> None:
     assert a1["number"] == 1
     assert a2["number"] == 2
     assert a1["id"] != a2["id"]
-    UUID(a1["id"])
-    UUID(a2["id"])
+    _assert_short_public_id(a1["id"])
+    _assert_short_public_id(a2["id"])
 
     _create_owner_user("alex@example.com", "Alex", "password123")
     client.post("/api/auth/logout")
@@ -77,7 +82,8 @@ def test_two_owners_share_same_local_number_with_distinct_public_ids() -> None:
     body = b1.json()
     assert body["number"] == 1
     assert body["id"] != a1["id"]
-    UUID(body["id"])
+    _assert_short_public_id(body["id"])
+
 
     detail = client.get(f"/api/tasks/{body['id']}")
     assert detail.status_code == 200
@@ -116,7 +122,7 @@ def test_sharing_uses_public_id_not_local_number() -> None:
 def test_unknown_public_id_is_404_not_enumerable() -> None:
     client = TestClient(create_app())
     _bootstrap(client)
-    missing = "00000000-0000-4000-8000-000000000099"
+    missing = "000000000000"
     assert client.get(f"/api/tasks/{missing}").status_code == 404
 
 
@@ -173,8 +179,7 @@ def test_migration_backfills_public_id_and_owner_numbers(tmp_path, monkeypatch) 
         assert len(rows) == 3
         by_owner: dict[int, list[Task]] = {}
         for row in rows:
-            assert row.public_id
-            UUID(row.public_id)
+            _assert_short_public_id(row.public_id)
             by_owner.setdefault(row.owner_user_id, []).append(row)
         assert [t.owner_task_number for t in by_owner[1]] == [1, 2]
         assert [t.owner_task_number for t in by_owner[2]] == [1]
