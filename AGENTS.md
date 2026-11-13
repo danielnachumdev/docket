@@ -50,6 +50,7 @@ Blob-backed artifacts (`kind=file`) use a pluggable storage backend. Metadata st
 | --- | ------- | ------- |
 | `ARTIFACT_STORAGE` | `local` | `local` or `gcs` |
 | `ARTIFACT_LOCAL_ROOT` | `services/api/data/artifacts` | Root directory for local blobs |
+| `ARTIFACT_MAX_BYTES` | `10485760` (10 MiB) | Max decoded `content_base64` payload; Compose nginx `client_max_body_size 10m` matches |
 | `GCS_BUCKET` | _(empty)_ | Required when `ARTIFACT_STORAGE=gcs` |
 | `GCS_PREFIX` | `artifacts` | Object key prefix in the bucket |
 

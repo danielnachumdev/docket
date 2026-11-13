@@ -18,7 +18,9 @@ server {
     add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'" always;
 
     # API_UPSTREAM is substituted at container start (e.g. api:8000 or docket-api:8000).
+    # Match API artifact_max_bytes default (10 MiB) for content_base64 uploads.
     location /api/ {
+        client_max_body_size 10m;
         proxy_pass http://${API_UPSTREAM};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
