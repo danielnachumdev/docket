@@ -97,6 +97,13 @@ export type ApiTokenCreated = ApiToken & {
   token: string
 }
 
+export type VersionStatus = {
+  version: string
+  latest_version: string | null
+  update_available: boolean
+  release_url: string | null
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: 'include',
@@ -121,6 +128,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  version: () => request<VersionStatus>('/api/version'),
   status: () => request<AuthStatus>('/api/auth/status'),
   bootstrap: (body: { email: string; display_name: string; password: string }) =>
     request<User>('/api/auth/bootstrap', { method: 'POST', body: JSON.stringify(body) }),

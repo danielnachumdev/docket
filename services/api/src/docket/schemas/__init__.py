@@ -26,6 +26,7 @@ from docket.schemas.tokens import (
     ApiTokenOut,
     RoleOut,
 )
+from docket.schemas.version import VersionStatusOut
 
 __all__ = [
     "ApiTokenCreate",
@@ -50,4 +51,5 @@ __all__ = [
     "TaskStatusIn",
     "TaskUpdate",
     "UserOut",
+    "VersionStatusOut",
 ]

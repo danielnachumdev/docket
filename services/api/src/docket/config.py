@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     artifact_local_root: str = str(ROOT / "data" / "artifacts")
     gcs_bucket: str = ""
     gcs_prefix: str = "artifacts"
+    # Public GitHub repo used for "update available" checks.
+    github_repo_owner: str = "danielnachumdev"
+    github_repo_name: str = "docket"
+    version_check_cache_ttl_seconds: float = 900.0
 
     @property
     def cors_origin_list(self) -> list[str]:

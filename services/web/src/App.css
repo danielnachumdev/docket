@@ -689,12 +689,59 @@
 }
 
 .sidebar-footer {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+  display: grid;
+  gap: 0.55rem;
   margin-top: auto;
   padding: 0.75rem 0.25rem 0;
   border-top: 1px solid var(--border);
+}
+
+.sidebar-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.app-version {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  padding: 0 0.4rem;
+  font-size: 0.75rem;
+}
+
+.app-version-compact {
+  margin-left: 0.15rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.app-version-compact.update {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--accent);
+}
+
+.update-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.update-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.update-link:hover {
+  text-decoration: underline;
 }
 
 .user-chip {

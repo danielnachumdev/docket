@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import type { User } from '../api'
 import { initials } from '../lib/format'
 import type { Theme } from '../lib/theme'
+import { AppVersion, useAppVersion } from './AppVersion'
 import { Icon, type IconName } from './Icon'
 
 type NavItem = { to: string; label: string; icon: IconName; match: (path: string, search: string) => boolean }
@@ -42,6 +43,7 @@ type Props = {
 
 export function AppLayout({ user, theme, onToggleTheme, onLogout, children }: Props) {
   const { pathname, search } = useLocation()
+  const version = useAppVersion()
   const themeLabel = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
 
   const links = NAV.map((item) => {
@@ -71,20 +73,23 @@ export function AppLayout({ user, theme, onToggleTheme, onLogout, children }: Pr
             {links}
           </nav>
           <div className="sidebar-footer">
-            <div className="user-chip">
-              <span className="avatar">{initials(user.display_name)}</span>
-              <span className="user-meta">
-                <strong>{user.display_name}</strong>
-                {user.email && <span>{user.email}</span>}
-              </span>
-            </div>
-            <div className="sidebar-actions">
-              <button type="button" className="icon-btn" onClick={onToggleTheme} aria-label={themeLabel} title={themeLabel}>
-                <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
-              </button>
-              <button type="button" className="icon-btn" onClick={onLogout} aria-label="Log out" title="Log out">
-                <Icon name="logout" />
-              </button>
+            <AppVersion info={version} />
+            <div className="sidebar-footer-row">
+              <div className="user-chip">
+                <span className="avatar">{initials(user.display_name)}</span>
+                <span className="user-meta">
+                  <strong>{user.display_name}</strong>
+                  {user.email && <span>{user.email}</span>}
+                </span>
+              </div>
+              <div className="sidebar-actions">
+                <button type="button" className="icon-btn" onClick={onToggleTheme} aria-label={themeLabel} title={themeLabel}>
+                  <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
+                </button>
+                <button type="button" className="icon-btn" onClick={onLogout} aria-label="Log out" title="Log out">
+                  <Icon name="logout" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -94,6 +99,7 @@ export function AppLayout({ user, theme, onToggleTheme, onLogout, children }: Pr
         <Link to="/" className="brand">
           <Logo />
           <span>Docket</span>
+          <AppVersion info={version} compact />
         </Link>
         <div className="mobile-actions">
           <button type="button" className="icon-btn" onClick={onToggleTheme} aria-label={themeLabel}>
