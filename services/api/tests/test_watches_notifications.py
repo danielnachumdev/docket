@@ -185,7 +185,7 @@ def test_mark_all_read() -> None:
     client.post("/api/auth/logout")
     _login(client, "ops@example.com", "password123")
     client.post(f"/api/tasks/{task_id}/status", json={"status": "blocked"})
-    client.post(f"/api/tasks/{task_id}/status", json={"status": "open"})
+    client.post(f"/api/tasks/{task_id}/status", json={"status": "backlog"})
 
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")

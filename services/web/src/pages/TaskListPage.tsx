@@ -297,7 +297,7 @@ export function TaskListPage() {
   }
 
   function toggleDone(task: Task) {
-    const next = task.status === 'done' ? 'open' : 'done'
+    const next = task.status === 'done' ? 'backlog' : 'done'
     setPinned((prev) => new Set(prev).add(task.id))
     setTasks((prev) => prev?.map((t) => (t.id === task.id ? { ...t, status: next } : t)) ?? null)
     api.setStatus(task.id, next).catch((err: Error) => {
