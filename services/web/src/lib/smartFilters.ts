@@ -78,7 +78,7 @@ export function matchesSmartFilter(
 export function matchesFilterKey(
   task: Task,
   key: FilterKey,
-  opts: { userId: number | null; query: string; pinned: Set<number>; now?: number },
+  opts: { userId: number | null; query: string; pinned: Set<string>; now?: number },
 ): boolean {
   if (opts.query && !task.title.toLowerCase().includes(opts.query)) return false
   if (opts.pinned.has(task.id)) return true

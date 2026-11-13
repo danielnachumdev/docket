@@ -12,7 +12,8 @@ class WebhookPayloadBuilder:
             "type": event.type,
             "created_at": created,
             "task": {
-                "id": task.id,
+                "id": task.public_id,
+                "number": task.owner_task_number,
                 "title": task.title,
                 "status": task.status,
                 "priority": task.priority,

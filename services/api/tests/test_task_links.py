@@ -88,7 +88,7 @@ def test_task_links_reject_self_and_missing() -> None:
 
     missing = client.post(
         f"/api/tasks/{a}/links",
-        json={"to_task_id": 99999, "kind": "duplicate_of"},
+        json={"to_task_id": "00000000-0000-4000-8000-000000000999", "kind": "duplicate_of"},
     )
     assert missing.status_code == 404
 

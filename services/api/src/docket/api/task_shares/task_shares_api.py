@@ -38,13 +38,13 @@ class TaskSharesApi:
         )
 
     def list_shares(
-        self, task_id: int, db: DbSession, principal: CanRead
+        self, task_id: str, db: DbSession, principal: CanRead
     ) -> list[TaskShareOut]:
         return TaskShareService(db).list_shares(principal, task_id)
 
     def create_share(
         self,
-        task_id: int,
+        task_id: str,
         body: TaskShareCreate,
         db: DbSession,
         principal: CanWrite,
@@ -53,7 +53,7 @@ class TaskSharesApi:
 
     def delete_share(
         self,
-        task_id: int,
+        task_id: str,
         membership_id: int,
         db: DbSession,
         principal: CanWrite,

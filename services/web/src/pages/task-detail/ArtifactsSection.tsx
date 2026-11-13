@@ -31,7 +31,7 @@ function isUrl(value: string | null) {
 }
 
 type Props = {
-  taskId: number
+  taskId: string
   artifacts: Artifact[]
   onChanged: () => Promise<void>
 }

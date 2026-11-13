@@ -74,7 +74,7 @@ def test_bulk_update_unknown_task_is_404_and_atomic() -> None:
     task_id = _create_task(client, "Known")
     res = client.post(
         "/api/tasks/bulk",
-        json={"task_ids": [task_id, 999_999], "status": "on_hold"},
+        json={"task_ids": [task_id, "00000000-0000-4000-8000-000000000999"], "status": "on_hold"},
     )
     assert res.status_code == 404
     assert client.get(f"/api/tasks/{task_id}").json()["task"]["status"] == "backlog"

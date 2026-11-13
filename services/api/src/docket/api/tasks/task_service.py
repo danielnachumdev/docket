@@ -8,23 +8,23 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from docket.api.task_watches.task_watch_service import TaskWatchService
+from docket.api.tasks.owner_task_number_allocator import OwnerTaskNumberAllocator
 from docket.api.tasks.task_gateway import TaskGateway
+from docket.api.tasks.task_response_mapper import TaskResponseMapper
 from docket.artifacts import ArtifactGateway
 from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
 from docket.events import task_event_recorder
 from docket.models import Membership, Task, TaskEvent
+from docket.models.task import new_task_public_id
 from docket.notifications import mention_resolver, notification_dispatcher
 from docket.schemas import (
-    ArtifactOut,
     TaskBulkUpdate,
     TaskClaimIn,
     TaskCommentIn,
     TaskCommentOut,
     TaskCreate,
     TaskDetailOut,
-    TaskEventOut,
-    TaskLinkOut,
     TaskOut,
     TaskStatusIn,
     TaskUpdate,
@@ -33,7 +33,6 @@ from docket.task_claims import TaskClaimService
 from docket.task_links import TaskLinkService
 from docket.task_outcomes import DoneOutcomeEnforcer, OutcomeSchemaCodec
 from docket.webhooks import WebhookDeliveryService
-
 
 
 class TaskService:
@@ -45,21 +44,25 @@ class TaskService:
         self._access = TaskAccessService(db)
         self._outcomes = DoneOutcomeEnforcer()
         self._schema_codec = OutcomeSchemaCodec()
+        self._numbers = OwnerTaskNumberAllocator(db)
+        self._mapper = TaskResponseMapper(db)
 
     def list_tasks(
         self,
         principal: Principal,
         *,
         archived: bool,
-        parent_task_id: int | None,
+        parent_task_id: str | None,
         roots_only: bool,
-    ) -> list[Task]:
-        return self._gateway.list_visible(
+    ) -> list[TaskOut]:
+        parent_internal = self._resolve_parent_filter(principal, parent_task_id)
+        tasks = self._gateway.list_visible(
             self._access.accessible_task_ids_select(principal.user_id),
             archived=archived,
-            parent_task_id=parent_task_id,
+            parent_task_id=parent_internal,
             roots_only=roots_only,
         )
+        return self._mapper.tasks_out(tasks)
 
     def list_inbox(
         self,
@@ -68,16 +71,17 @@ class TaskService:
         priority: int | None,
         due_before: datetime | None,
         limit: int,
-    ) -> list[Task]:
-        return self._gateway.list_claimable(
+    ) -> list[TaskOut]:
+        tasks = self._gateway.list_claimable(
             self._access.accessible_task_ids_select(principal.user_id),
             now=self._utcnow(),
             priority=priority,
             due_before=due_before,
             limit=limit,
         )
+        return self._mapper.tasks_out(tasks)
 
-    def create(self, principal: Principal, body: TaskCreate) -> tuple[Task, bool]:
+    def create(self, principal: Principal, body: TaskCreate) -> tuple[TaskOut, bool]:
         """Create a task, or return the existing one when external_id matches.
 
         Returns (task, created) where created is False on idempotent external_id hit.
@@ -88,28 +92,19 @@ class TaskService:
                 principal.user_id, external_id
             )
             if existing is not None:
-                return existing, False
+                return self._mapper.task_out(existing), False
 
+        parent_internal = None
         if body.parent_task_id is not None:
             parent = self._access.get_task(
                 principal, body.parent_task_id, "tasks:write"
             )
             if parent.archived_at is not None:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, "Parent is archived")
+            parent_internal = parent.id
 
-        task = Task(
-            owner_user_id=principal.user_id,
-            parent_task_id=body.parent_task_id,
-            external_id=external_id,
-            title=body.title.strip(),
-            body=body.body,
-            priority=body.priority,
-            due_at=body.due_at,
-            source="api" if principal.token else "ui",
-            created_by_user_id=principal.user_id,
-            created_by_token_id=principal.token_id,
-            require_artifact_on_done=body.require_artifact_on_done,
-            outcome_schema_json=self._encode_schema(body.outcome_schema),
+        task = self._build_new_task(
+            principal, body, external_id=external_id, parent_internal=parent_internal
         )
         try:
             self._gateway.add(task)
@@ -126,37 +121,33 @@ class TaskService:
             )
             self._gateway.commit()
         except IntegrityError:
-            return self._recover_external_id_race(principal.user_id, external_id)
+            return self._recover_create_race(principal.user_id, external_id)
         self._gateway.refresh(task)
-        return task, True
+        return self._mapper.task_out(task), True
 
-    def get_detail(self, principal: Principal, task_id: int) -> TaskDetailOut:
-        task = self._access.get_task(principal, task_id, "tasks:read")
+    def get_detail(self, principal: Principal, task_ref: str) -> TaskDetailOut:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
+        self._mapper.remember([task])
         links = TaskLinkService(self._db).list_for_task(
             user_id=principal.user_id, task_id=task.id
         )
         watching = TaskWatchService(self._db).is_watching(
             principal.user_id, task.id
         )
+        children = self._gateway.list_children(task.id)
+        events = self._gateway.list_events(task.id)
+        artifacts = self._artifacts.list_for_task(task.id)
         return TaskDetailOut(
-            task=TaskOut.model_validate(task),
-            events=[
-                TaskEventOut.model_validate(e)
-                for e in self._gateway.list_events(task.id)
-            ],
-            artifacts=[
-                ArtifactOut.model_validate(a)
-                for a in self._artifacts.list_for_task(task.id)
-            ],
-            children=[
-                TaskOut.model_validate(c) for c in self._gateway.list_children(task.id)
-            ],
-            links=[TaskLinkOut.model_validate(link) for link in links],
+            task=self._mapper.task_out(task),
+            events=[self._mapper.event_out(e) for e in events],
+            artifacts=[self._mapper.artifact_out(a) for a in artifacts],
+            children=self._mapper.tasks_out(children),
+            links=[self._mapper.link_out(link) for link in links],
             watching=watching,
         )
 
-    def update(self, principal: Principal, task_id: int, body: TaskUpdate) -> Task:
-        task = self._access.get_task(principal, task_id, "tasks:write")
+    def update(self, principal: Principal, task_ref: str, body: TaskUpdate) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:write")
         changes = self._apply_update(task, principal, body)
         if changes:
             task_event_recorder.record(
@@ -175,12 +166,12 @@ class TaskService:
                 "external_id already used by another task for this owner",
             ) from exc
         self._gateway.refresh(task)
-        return task
+        return self._mapper.task_out(task)
 
     def set_status(
-        self, principal: Principal, task_id: int, body: TaskStatusIn
-    ) -> Task:
-        task = self._access.get_task(principal, task_id, "tasks:write")
+        self, principal: Principal, task_ref: str, body: TaskStatusIn
+    ) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:write")
         old = task.status
         if body.status == "done":
             self._apply_done(task, body.outcome)
@@ -212,9 +203,12 @@ class TaskService:
         return self._commit_and_dispatch(task, event, payload)
 
     def add_comment(
-        self, principal: Principal, task_id: int, body: TaskCommentIn
+        self,
+        principal: Principal,
+        task_ref: str,
+        body: TaskCommentIn,
     ) -> TaskCommentOut:
-        task = self._access.get_task(principal, task_id, "tasks:write")
+        task = self._access.get_task(principal, task_ref, "tasks:write")
         text = body.body.strip()
         if not text:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Comment cannot be empty")
@@ -251,41 +245,19 @@ class TaskService:
             exclude_user_ids=mentioned_set,
         )
         self._commit_and_dispatch(task, event, payload)
-        return TaskCommentOut(
+        return self._mapper.comment_out(
             event_id=event.id,
-            task_id=task.id,
+            task=task,
             body=text,
             mentioned_user_ids=mentioned,
         )
 
-    def _accessible_mention_ids(
-        self, principal: Principal, task: Task, text: str
-    ) -> list[int]:
-        resolved = mention_resolver.resolve_user_ids(self._db, text)
-        return [
-            user_id
-            for user_id in resolved
-            if user_id != principal.user_id and self._user_can_see_task(user_id, task)
-        ]
-
-    def _user_can_see_task(self, user_id: int, task: Task) -> bool:
-        if task.owner_user_id == user_id:
-            return True
-        shared = self._db.scalar(
-            select(Membership.id).where(
-                Membership.user_id == user_id,
-                Membership.scope_type == "task",
-                Membership.scope_task_id == task.id,
-            )
-        )
-        return shared is not None
-
     def bulk_update(
         self, principal: Principal, body: TaskBulkUpdate
-    ) -> list[Task]:
+    ) -> list[TaskOut]:
         tasks = [
-            self._access.get_task(principal, task_id, "tasks:write")
-            for task_id in self._unique_ids(body.task_ids)
+            self._access.get_task(principal, task_ref, "tasks:write")
+            for task_ref in self._unique_refs(body.task_ids)
         ]
         for task in tasks:
             if body.status is not None:
@@ -302,44 +274,43 @@ class TaskService:
         self._gateway.commit()
         for task in tasks:
             self._gateway.refresh(task)
-        return tasks
-
+        return self._mapper.tasks_out(tasks)
 
     def claim(
         self,
         principal: Principal,
-        task_id: int,
+        task_ref: str,
         body: TaskClaimIn | None = None,
-    ) -> Task:
-        task = self._access.get_task(principal, task_id, "tasks:claim")
+    ) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:claim")
         lease_seconds = (body or TaskClaimIn()).lease_seconds
         event = self._claims.claim(task, principal, lease_seconds=lease_seconds)
         return self._commit_and_dispatch(task, event)
 
-    def release(self, principal: Principal, task_id: int) -> Task:
-        task = self._access.get_task(principal, task_id, "tasks:claim")
+    def release(self, principal: Principal, task_ref: str) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:claim")
         event = self._claims.release(task, principal)
         if event is None:
             self._gateway.commit()
             self._gateway.refresh(task)
-            return task
+            return self._mapper.task_out(task)
         return self._commit_and_dispatch(task, event)
 
     def heartbeat(
         self,
         principal: Principal,
-        task_id: int,
+        task_ref: str,
         body: TaskClaimIn | None = None,
-    ) -> Task:
-        task = self._access.get_task(principal, task_id, "tasks:claim")
+    ) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:claim")
         lease_seconds = (body or TaskClaimIn()).lease_seconds
         self._claims.renew(task, principal, lease_seconds=lease_seconds)
         self._gateway.commit()
         self._gateway.refresh(task)
-        return task
+        return self._mapper.task_out(task)
 
-    def archive(self, principal: Principal, task_id: int) -> Task:
-        task = self._access.get_task(principal, task_id, "tasks:write")
+    def archive(self, principal: Principal, task_ref: str) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:write")
         if task.archived_at is None:
             task.archived_at = self._utcnow()
             task_event_recorder.record(
@@ -347,10 +318,10 @@ class TaskService:
             )
             self._gateway.commit()
             self._gateway.refresh(task)
-        return task
+        return self._mapper.task_out(task)
 
-    def unarchive(self, principal: Principal, task_id: int) -> Task:
-        task = self._access.get_task(principal, task_id, "tasks:write")
+    def unarchive(self, principal: Principal, task_ref: str) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:write")
         if task.archived_at is not None:
             task.archived_at = None
             task_event_recorder.record(
@@ -358,12 +329,45 @@ class TaskService:
             )
             self._gateway.commit()
             self._gateway.refresh(task)
-        return task
+        return self._mapper.task_out(task)
 
-    def delete(self, principal: Principal, task_id: int) -> None:
-        task = self._access.require_owner(principal, task_id)
+    def delete(self, principal: Principal, task_ref: str) -> None:
+        task = self._access.require_owner(principal, task_ref)
         self._gateway.delete(task)
         self._gateway.commit()
+
+    def _build_new_task(
+        self,
+        principal: Principal,
+        body: TaskCreate,
+        *,
+        external_id: str | None,
+        parent_internal: int | None,
+    ) -> Task:
+        return Task(
+            public_id=new_task_public_id(),
+            owner_task_number=self._numbers.next_number(principal.user_id),
+            owner_user_id=principal.user_id,
+            parent_task_id=parent_internal,
+            external_id=external_id,
+            title=body.title.strip(),
+            body=body.body,
+            priority=body.priority,
+            due_at=body.due_at,
+            source="api" if principal.token else "ui",
+            created_by_user_id=principal.user_id,
+            created_by_token_id=principal.token_id,
+            require_artifact_on_done=body.require_artifact_on_done,
+            outcome_schema_json=self._encode_schema(body.outcome_schema),
+        )
+
+    def _resolve_parent_filter(
+        self, principal: Principal, parent_task_id: str | None
+    ) -> int | None:
+        if parent_task_id is None:
+            return None
+        parent = self._access.get_task(principal, parent_task_id, "tasks:read")
+        return parent.id
 
     def _apply_done(self, task: Task, outcome: dict[str, Any] | None) -> None:
         artifact_count = len(self._artifacts.list_for_task(task.id))
@@ -411,20 +415,15 @@ class TaskService:
         stripped = external_id.strip()
         return stripped or None
 
-    def _recover_external_id_race(
+    def _recover_create_race(
         self, owner_user_id: int, external_id: str | None
-    ) -> tuple[Task, bool]:
+    ) -> tuple[TaskOut, bool]:
         self._gateway.rollback()
-        if external_id is None:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT, "Could not create task"
-            )
-        existing = self._gateway.get_by_owner_external_id(owner_user_id, external_id)
-        if existing is None:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT, "Could not create task"
-            )
-        return existing, False
+        if external_id is not None:
+            existing = self._gateway.get_by_owner_external_id(owner_user_id, external_id)
+            if existing is not None:
+                return self._mapper.task_out(existing), False
+        raise HTTPException(status.HTTP_409_CONFLICT, "Could not create task")
 
     def _apply_outcome_config(
         self, task: Task, body: TaskUpdate, changes: dict
@@ -439,7 +438,6 @@ class TaskService:
             task.outcome_schema_json = self._encode_schema(body.outcome_schema)
             changes["outcome_schema"] = True
 
-
     def _apply_parent_change(
         self,
         task: Task,
@@ -451,13 +449,15 @@ class TaskService:
             task.parent_task_id = None
             changes["parent_task_id"] = None
         elif body.parent_task_id is not None:
-            if body.parent_task_id == task.id:
+            parent = self._access.get_task(
+                principal, body.parent_task_id, "tasks:write"
+            )
+            if parent.id == task.id:
                 raise HTTPException(
                     status.HTTP_400_BAD_REQUEST, "Cannot parent to self"
                 )
-            self._access.get_task(principal, body.parent_task_id, "tasks:write")
-            task.parent_task_id = body.parent_task_id
-            changes["parent_task_id"] = task.parent_task_id
+            task.parent_task_id = parent.id
+            changes["parent_task_id"] = parent.public_id
 
     def _apply_due_change(
         self, task: Task, body: TaskUpdate, changes: dict
@@ -523,9 +523,31 @@ class TaskService:
         if body.status != "failed" and old == "failed":
             task.last_error = None
 
-    def _unique_ids(self, task_ids: list[int]) -> list[int]:
-        seen: set[int] = set()
-        ordered: list[int] = []
+    def _accessible_mention_ids(
+        self, principal: Principal, task: Task, text: str
+    ) -> list[int]:
+        resolved = mention_resolver.resolve_user_ids(self._db, text)
+        return [
+            user_id
+            for user_id in resolved
+            if user_id != principal.user_id and self._user_can_see_task(user_id, task)
+        ]
+
+    def _user_can_see_task(self, user_id: int, task: Task) -> bool:
+        if task.owner_user_id == user_id:
+            return True
+        shared = self._db.scalar(
+            select(Membership.id).where(
+                Membership.user_id == user_id,
+                Membership.scope_type == "task",
+                Membership.scope_task_id == task.id,
+            )
+        )
+        return shared is not None
+
+    def _unique_refs(self, task_ids: list[str]) -> list[str]:
+        seen: set[str] = set()
+        ordered: list[str] = []
         for task_id in task_ids:
             if task_id in seen:
                 continue
@@ -543,7 +565,7 @@ class TaskService:
         task: Task,
         event: TaskEvent,
         data: dict[str, Any] | None = None,
-    ) -> Task:
+    ) -> TaskOut:
         self._gateway.commit()
         self._gateway.refresh(task)
         self._gateway.refresh(event)
@@ -551,7 +573,7 @@ class TaskService:
         WebhookDeliveryService(self._db).deliver_for_event(
             task=task, event=event, data=payload
         )
-        return task
+        return self._mapper.task_out(task)
 
     @staticmethod
     def _event_payload(event: TaskEvent) -> dict[str, Any]:

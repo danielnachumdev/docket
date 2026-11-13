@@ -10,9 +10,10 @@ export type AuthStatus = {
 }
 
 export type Task = {
-  id: number
+  id: string
+  number: number
   owner_user_id: number
-  parent_task_id: number | null
+  parent_task_id: string | null
   external_id: string | null
   title: string
   body: string | null
@@ -47,7 +48,7 @@ export type SavedView = {
 
 export type TaskEvent = {
   id: number
-  task_id: number
+  task_id: string
   type: string
   actor_user_id: number
   actor_token_id: number | null
@@ -59,7 +60,7 @@ export type TaskEvent = {
 
 export type Artifact = {
   id: number
-  task_id: number
+  task_id: string
   kind: string
   title: string
   content_text: string | null
@@ -71,8 +72,8 @@ export type Artifact = {
 
 export type TaskLink = {
   id: number
-  from_task_id: number
-  to_task_id: number
+  from_task_id: string
+  to_task_id: string
   kind: string
   created_by_user_id: number
   created_by_token_id: number | null
@@ -91,7 +92,7 @@ export type TaskDetail = {
 export type Notification = {
   id: number
   user_id: number
-  task_id: number | null
+  task_id: string | null
   kind: string
   title: string
   body: string | null
@@ -107,7 +108,7 @@ export type UnreadCount = {
 
 export type TaskComment = {
   event_id: number
-  task_id: number
+  task_id: string
   body: string
   mentioned_user_ids: number[]
 }
@@ -227,7 +228,7 @@ export const api = {
   listTasks: (opts?: {
     archived?: boolean
     rootsOnly?: boolean
-    parentTaskId?: number
+    parentTaskId?: string
   }) => {
     const params = new URLSearchParams()
     params.set('archived', String(opts?.archived ?? false))
@@ -238,19 +239,19 @@ export const api = {
     }
     return request<Task[]>(`/api/tasks?${params}`)
   },
-  getTask: (id: number) => request<TaskDetail>(`/api/tasks/${id}`),
+  getTask: (id: string) => request<TaskDetail>(`/api/tasks/${id}`),
   createTask: (body: {
     title: string
     body?: string
     priority?: number
-    parent_task_id?: number | null
+    parent_task_id?: string | null
     due_at?: string | null
     external_id?: string | null
   }) => request<Task>('/api/tasks', { method: 'POST', body: JSON.stringify(body) }),
-  updateTask: (id: number, body: Record<string, unknown>) =>
+  updateTask: (id: string, body: Record<string, unknown>) =>
     request<Task>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   bulkUpdateTasks: (body: {
-    task_ids: number[]
+    task_ids: string[]
     status?: string
     priority?: number
   }) =>
@@ -258,18 +259,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  setStatus: (id: number, status: string, outcome?: Record<string, unknown>) =>
+  setStatus: (id: string, status: string, outcome?: Record<string, unknown>) =>
     request<Task>(`/api/tasks/${id}/status`, {
       method: 'POST',
       body: JSON.stringify(outcome === undefined ? { status } : { status, outcome }),
     }),
-  archive: (id: number) => request<Task>(`/api/tasks/${id}/archive`, { method: 'POST' }),
-  unarchive: (id: number) =>
+  archive: (id: string) => request<Task>(`/api/tasks/${id}/archive`, { method: 'POST' }),
+  unarchive: (id: string) =>
     request<Task>(`/api/tasks/${id}/unarchive`, { method: 'POST' }),
-  deleteTask: (id: number) =>
+  deleteTask: (id: string) =>
     request<void>(`/api/tasks/${id}`, { method: 'DELETE' }),
   addArtifact: (
-    id: number,
+    id: string,
     body: {
       kind: 'link' | 'text' | 'file' | 'json'
       title: string
@@ -282,44 +283,44 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  deleteArtifact: (id: number, artifactId: number) =>
+  deleteArtifact: (id: string, artifactId: number) =>
     request<void>(`/api/tasks/${id}/artifacts/${artifactId}`, { method: 'DELETE' }),
-  downloadArtifactContent: async (id: number, artifactId: number, filename: string) => {
+  downloadArtifactContent: async (id: string, artifactId: number, filename: string) => {
     await downloadBlob(
       `/api/tasks/${id}/artifacts/${artifactId}/content`,
       filename,
     )
   },
-  fetchArtifactContentBlob: async (id: number, artifactId: number, filename: string) => {
+  fetchArtifactContentBlob: async (id: string, artifactId: number, filename: string) => {
     const { blob } = await fetchBlob(
       `/api/tasks/${id}/artifacts/${artifactId}/content`,
       filename,
     )
     return blob
   },
-  downloadTaskExport: async (id: number) => {
+  downloadTaskExport: async (id: string) => {
     await downloadBlob(`/api/tasks/${id}/export`, `docket-task-${id}-export.zip`)
   },
-  createLink: (id: number, body: { to_task_id: number; kind: string }) =>
+  createLink: (id: string, body: { to_task_id: string; kind: string }) =>
     request<TaskLink>(`/api/tasks/${id}/links`, {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  deleteLink: (id: number, linkId: number) =>
+  deleteLink: (id: string, linkId: number) =>
     request<void>(`/api/tasks/${id}/links/${linkId}`, { method: 'DELETE' }),
-  listShares: (id: number) => request<TaskShare[]>(`/api/tasks/${id}/shares`),
-  shareTask: (id: number, body: { email: string; role: 'viewer' | 'editor' }) =>
+  listShares: (id: string) => request<TaskShare[]>(`/api/tasks/${id}/shares`),
+  shareTask: (id: string, body: { email: string; role: 'viewer' | 'editor' }) =>
     request<TaskShare>(`/api/tasks/${id}/shares`, {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  unshareTask: (id: number, membershipId: number) =>
+  unshareTask: (id: string, membershipId: number) =>
     request<void>(`/api/tasks/${id}/shares/${membershipId}`, { method: 'DELETE' }),
-  watchTask: (id: number) =>
+  watchTask: (id: string) =>
     request<{ watching: boolean }>(`/api/tasks/${id}/watch`, { method: 'PUT' }),
-  unwatchTask: (id: number) =>
+  unwatchTask: (id: string) =>
     request<void>(`/api/tasks/${id}/watch`, { method: 'DELETE' }),
-  addComment: (id: number, body: string) =>
+  addComment: (id: string, body: string) =>
     request<TaskComment>(`/api/tasks/${id}/comments`, {
       method: 'POST',
       body: JSON.stringify({ body }),

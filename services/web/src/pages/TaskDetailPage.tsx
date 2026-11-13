@@ -69,9 +69,9 @@ function draftFrom(task: Task): Draft {
   }
 }
 
-function descendantIds(taskId: number, all: Task[]): Set<number> {
-  const ids = new Set<number>()
-  const walk = (id: number) => {
+function descendantIds(taskId: string, all: Task[]): Set<string> {
+  const ids = new Set<string>()
+  const walk = (id: string) => {
     for (const t of all) {
       if (t.parent_task_id === id && !ids.has(t.id)) {
         ids.add(t.id)
@@ -87,10 +87,10 @@ export function TaskDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { status } = useAuth()
-  const taskId = Number(id)
+  const taskId = id ?? ''
   const [detail, setDetail] = useState<TaskDetail | null>(null)
   const [allTasks, setAllTasks] = useState<Task[]>([])
-  const [parentTask, setParentTask] = useState<{ id: number; title: string } | null>(null)
+  const [parentTask, setParentTask] = useState<{ id: string; number: number; title: string } | null>(null)
   const [shares, setShares] = useState<TaskShare[]>([])
   const [draft, setDraft] = useState<Draft | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -114,10 +114,14 @@ export function TaskDetailPage() {
     } else {
       const fromList = all.find((t) => t.id === parentId)
       if (fromList) {
-        setParentTask({ id: fromList.id, title: fromList.title })
+        setParentTask({ id: fromList.id, number: fromList.number, title: fromList.title })
       } else {
         const parent = await api.getTask(parentId).catch(() => null)
-        setParentTask({ id: parentId, title: parent?.task.title ?? `Task #${parentId}` })
+        setParentTask({
+          id: parentId,
+          number: parent?.task.number ?? 0,
+          title: parent?.task.title ?? `Task #${parent?.task.number ?? '?'}`,
+        })
       }
     }
   }, [taskId])
@@ -125,7 +129,7 @@ export function TaskDetailPage() {
   useEffect(() => {
     setDetail(null)
     setLoadError(null)
-    if (!Number.isFinite(taskId)) {
+    if (!taskId) {
       setLoadError('Invalid task id')
       return
     }
@@ -139,7 +143,7 @@ export function TaskDetailPage() {
     blocked.add(taskId)
     return allTasks
       .filter((t) => !blocked.has(t.id))
-      .sort((a, b) => a.title.localeCompare(b.title) || a.id - b.id)
+      .sort((a, b) => a.title.localeCompare(b.title) || a.number - b.number)
   }, [allTasks, taskId])
 
   const original = detail ? draftFrom(detail.task) : null
@@ -162,7 +166,7 @@ export function TaskDetailPage() {
     }
     if (draft.parent !== saved.parent) {
       if (!draft.parent) patch.clear_parent = true
-      else patch.parent_task_id = Number(draft.parent)
+      else patch.parent_task_id = draft.parent
     }
     if (draft.requireArtifact !== saved.requireArtifact) {
       patch.require_artifact_on_done = draft.requireArtifact
@@ -311,7 +315,7 @@ export function TaskDetailPage() {
           </>
         )}
         <Icon name="chevronRight" size={12} />
-        <span className="mono">#{task.id}</span>
+        <span className="mono">#{task.number}</span>
       </nav>
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
@@ -475,12 +479,12 @@ export function TaskDetailPage() {
                 <option value="">None (top level)</option>
                 {parentChoices.map((p) => (
                   <option key={p.id} value={p.id}>
-                    #{p.id} · {p.title}
+                    #{p.number} · {p.title}
                   </option>
                 ))}
                 {parentTask && !parentChoices.some((p) => p.id === parentTask.id) && (
                   <option value={parentTask.id}>
-                    #{parentTask.id} · {parentTask.title}
+                    #{parentTask.number} · {parentTask.title}
                   </option>
                 )}
               </select>

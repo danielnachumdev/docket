@@ -12,7 +12,7 @@ from docket.db import database
 from docket.main import create_app
 from docket.models import Membership, Notification, Role, User
 from docket.security import password_hasher
-from tests.helpers import bearer, bootstrap_owner, mint_api_token
+from tests.helpers import bearer, bootstrap_owner, internal_task_id, mint_api_token
 
 OPS = "ops@example.com"
 OTHER = "other@example.com"
@@ -60,13 +60,13 @@ def _login(client: TestClient, email: str) -> None:
     assert res.status_code == 200, res.text
 
 
-def _create_task(client: TestClient, title: str = "Private task") -> int:
+def _create_task(client: TestClient, title: str = "Private task") -> str:
     res = client.post("/api/tasks", json={"title": title, "priority": 2})
     assert res.status_code == 201, res.text
     return res.json()["id"]
 
 
-def _share(client: TestClient, task_id: int, email: str, role: str) -> dict:
+def _share(client: TestClient, task_id: str, email: str, role: str) -> dict:
     res = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": email, "role": role},
@@ -329,7 +329,7 @@ def test_notification_mark_read_scoped_to_owner() -> None:
     try:
         note = Notification(
             user_id=ops["id"],
-            task_id=task_id,
+            task_id=internal_task_id(task_id),
             kind="status_changed",
             title="Ops only",
             body="private",

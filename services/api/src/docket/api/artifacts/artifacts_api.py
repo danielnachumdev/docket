@@ -3,10 +3,10 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Response, status
 
+from docket.api.tasks.task_response_mapper import TaskResponseMapper
 from docket.artifacts import ArtifactContent, ArtifactService
 from docket.auth import Principal, RequirePermission
 from docket.db import DbSession
-from docket.models import Artifact
 from docket.schemas import ArtifactCreate, ArtifactOut, ArtifactUpdate
 
 CanRead = Annotated[Principal, Depends(RequirePermission("tasks:read"))]
@@ -57,31 +57,35 @@ class ArtifactsApi:
         )
 
     def list_artifacts(
-        self, task_id: int, db: DbSession, principal: CanRead
-    ) -> list[Artifact]:
-        return ArtifactService(db).list_artifacts(principal, task_id)
+        self, task_id: str, db: DbSession, principal: CanRead
+    ) -> list[ArtifactOut]:
+        mapper = TaskResponseMapper(db)
+        artifacts = ArtifactService(db).list_artifacts(principal, task_id)
+        return [mapper.artifact_out(a) for a in artifacts]
 
     def create_artifact(
         self,
-        task_id: int,
+        task_id: str,
         body: ArtifactCreate,
         db: DbSession,
         principal: CanArtifacts,
-    ) -> Artifact:
-        return ArtifactService(db).create(principal, task_id, body)
+    ) -> ArtifactOut:
+        artifact = ArtifactService(db).create(principal, task_id, body)
+        return TaskResponseMapper(db).artifact_out(artifact)
 
     def get_artifact(
         self,
-        task_id: int,
+        task_id: str,
         artifact_id: int,
         db: DbSession,
         principal: CanRead,
-    ) -> Artifact:
-        return ArtifactService(db).get_artifact(principal, task_id, artifact_id)
+    ) -> ArtifactOut:
+        artifact = ArtifactService(db).get_artifact(principal, task_id, artifact_id)
+        return TaskResponseMapper(db).artifact_out(artifact)
 
     def get_artifact_content(
         self,
-        task_id: int,
+        task_id: str,
         artifact_id: int,
         db: DbSession,
         principal: CanRead,
@@ -99,17 +103,18 @@ class ArtifactsApi:
 
     def update_artifact(
         self,
-        task_id: int,
+        task_id: str,
         artifact_id: int,
         body: ArtifactUpdate,
         db: DbSession,
         principal: CanArtifacts,
-    ) -> Artifact:
-        return ArtifactService(db).update(principal, task_id, artifact_id, body)
+    ) -> ArtifactOut:
+        artifact = ArtifactService(db).update(principal, task_id, artifact_id, body)
+        return TaskResponseMapper(db).artifact_out(artifact)
 
     def delete_artifact(
         self,
-        task_id: int,
+        task_id: str,
         artifact_id: int,
         db: DbSession,
         principal: CanArtifacts,

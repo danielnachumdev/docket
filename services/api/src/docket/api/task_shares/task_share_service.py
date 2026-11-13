@@ -16,24 +16,24 @@ class TaskShareService:
         self._access = TaskAccessService(db)
         self._rbac = RbacService(db)
 
-    def list_shares(self, principal: Principal, task_id: int) -> list[TaskShareOut]:
-        self._access.get_task(principal, task_id, "tasks:read")
+    def list_shares(self, principal: Principal, task_ref: str) -> list[TaskShareOut]:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
         rows = self._db.execute(
             select(Membership, User, Role)
             .join(User, User.id == Membership.user_id)
             .join(Role, Role.id == Membership.role_id)
             .where(
                 Membership.scope_type == "task",
-                Membership.scope_task_id == task_id,
+                Membership.scope_task_id == task.id,
             )
             .order_by(Membership.id.asc())
         ).all()
         return [self._share_out(m, u, r) for m, u, r in rows]
 
     def create_share(
-        self, principal: Principal, task_id: int, body: TaskShareCreate
+        self, principal: Principal, task_ref: str, body: TaskShareCreate
     ) -> TaskShareOut:
-        task = self._access.require_owner(principal, task_id)
+        task = self._access.require_owner(principal, task_ref)
         role = self._rbac.shareable_role_by_name(body.role)
         if role is None:
             raise HTTPException(
@@ -68,9 +68,9 @@ class TaskShareService:
         return self._share_out(membership, user, role)
 
     def delete_share(
-        self, principal: Principal, task_id: int, membership_id: int
+        self, principal: Principal, task_ref: str, membership_id: int
     ) -> None:
-        task = self._access.require_owner(principal, task_id)
+        task = self._access.require_owner(principal, task_ref)
         membership = self._db.get(Membership, membership_id)
         if (
             membership is None

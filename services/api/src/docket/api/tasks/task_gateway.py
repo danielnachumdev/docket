@@ -22,6 +22,13 @@ class TaskGateway:
             .where(Task.id == task_id)
         )
 
+    def get_by_public_id(self, public_id: str) -> Task | None:
+        return self._db.scalar(
+            select(Task)
+            .options(joinedload(Task.claimed_by_token))
+            .where(Task.public_id == public_id)
+        )
+
     def get_by_owner_external_id(
         self, owner_user_id: int, external_id: str
     ) -> Task | None:

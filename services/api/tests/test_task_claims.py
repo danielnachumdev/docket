@@ -5,10 +5,10 @@ from fastapi.testclient import TestClient
 from docket.db import database
 from docket.main import create_app
 from docket.models import Task
-from tests.helpers import bearer, bootstrap_owner, mint_api_token
+from tests.helpers import bearer, bootstrap_owner, internal_task_id, mint_api_token
 
 
-def _create_task(client: TestClient) -> int:
+def _create_task(client: TestClient) -> str:
     created = client.post("/api/tasks", json={"title": "Agent work", "priority": 2})
     assert created.status_code == 201, created.text
     return created.json()["id"]
@@ -173,7 +173,7 @@ def test_successful_claim_clears_last_error() -> None:
 
     db = database.SessionLocal()
     try:
-        task = db.get(Task, task_id)
+        task = db.get(Task, internal_task_id(task_id))
         assert task is not None
         task.claimed_by_token_id = token_a
         task.claim_expires_at = datetime.now(UTC) - timedelta(seconds=5)
@@ -197,7 +197,7 @@ def test_expired_lease_can_be_reclaimed() -> None:
 
     db = database.SessionLocal()
     try:
-        task = db.get(Task, task_id)
+        task = db.get(Task, internal_task_id(task_id))
         assert task is not None
         task.claimed_by_token_id = token_a
         task.claim_expires_at = datetime.now(UTC) - timedelta(seconds=5)

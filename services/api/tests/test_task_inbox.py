@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from docket.db import database
 from docket.main import create_app
 from docket.models import Task
-from tests.helpers import bearer, bootstrap_owner, mint_api_token
+from tests.helpers import bearer, bootstrap_owner, internal_task_id, mint_api_token
 
 
 def _create_task(
@@ -14,7 +14,7 @@ def _create_task(
     title: str,
     priority: int = 3,
     due_at: str | None = None,
-) -> int:
+) -> str:
     payload: dict = {"title": title, "priority": priority}
     if due_at is not None:
         payload["due_at"] = due_at
@@ -23,10 +23,10 @@ def _create_task(
     return created.json()["id"]
 
 
-def _set_task_fields(task_id: int, **fields: object) -> None:
+def _set_task_fields(public_id: str, **fields: object) -> None:
     db = database.SessionLocal()
     try:
-        task = db.get(Task, task_id)
+        task = db.get(Task, internal_task_id(public_id))
         assert task is not None
         for key, value in fields.items():
             setattr(task, key, value)

@@ -72,8 +72,8 @@ class TaskLinkService:
 
         payload = {
             "link_id": link.id,
-            "from_task_id": from_task_id,
-            "to_task_id": to_task_id,
+            "from_task_id": from_task.public_id,
+            "to_task_id": to_task.public_id,
             "kind": kind,
         }
         self._emit_on_endpoints(
@@ -102,10 +102,12 @@ class TaskLinkService:
         if other is None or other.owner_user_id != principal.user_id:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Link not found")
 
+        from_task = self._db.get(Task, link.from_task_id)
+        to_task = self._db.get(Task, link.to_task_id)
         payload = {
             "link_id": link.id,
-            "from_task_id": link.from_task_id,
-            "to_task_id": link.to_task_id,
+            "from_task_id": from_task.public_id if from_task else str(link.from_task_id),
+            "to_task_id": to_task.public_id if to_task else str(link.to_task_id),
             "kind": link.kind,
         }
         from_id, to_id = link.from_task_id, link.to_task_id

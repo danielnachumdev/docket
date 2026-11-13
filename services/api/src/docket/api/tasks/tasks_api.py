@@ -4,10 +4,10 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
+from docket.api.tasks.task_response_mapper import TaskResponseMapper
 from docket.api.tasks.task_service import TaskService
-from docket.auth import Principal, RequirePermission
+from docket.auth import Principal, RequirePermission, TaskAccessService
 from docket.db import DbSession
-from docket.models import Task, TaskLink
 from docket.schemas import (
     TaskBulkUpdate,
     TaskClaimIn,
@@ -15,7 +15,6 @@ from docket.schemas import (
     TaskCommentOut,
     TaskCreate,
     TaskDetailOut,
-    TaskEventOut,
     TaskLinkCreate,
     TaskLinkOut,
     TaskOut,
@@ -150,9 +149,9 @@ class TasksApi:
         db: DbSession,
         principal: CanRead,
         archived: bool = Query(False),
-        parent_task_id: int | None = Query(None),
+        parent_task_id: str | None = Query(None),
         roots_only: bool = Query(False),
-    ) -> list[Task]:
+    ) -> list[TaskOut]:
         return TaskService(db).list_tasks(
             principal,
             archived=archived,
@@ -167,7 +166,7 @@ class TasksApi:
         priority: Annotated[int | None, Query(ge=1, le=4)] = None,
         due_before: Annotated[datetime | None, Query()] = None,
         limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    ) -> list[Task]:
+    ) -> list[TaskOut]:
         return TaskService(db).list_inbox(
             principal,
             priority=priority,
@@ -181,7 +180,7 @@ class TasksApi:
         db: DbSession,
         principal: CanWrite,
         response: Response,
-    ) -> Task:
+    ) -> TaskOut:
         task, created = TaskService(db).create(principal, body)
         response.status_code = (
             status.HTTP_201_CREATED if created else status.HTTP_200_OK
@@ -189,28 +188,28 @@ class TasksApi:
         return task
 
     def get_task(
-        self, task_id: int, db: DbSession, principal: CanRead
+        self, task_id: str, db: DbSession, principal: CanRead
     ) -> TaskDetailOut:
         return TaskService(db).get_detail(principal, task_id)
 
     def update_task(
-        self, task_id: int, body: TaskUpdate, db: DbSession, principal: CanWrite
-    ) -> Task:
+        self, task_id: str, body: TaskUpdate, db: DbSession, principal: CanWrite
+    ) -> TaskOut:
         return TaskService(db).update(principal, task_id, body)
 
     def bulk_update_tasks(
         self, body: TaskBulkUpdate, db: DbSession, principal: CanWrite
-    ) -> list[Task]:
+    ) -> list[TaskOut]:
         return TaskService(db).bulk_update(principal, body)
 
     def set_status(
-        self, task_id: int, body: TaskStatusIn, db: DbSession, principal: CanWrite
-    ) -> Task:
+        self, task_id: str, body: TaskStatusIn, db: DbSession, principal: CanWrite
+    ) -> TaskOut:
         return TaskService(db).set_status(principal, task_id, body)
 
     def add_comment(
         self,
-        task_id: int,
+        task_id: str,
         body: TaskCommentIn,
         db: DbSession,
         principal: CanWrite,
@@ -219,44 +218,44 @@ class TasksApi:
 
     def claim_task(
         self,
-        task_id: int,
+        task_id: str,
         db: DbSession,
         principal: CanClaim,
         body: TaskClaimIn | None = None,
-    ) -> Task:
+    ) -> TaskOut:
         return TaskService(db).claim(principal, task_id, body)
 
     def release_task(
-        self, task_id: int, db: DbSession, principal: CanClaim
-    ) -> Task:
+        self, task_id: str, db: DbSession, principal: CanClaim
+    ) -> TaskOut:
         return TaskService(db).release(principal, task_id)
 
     def heartbeat_task(
         self,
-        task_id: int,
+        task_id: str,
         db: DbSession,
         principal: CanClaim,
         body: TaskClaimIn | None = None,
-    ) -> Task:
+    ) -> TaskOut:
         return TaskService(db).heartbeat(principal, task_id, body)
 
     def archive_task(
-        self, task_id: int, db: DbSession, principal: CanWrite
-    ) -> Task:
+        self, task_id: str, db: DbSession, principal: CanWrite
+    ) -> TaskOut:
         return TaskService(db).archive(principal, task_id)
 
     def unarchive_task(
-        self, task_id: int, db: DbSession, principal: CanWrite
-    ) -> Task:
+        self, task_id: str, db: DbSession, principal: CanWrite
+    ) -> TaskOut:
         return TaskService(db).unarchive(principal, task_id)
 
     def delete_task(
-        self, task_id: int, db: DbSession, principal: CanAdmin
+        self, task_id: str, db: DbSession, principal: CanAdmin
     ) -> None:
         TaskService(db).delete(principal, task_id)
 
     def export_task(
-        self, task_id: int, db: DbSession, principal: CanRead
+        self, task_id: str, db: DbSession, principal: CanRead
     ) -> Response:
         bundle = TaskExportService(db).export_task(principal, task_id)
         disposition = f"attachment; filename*=UTF-8''{quote(bundle.filename)}"
@@ -270,27 +269,38 @@ class TasksApi:
         )
 
     def list_links(
-        self, task_id: int, db: DbSession, principal: CanRead
-    ) -> list[TaskLink]:
-        return TaskLinkService(db).list_for_task(
-            user_id=principal.user_id, task_id=task_id
+        self, task_id: str, db: DbSession, principal: CanRead
+    ) -> list[TaskLinkOut]:
+        task = TaskAccessService(db).get_task(principal, task_id, "tasks:read")
+        mapper = TaskResponseMapper(db)
+        mapper.remember([task])
+        links = TaskLinkService(db).list_for_task(
+            user_id=principal.user_id, task_id=task.id
         )
+        return [mapper.link_out(link) for link in links]
 
     def create_link(
-        self, task_id: int, body: TaskLinkCreate, db: DbSession, principal: CanWrite
-    ) -> TaskLink:
-        return TaskLinkService(db).create(
+        self, task_id: str, body: TaskLinkCreate, db: DbSession, principal: CanWrite
+    ) -> TaskLinkOut:
+        access = TaskAccessService(db)
+        from_task = access.get_task(principal, task_id, "tasks:write")
+        to_task = access.get_task(principal, body.to_task_id, "tasks:write")
+        link = TaskLinkService(db).create(
             principal=principal,
-            from_task_id=task_id,
-            to_task_id=body.to_task_id,
+            from_task_id=from_task.id,
+            to_task_id=to_task.id,
             kind=body.kind,
         )
+        mapper = TaskResponseMapper(db)
+        mapper.remember([from_task, to_task])
+        return mapper.link_out(link)
 
     def delete_link(
-        self, task_id: int, link_id: int, db: DbSession, principal: CanWrite
+        self, task_id: str, link_id: int, db: DbSession, principal: CanWrite
     ) -> None:
+        task = TaskAccessService(db).get_task(principal, task_id, "tasks:write")
         TaskLinkService(db).delete(
-            principal=principal, task_id=task_id, link_id=link_id
+            principal=principal, task_id=task.id, link_id=link_id
         )
 
 

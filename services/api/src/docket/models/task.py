@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 from sqlalchemy import (
     Boolean,
@@ -16,6 +17,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from docket.db import Base
 
 
+def new_task_public_id() -> str:
+    """Canonical task SOT for APIs, URLs, and sharing (not the per-owner display number)."""
+    return str(uuid4())
+
+
 class Task(Base):
     __tablename__ = "tasks"
     __table_args__ = (
@@ -24,9 +30,22 @@ class Task(Base):
             "external_id",
             name="uq_task_owner_external_id",
         ),
+        UniqueConstraint("public_id", name="uq_task_public_id"),
+        UniqueConstraint(
+            "owner_user_id",
+            "owner_task_number",
+            name="uq_task_owner_number",
+        ),
     )
 
+    # Internal PK for SQLite FKs only — not the public/API identity.
     id: Mapped[int] = mapped_column(primary_key=True)
+    # Globally unique SOT for fetch/share/link/API/URL identity.
+    public_id: Mapped[str] = mapped_column(
+        String(36), default=new_task_public_id, nullable=False
+    )
+    # Per-owner display enumeration ("my task #N"); not globally unique.
+    owner_task_number: Mapped[int] = mapped_column(Integer, nullable=False)
     owner_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     parent_task_id: Mapped[int | None] = mapped_column(
         ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True

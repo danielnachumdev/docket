@@ -12,22 +12,22 @@ class TaskWatchService:
         self._db = db
         self._access = TaskAccessService(db)
 
-    def get(self, principal: Principal, task_id: int) -> TaskWatchOut:
-        self._access.get_task(principal, task_id, "tasks:read")
-        return TaskWatchOut(watching=self.is_watching(principal.user_id, task_id))
+    def get(self, principal: Principal, task_ref: str) -> TaskWatchOut:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
+        return TaskWatchOut(watching=self.is_watching(principal.user_id, task.id))
 
-    def watch(self, principal: Principal, task_id: int) -> TaskWatchOut:
-        self._access.get_task(principal, task_id, "tasks:read")
-        if not self.is_watching(principal.user_id, task_id):
-            self._db.add(TaskWatch(task_id=task_id, user_id=principal.user_id))
+    def watch(self, principal: Principal, task_ref: str) -> TaskWatchOut:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
+        if not self.is_watching(principal.user_id, task.id):
+            self._db.add(TaskWatch(task_id=task.id, user_id=principal.user_id))
             self._db.commit()
         return TaskWatchOut(watching=True)
 
-    def unwatch(self, principal: Principal, task_id: int) -> None:
-        self._access.get_task(principal, task_id, "tasks:read")
+    def unwatch(self, principal: Principal, task_ref: str) -> None:
+        task = self._access.get_task(principal, task_ref, "tasks:read")
         row = self._db.scalar(
             select(TaskWatch).where(
-                TaskWatch.task_id == task_id,
+                TaskWatch.task_id == task.id,
                 TaskWatch.user_id == principal.user_id,
             )
         )
