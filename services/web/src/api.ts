@@ -189,7 +189,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
-async function downloadBlob(path: string, fallbackFilename: string): Promise<void> {
+async function fetchBlob(
+  path: string,
+  fallbackFilename: string,
+): Promise<{ blob: Blob; filename: string }> {
   const res = await fetch(path, { credentials: 'include' })
   if (!res.ok) await requestError(res)
   const blob = await res.blob()
@@ -200,6 +203,11 @@ async function downloadBlob(path: string, fallbackFilename: string): Promise<voi
   const filename = encoded
     ? decodeURIComponent(encoded)
     : plain || fallbackFilename
+  return { blob, filename }
+}
+
+async function downloadBlob(path: string, fallbackFilename: string): Promise<void> {
+  const { blob, filename } = await fetchBlob(path, fallbackFilename)
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
@@ -281,6 +289,13 @@ export const api = {
       `/api/tasks/${id}/artifacts/${artifactId}/content`,
       filename,
     )
+  },
+  fetchArtifactContentBlob: async (id: number, artifactId: number, filename: string) => {
+    const { blob } = await fetchBlob(
+      `/api/tasks/${id}/artifacts/${artifactId}/content`,
+      filename,
+    )
+    return blob
   },
   downloadTaskExport: async (id: number) => {
     await downloadBlob(`/api/tasks/${id}/export`, `docket-task-${id}-export.zip`)

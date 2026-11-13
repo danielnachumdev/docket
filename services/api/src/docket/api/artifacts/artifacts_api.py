@@ -3,7 +3,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Response, status
 
-from docket.artifacts import ArtifactService
+from docket.artifacts import ArtifactContent, ArtifactService
 from docket.auth import Principal, RequirePermission
 from docket.db import DbSession
 from docket.models import Artifact
@@ -87,12 +87,15 @@ class ArtifactsApi:
         principal: CanRead,
     ) -> Response:
         content = ArtifactService(db).get_content(principal, task_id, artifact_id)
-        disposition = f"attachment; filename*=UTF-8''{quote(content.filename)}"
         return Response(
             content=content.data,
-            media_type=content.content_type,
-            headers={"Content-Disposition": disposition},
+            media_type=content.response_media_type,
+            headers={"Content-Disposition": self._content_disposition(content)},
         )
+
+    def _content_disposition(self, content: ArtifactContent) -> str:
+        kind = "inline" if content.is_image else "attachment"
+        return f"{kind}; filename*=UTF-8''{quote(content.filename)}"
 
     def update_artifact(
         self,

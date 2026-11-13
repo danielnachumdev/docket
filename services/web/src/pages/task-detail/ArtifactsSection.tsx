@@ -3,8 +3,10 @@ import { api, type Artifact } from '../../api'
 import { Alert } from '../../components/Feedback'
 import { Icon, type IconName } from '../../components/Icon'
 import { Section } from '../../components/Section'
+import { isImageArtifact } from '../../lib/artifactMedia'
 import { formatDateTime, formatRelative } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
+import { ArtifactImagePreview } from './ArtifactImagePreview'
 
 type Kind = 'text' | 'link' | 'file'
 
@@ -162,6 +164,11 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
               )}
               {a.kind === 'link' && a.content_text && !isUrl(a.content_text) && (
                 <p className="muted small break">{a.content_text}</p>
+              )}
+              {isImageArtifact(a) && (a.storage_key || a.content_text) && (
+                <div className="artifact-body">
+                  <ArtifactImagePreview taskId={taskId} artifactId={a.id} title={a.title} />
+                </div>
               )}
             </li>
           ))}
