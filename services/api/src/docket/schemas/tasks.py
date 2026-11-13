@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+_STATUS_PATTERN = "^(open|in_progress|blocked|on_hold|failed|done|cancelled)$"
 
 
 class TaskCreate(BaseModel):
@@ -26,10 +29,21 @@ class TaskUpdate(BaseModel):
 
 
 class TaskStatusIn(BaseModel):
-    status: str = Field(
-        pattern="^(open|in_progress|blocked|on_hold|failed|done|cancelled)$"
-    )
+    status: str = Field(pattern=_STATUS_PATTERN)
     last_error: str | None = Field(default=None, max_length=4000)
+
+
+class TaskBulkUpdate(BaseModel):
+    task_ids: list[int] = Field(min_length=1, max_length=200)
+    status: str | None = Field(default=None, pattern=_STATUS_PATTERN)
+    priority: int | None = Field(default=None, ge=1, le=4)
+
+    @model_validator(mode="after")
+    def require_status_or_priority(self) -> Self:
+        if self.status is None and self.priority is None:
+            raise ValueError("Provide status and/or priority")
+        return self
+
 
 
 class TaskClaimIn(BaseModel):

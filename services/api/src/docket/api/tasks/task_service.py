@@ -15,6 +15,7 @@ from docket.models import Membership, Task
 from docket.notifications import mention_resolver, notification_dispatcher
 from docket.schemas import (
     ArtifactOut,
+    TaskBulkUpdate,
     TaskClaimIn,
     TaskCommentIn,
     TaskCommentOut,
@@ -263,6 +264,31 @@ class TaskService:
         )
         return shared is not None
 
+    def bulk_update(
+        self, principal: Principal, body: TaskBulkUpdate
+    ) -> list[Task]:
+        tasks = [
+            self._access.get_task(principal, task_id, "tasks:write")
+            for task_id in self._unique_ids(body.task_ids)
+        ]
+        for task in tasks:
+            if body.status is not None:
+                self._change_status(task, principal, body.status)
+            if body.priority is not None and task.priority != body.priority:
+                task.priority = body.priority
+                task_event_recorder.record(
+                    self._db,
+                    task_id=task.id,
+                    event_type="updated",
+                    actor=principal,
+                    payload={"priority": task.priority},
+                )
+        self._gateway.commit()
+        for task in tasks:
+            self._gateway.refresh(task)
+        return tasks
+
+
     def claim(
         self,
         principal: Principal,
@@ -404,6 +430,33 @@ class TaskService:
             task.due_at = body.due_at
             changes["due_at"] = task.due_at.isoformat() if task.due_at else None
 
+    def _change_status(
+        self, task: Task, principal: Principal, new_status: str
+    ) -> None:
+        old = task.status
+        if old == new_status:
+            return
+        task.status = new_status
+        self._apply_status_timestamps(task, new_status)
+        if new_status != "failed" and old == "failed":
+            task.last_error = None
+        payload: dict = {"from": old, "to": new_status}
+        task_event_recorder.record(
+            self._db,
+            task_id=task.id,
+            event_type="status_changed",
+            actor=principal,
+            payload=payload,
+        )
+        notification_dispatcher(self._db).notify_watchers(
+            task=task,
+            actor=principal,
+            kind="status_changed",
+            title=f"Status → {new_status}",
+            body=f"“{task.title}” moved from {old} to {new_status}",
+            payload=payload,
+        )
+
     def _apply_status_timestamps(self, task: Task, new_status: str) -> None:
         if new_status == "done":
             task.completed_at = self._utcnow()
@@ -424,6 +477,16 @@ class TaskService:
             return
         if body.status != "failed" and old == "failed":
             task.last_error = None
+
+    def _unique_ids(self, task_ids: list[int]) -> list[int]:
+        seen: set[int] = set()
+        ordered: list[int] = []
+        for task_id in task_ids:
+            if task_id in seen:
+                continue
+            seen.add(task_id)
+            ordered.append(task_id)
+        return ordered
 
     def _utcnow(self) -> datetime:
         return datetime.now(UTC)
