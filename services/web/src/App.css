@@ -1449,6 +1449,17 @@ details pre {
   box-shadow: 0 0 0 1px var(--st-in_progress);
 }
 
+.event-claimed .event-dot,
+.event-claim_renewed .event-dot {
+  background: var(--st-blocked);
+  box-shadow: 0 0 0 1px var(--st-blocked);
+}
+
+.event-released .event-dot {
+  background: var(--muted);
+  box-shadow: 0 0 0 1px var(--muted);
+}
+
 .event-body {
   display: grid;
   gap: 0.2rem;
@@ -1458,6 +1469,50 @@ details pre {
 
 .event-body strong {
   font-weight: 600;
+}
+
+.actor-drilldown {
+  margin: 0;
+}
+
+.actor-meta {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.45rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 0.8rem;
+}
+
+.actor-meta > div {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.5rem;
+}
+
+.actor-meta dt {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.actor-meta dd {
+  margin: 0;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+
+.claim-status {
+  margin: 0 0 0.85rem;
+}
+
+.claim-status p {
+  margin: 0 0 0.25rem;
+}
+
+.claim-timeline {
+  margin-top: 0.25rem;
 }
 
 .savebar {

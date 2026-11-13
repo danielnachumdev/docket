@@ -51,6 +51,7 @@ class TaskOut(BaseModel):
     source: str
     due_at: datetime | None
     claimed_by_token_id: int | None
+    claimed_by_token_name: str | None = None
     claim_expires_at: datetime | None
     last_error: str | None
     completed_at: datetime | None
@@ -69,6 +70,7 @@ class TaskEventOut(BaseModel):
     actor_user_id: int
     actor_token_id: int | None
     actor_token_name: str | None = None
+    actor_role_name: str | None = None
     payload_json: str | None
     created_at: datetime
 

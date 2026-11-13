@@ -30,3 +30,9 @@ class TaskEvent(Base):
     @property
     def actor_token_name(self) -> str | None:
         return self.actor_token.name if self.actor_token is not None else None
+
+    @property
+    def actor_role_name(self) -> str | None:
+        if self.actor_token is None or self.actor_token.role is None:
+            return None
+        return self.actor_token.role.name

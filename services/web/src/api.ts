@@ -21,8 +21,9 @@ export type Task = {
   rank: number
   source: string
   due_at: string | null
-  claimed_by_token_id?: number | null
-  claim_expires_at?: string | null
+  claimed_by_token_id: number | null
+  claimed_by_token_name: string | null
+  claim_expires_at: string | null
   last_error: string | null
   completed_at: string | null
   cancelled_at: string | null
@@ -38,6 +39,7 @@ export type TaskEvent = {
   actor_user_id: number
   actor_token_id: number | null
   actor_token_name: string | null
+  actor_role_name: string | null
   payload_json: string | null
   created_at: string
 }

@@ -4,7 +4,7 @@ from sqlalchemy import nulls_last, or_, select
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import ColumnElement, Select
 
-from docket.models import Task, TaskEvent
+from docket.models import ApiToken, Task, TaskEvent
 
 _CLOSED_STATUSES = ("done", "cancelled")
 
@@ -16,7 +16,11 @@ class TaskGateway:
         self._db = db
 
     def get(self, task_id: int) -> Task | None:
-        return self._db.get(Task, task_id)
+        return self._db.scalar(
+            select(Task)
+            .options(joinedload(Task.claimed_by_token))
+            .where(Task.id == task_id)
+        )
 
     def get_by_owner_external_id(
         self, owner_user_id: int, external_id: str
@@ -99,7 +103,7 @@ class TaskGateway:
         return list(
             self._db.scalars(
                 select(TaskEvent)
-                .options(joinedload(TaskEvent.actor_token))
+                .options(joinedload(TaskEvent.actor_token).joinedload(ApiToken.role))
                 .where(TaskEvent.task_id == task_id)
                 .order_by(TaskEvent.created_at.desc(), TaskEvent.id.desc())
             )
