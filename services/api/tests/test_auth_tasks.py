@@ -16,7 +16,7 @@ def test_bootstrap_login_and_tasks() -> None:
         json={
             "email": "ops@example.com",
             "display_name": "Ops",
-            "password": "password123",
+            "password": "password1234",
         },
     )
     assert boot.status_code == 200

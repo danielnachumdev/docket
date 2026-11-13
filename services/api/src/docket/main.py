@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from docket.api import (
     artifacts_api,
     auth_api,
+    invites_api,
     notifications_api,
     saved_views_api,
     task_shares_api,
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
         return {"status": "ok", "version": get_settings().running_version}
 
     app.include_router(auth_api.router)
+    app.include_router(invites_api.router)
     app.include_router(tasks_api.router)
     app.include_router(artifacts_api.router)
     app.include_router(task_shares_api.router)

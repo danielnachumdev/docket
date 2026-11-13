@@ -13,6 +13,8 @@ function kindLabel(kind: string) {
       return 'Comment'
     case 'mentioned':
       return 'Mention'
+    case 'invite_accepted':
+      return 'Invite'
     default:
       return humanize(kind)
   }

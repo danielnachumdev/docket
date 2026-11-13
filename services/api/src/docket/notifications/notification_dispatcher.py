@@ -69,6 +69,30 @@ class NotificationDispatcher:
             actor_user_id=actor_user_id,
         )
 
+    def notify_user(
+        self,
+        *,
+        user_id: int,
+        actor_user_id: int,
+        kind: str,
+        title: str,
+        body: str | None = None,
+        payload: dict[str, Any] | None = None,
+        task_id: int | None = None,
+    ) -> Notification | None:
+        if user_id == actor_user_id:
+            return None
+        rows = self._create_many(
+            [user_id],
+            task_id=task_id,
+            kind=kind,
+            title=title,
+            body=body,
+            payload=payload,
+            actor_user_id=actor_user_id,
+        )
+        return rows[0] if rows else None
+
     def _watcher_ids(self, task_id: int) -> list[int]:
         return list(
             self._db.scalars(
@@ -80,7 +104,7 @@ class NotificationDispatcher:
         self,
         recipient_ids: list[int],
         *,
-        task_id: int,
+        task_id: int | None,
         kind: str,
         title: str,
         body: str | None,

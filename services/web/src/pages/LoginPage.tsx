@@ -72,10 +72,14 @@ export function LoginPage() {
               type="password"
               autoComplete={needsBootstrap ? 'new-password' : 'current-password'}
               required
-              minLength={8}
+              minLength={needsBootstrap ? 12 : 1}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder={
+                needsBootstrap
+                  ? 'At least 12 characters, letter + digit'
+                  : 'Your password'
+              }
             />
           </label>
           <button type="submit" className="btn primary block" disabled={busy}>

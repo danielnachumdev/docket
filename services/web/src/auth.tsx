@@ -45,24 +45,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const bootstrap = useCallback(
     async (input: { email: string; display_name: string; password: string }) => {
-      const user = await api.bootstrap(input)
-      setStatus({ bootstrapped: true, user })
+      await api.bootstrap(input)
+      const next = await api.status()
+      setStatus(next)
     },
     [],
   )
 
   const login = useCallback(async (input: { email: string; password: string }) => {
-    const user = await api.login(input)
-    setStatus({ bootstrapped: true, user })
+    await api.login(input)
+    const next = await api.status()
+    setStatus(next)
   }, [])
 
   const logout = useCallback(async () => {
     await api.logout()
-    setStatus((prev) => ({ bootstrapped: prev?.bootstrapped ?? true, user: null }))
+    setStatus((prev) => ({
+      bootstrapped: prev?.bootstrapped ?? true,
+      user: null,
+      permissions: [],
+    }))
   }, [])
 
   const setUser = useCallback((user: User | null) => {
-    setStatus((prev) => ({ bootstrapped: prev?.bootstrapped ?? true, user }))
+    setStatus((prev) => ({
+      bootstrapped: prev?.bootstrapped ?? true,
+      user,
+      permissions: prev?.permissions ?? [],
+    }))
   }, [])
 
   const value = useMemo(

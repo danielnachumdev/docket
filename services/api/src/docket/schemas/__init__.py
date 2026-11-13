@@ -4,6 +4,13 @@ from docket.schemas.auth import (
     LoginIn,
     UserOut,
 )
+from docket.schemas.invites import (
+    InviteCreate,
+    InviteCreatedOut,
+    InviteOut,
+    InvitePreviewOut,
+    RegisterIn,
+)
 from docket.schemas.notifications import (
     NotificationOut,
     TaskCommentIn,
@@ -56,8 +63,13 @@ __all__ = [
     "ArtifactUpdate",
     "AuthStatusOut",
     "BootstrapIn",
+    "InviteCreate",
+    "InviteCreatedOut",
+    "InviteOut",
+    "InvitePreviewOut",
     "LoginIn",
     "NotificationOut",
+    "RegisterIn",
     "RoleOut",
     "SavedViewCreate",
     "SavedViewOut",

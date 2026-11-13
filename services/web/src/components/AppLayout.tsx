@@ -36,6 +36,12 @@ const NAV_BASE: Omit<NavItem, 'badge'>[] = [
   },
   { to: '/tokens', label: 'API tokens', icon: 'key', match: (path) => path === '/tokens' },
   { to: '/webhooks', label: 'Webhooks', icon: 'webhook', match: (path) => path === '/webhooks' },
+  {
+    to: '/invites',
+    label: 'Invites',
+    icon: 'users',
+    match: (path) => path === '/invites',
+  },
 ]
 
 export function Logo() {
@@ -48,13 +54,21 @@ export function Logo() {
 
 type Props = {
   user: User
+  canInvite?: boolean
   theme: Theme
   onToggleTheme: () => void
   onLogout: () => void
   children: ReactNode
 }
 
-export function AppLayout({ user, theme, onToggleTheme, onLogout, children }: Props) {
+export function AppLayout({
+  user,
+  canInvite = false,
+  theme,
+  onToggleTheme,
+  onLogout,
+  children,
+}: Props) {
   const { pathname, search } = useLocation()
   const version = useAppVersion()
   const [unread, setUnread] = useState(0)
@@ -85,9 +99,9 @@ export function AppLayout({ user, theme, onToggleTheme, onLogout, children }: Pr
     refreshUnread()
   }, [pathname, refreshUnread])
 
-  const nav: NavItem[] = NAV_BASE.map((item) =>
-    item.to === '/notifications' ? { ...item, badge: unread } : item,
-  )
+  const nav: NavItem[] = NAV_BASE.filter(
+    (item) => item.to !== '/invites' || canInvite,
+  ).map((item) => (item.to === '/notifications' ? { ...item, badge: unread } : item))
 
   const links = nav.map((item) => {
     const active = item.match(pathname, search)

@@ -28,6 +28,17 @@ ROLES: dict[str, tuple[str, list[str]]] = {
             "users:admin",
         ],
     ),
+    "member": (
+        "Invited user: own workspace without user admin",
+        [
+            "tasks:read",
+            "tasks:write",
+            "tasks:claim",
+            "artifacts:write",
+            "tokens:manage",
+            "webhooks:manage",
+        ],
+    ),
     "editor": (
         "Read/write tasks and artifacts; claim work",
         ["tasks:read", "tasks:write", "tasks:claim", "artifacts:write"],
