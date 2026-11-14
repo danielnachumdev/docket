@@ -22,7 +22,9 @@
     "my_open": "My open",
     "due_soon": "Due soon",
     "on_hold_stale": "On hold > 7d",
-    "claimed": "Claimed by agents"
+    "claimed": "Claimed by agents",
+    "unread": "Unread",
+    "read": "Read"
   },
   "relative": {
     "justNow": "just now"
