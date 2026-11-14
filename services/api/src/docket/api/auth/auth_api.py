@@ -6,7 +6,7 @@ from docket.auth import AuthenticatedPrincipal, OptionalPrincipal
 from docket.config import get_settings
 from docket.db import DbSession
 from docket.models import User
-from docket.schemas import AuthStatusOut, BootstrapIn, LoginIn, UserOut
+from docket.schemas import AuthStatusOut, BootstrapIn, LoginIn, UserOut, UserUpdate
 from docket.schemas.invites import InvitePreviewOut, RegisterIn
 from docket.security import session_codec
 
@@ -60,6 +60,12 @@ class AuthApi:
             methods=["GET"],
             response_model=UserOut,
         )
+        self.router.add_api_route(
+            "/me",
+            self.update_me,
+            methods=["PATCH"],
+            response_model=UserOut,
+        )
 
     def status(
         self, db: DbSession, principal: OptionalPrincipal
@@ -98,6 +104,14 @@ class AuthApi:
 
     def me(self, principal: AuthenticatedPrincipal) -> User:
         return principal.user
+
+    def update_me(
+        self,
+        body: UserUpdate,
+        db: DbSession,
+        principal: AuthenticatedPrincipal,
+    ) -> User:
+        return self._service.update_me(db, principal.user_id, body)
 
     def _set_session_cookie(self, response: Response, user_id: int) -> None:
         settings = get_settings()

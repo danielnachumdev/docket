@@ -2,10 +2,11 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from docket.api.auth.user_gateway import UserGateway
 from docket.auth.principal import Principal
 from docket.auth.rbac import RbacGateway
 from docket.models import Membership, Role, User
-from docket.schemas import AuthStatusOut, BootstrapIn, LoginIn, UserOut
+from docket.schemas import AuthStatusOut, BootstrapIn, LoginIn, UserOut, UserUpdate
 from docket.security import password_hasher, password_policy
 
 
@@ -60,4 +61,14 @@ class AuthService:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
         if not password_hasher.verify(body.password, user.password_hash):
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
+        return user
+
+    def update_me(self, db: Session, user_id: int, body: UserUpdate) -> User:
+        gateway = UserGateway(db)
+        user = gateway.get(user_id)
+        if user is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+        user.display_name = body.display_name
+        gateway.commit()
+        gateway.refresh(user)
         return user

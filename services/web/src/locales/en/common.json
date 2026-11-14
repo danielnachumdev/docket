@@ -32,6 +32,7 @@
   "themeToDark": "Switch to dark theme",
   "logOut": "Log out",
   "account": "Account",
+  "accountMenu": "Account menu",
   "releaseNotes": "Release notes",
   "updateAvailable": "Update available",
   "updateAvailableVersion": "Update available: v{{version}}",
