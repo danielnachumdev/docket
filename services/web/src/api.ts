@@ -303,6 +303,8 @@ export const api = {
   previewInvite: (token: string) =>
     request<InvitePreview>(`/api/auth/invites/${encodeURIComponent(token)}`),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
+  updateMe: (body: { display_name: string }) =>
+    request<User>('/api/auth/me', { method: 'PATCH', body: JSON.stringify(body) }),
   listInvites: () => request<RegistrationInvite[]>('/api/invites'),
   createInvite: (body: { email?: string | null } = {}) =>
     request<RegistrationInviteCreated>('/api/invites', {

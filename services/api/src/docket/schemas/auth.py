@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class UserOut(BaseModel):
@@ -7,6 +7,18 @@ class UserOut(BaseModel):
     id: int
     email: str | None
     display_name: str
+
+
+class UserUpdate(BaseModel):
+    display_name: str = Field(min_length=1, max_length=200)
+
+    @field_validator("display_name")
+    @classmethod
+    def strip_display_name(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("display_name must not be blank")
+        return cleaned
 
 
 class BootstrapIn(BaseModel):

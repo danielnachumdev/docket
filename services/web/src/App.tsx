@@ -4,6 +4,7 @@ import { AppLayout } from './components/AppLayout'
 import { DialogsProvider } from './components/DialogsProvider'
 import { Spinner } from './components/Feedback'
 import { PreferencesProvider, useTheme } from './preferences'
+import { AccountPage } from './pages/AccountPage'
 import { ArtifactsPage } from './pages/ArtifactsPage'
 import { InvitesPage } from './pages/InvitesPage'
 import { LoginPage } from './pages/LoginPage'
@@ -51,6 +52,7 @@ function Shell() {
         <Route path="/artifacts" element={<ArtifactsPage />} />
         <Route path="/tokens" element={<TokensPage />} />
         <Route path="/webhooks" element={<WebhooksPage />} />
+        <Route path="/account" element={<AccountPage />} />
         {canInvite && <Route path="/invites" element={<InvitesPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

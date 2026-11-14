@@ -3,6 +3,7 @@ from docket.schemas.auth import (
     BootstrapIn,
     LoginIn,
     UserOut,
+    UserUpdate,
 )
 from docket.schemas.preferences import (
     UserPreferencesOut,
@@ -101,6 +102,7 @@ __all__ = [
     "UserOut",
     "UserPreferencesOut",
     "UserPreferencesPatch",
+    "UserUpdate",
     "VersionStatusOut",
     "WebhookCreate",
     "WebhookCreatedOut",
