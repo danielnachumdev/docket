@@ -24,7 +24,9 @@
     "on_hold_stale": "בהמתנה > 7 ימים",
     "claimed": "שסוכנים תפסו",
     "unread": "לא נקרא",
-    "read": "נקרא"
+    "read": "נקרא",
+    "private": "רק פרטיות",
+    "shared": "רק משותפות"
   },
   "relative": {
     "justNow": "עכשיו"

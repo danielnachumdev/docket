@@ -9,6 +9,8 @@ export const SMART_FILTERS = [
   'claimed',
   'unread',
   'read',
+  'private',
+  'shared',
 ] as const
 
 export type SmartFilter = (typeof SMART_FILTERS)[number]
@@ -71,6 +73,10 @@ export function matchesSmartFilter(
       return Boolean(task.unread)
     case 'read':
       return !task.unread
+    case 'private':
+      return !task.shared
+    case 'shared':
+      return Boolean(task.shared)
     default:
       return false
   }
