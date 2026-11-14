@@ -24,7 +24,9 @@
     "on_hold_stale": "On hold > 7d",
     "claimed": "Claimed by agents",
     "unread": "Unread",
-    "read": "Read"
+    "read": "Read",
+    "private": "Private only",
+    "shared": "Shared only"
   },
   "relative": {
     "justNow": "just now"

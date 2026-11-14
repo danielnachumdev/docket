@@ -70,3 +70,16 @@ def test_saved_views_require_auth() -> None:
         ).status_code
         == 401
     )
+
+
+def test_saved_views_accept_private_and_shared_filters() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+
+    for key, name in (("private", "Private only"), ("shared", "Shared only")):
+        created = client.post(
+            "/api/saved-views",
+            json={"name": name, "filter_key": key, "query": ""},
+        )
+        assert created.status_code == 201, created.text
+        assert created.json()["filter_key"] == key
