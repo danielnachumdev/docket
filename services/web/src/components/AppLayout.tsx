@@ -6,6 +6,7 @@ import { initials } from '../lib/format'
 import type { Theme } from '../lib/theme'
 import { AppVersion, useAppVersion } from './AppVersion'
 import { Dialog } from './Dialog'
+import docketIcon from '../assets/docket-icon.svg'
 import { Icon, type IconName } from './Icon'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
@@ -20,7 +21,7 @@ type NavItem = {
 export function Logo() {
   return (
     <span className="logo" aria-hidden="true">
-      <Icon name="check" size={16} />
+      <img src={docketIcon} alt="" width={28} height={28} draggable={false} />
     </span>
   )
 }
