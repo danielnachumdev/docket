@@ -1,7 +1,7 @@
-"""artifact byte_size for storage stats
+"""artifact byte_size
 
-Revision ID: i1a2b3c4d5e6
-Revises: h1a2b3c4d5e6
+Revision ID: j1a2b3c4d5e6
+Revises: i1a2b3c4d5e6
 Create Date: 2026-11-14 13:00:00.000000
 
 """
@@ -11,8 +11,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "i1a2b3c4d5e6"
-down_revision: Union[str, Sequence[str], None] = "h1a2b3c4d5e6"
+revision: str = "j1a2b3c4d5e6"
+down_revision: Union[str, Sequence[str], None] = "i1a2b3c4d5e6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

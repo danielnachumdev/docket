@@ -102,8 +102,8 @@ class ArtifactService:
         self, principal: Principal, task_ref: str, body: ArtifactCreate
     ) -> Artifact:
         task = self._access.get_task(principal, task_ref, "artifacts:write")
-        storage_key, content_type, content_text, byte_size = (
-            self._prepare_create_payload(task.id, body)
+        storage_key, content_type, content_text, byte_size = self._prepare_create_payload(
+            task.id, body
         )
         artifact = Artifact(
             task_id=task.id,
@@ -224,6 +224,7 @@ class ArtifactService:
         if body.content_base64 is not None:
             self._replace_blob(artifact, body)
             changes["content_replaced"] = True
+            changes["byte_size"] = artifact.byte_size
         return changes
 
     def _replace_blob(self, artifact: Artifact, body: ArtifactUpdate) -> None:
