@@ -12,7 +12,7 @@ type Props = {
   onClose: () => void
   footer?: ReactNode
   size?: 'sm' | 'md'
-  variant?: 'center' | 'sheet'
+  variant?: 'center' | 'drawer'
   children?: ReactNode
 }
 

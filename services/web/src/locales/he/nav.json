@@ -9,6 +9,7 @@
   "apiTokens": "אסימוני API",
   "webhooks": "Webhooks",
   "invites": "הזמנות",
-  "more": "עוד",
+  "menu": "תפריט",
+  "openMenu": "פתיחת תפריט",
   "unreadCount": "{{count}} שלא נקראו"
 }

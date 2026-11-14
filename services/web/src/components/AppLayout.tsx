@@ -105,9 +105,10 @@ export function AppLayout({
   const { pathname, search } = useLocation()
   const version = useAppVersion()
   const unread = useUnreadCount(pathname)
-  const [moreOpen, setMoreOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const themeLabel = theme === 'dark' ? t('common:themeToLight') : t('common:themeToDark')
   const isArchived = new URLSearchParams(search).get('view') === 'archived'
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
 
   const workspace: NavItem[] = [
     {
@@ -163,8 +164,6 @@ export function AppLayout({
   ]
 
   const tabs = workspace.slice(0, 3)
-  const overflow = [...workspace.slice(3), ...integrations]
-  const overflowActive = overflow.some((item) => item.match(pathname, search))
 
   const renderGroup = (items: NavItem[], onNavigate?: () => void) =>
     items.map((item) => (
@@ -241,20 +240,25 @@ export function AppLayout({
       </aside>
 
       <header className="mobile-bar">
-        <Link to="/" className="brand">
-          <Logo />
-          <span>{t('common:appName')}</span>
-        </Link>
-        <button
-          type="button"
-          className="avatar-btn"
-          aria-label={t('common:account')}
-          onClick={() => setMoreOpen(true)}
-        >
-          <span className="avatar" aria-hidden="true">
-            {initials(user.display_name)}
-          </span>
-        </button>
+        <div className="mobile-bar-start">
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label={t('nav:openMenu')}
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(true)}
+          >
+            <Icon name="menu" />
+          </button>
+          <Link to="/" className="brand">
+            <Logo />
+            <span>{t('common:appName')}</span>
+          </Link>
+        </div>
+        <span className="avatar" aria-hidden="true">
+          {initials(user.display_name)}
+        </span>
       </header>
 
       <div className="content" id="main-content">
@@ -263,35 +267,30 @@ export function AppLayout({
 
       <nav className="tabbar" aria-label={t('nav:main')}>
         {renderGroup(tabs)}
-        <button
-          type="button"
-          className={overflowActive ? 'nav-item active' : 'nav-item'}
-          aria-haspopup="dialog"
-          aria-expanded={moreOpen}
-          onClick={() => setMoreOpen(true)}
-        >
-          <span className="nav-icon-wrap">
-            <Icon name="menu" size={18} />
-          </span>
-          <span className="nav-label">{t('nav:more')}</span>
-        </button>
       </nav>
 
-      {moreOpen && (
-        <Dialog title={t('nav:more')} variant="sheet" onClose={() => setMoreOpen(false)}>
-          <div className="sheet-section">{userChip}</div>
-          <nav className="nav sheet-nav" aria-label={t('nav:more')}>
-            {renderGroup(overflow, () => setMoreOpen(false))}
+      {menuOpen && (
+        <Dialog title={t('nav:menu')} variant="drawer" onClose={closeMenu}>
+          <div className="drawer-section">{userChip}</div>
+          <nav className="nav drawer-nav" aria-label={t('nav:menu')}>
+            <div className="nav-group">
+              <span className="nav-group-label">{t('nav:workspace')}</span>
+              {renderGroup(workspace, closeMenu)}
+            </div>
+            <div className="nav-group">
+              <span className="nav-group-label">{t('nav:integrations')}</span>
+              {renderGroup(integrations, closeMenu)}
+            </div>
           </nav>
-          <div className="sheet-settings">
-            <div className="sheet-setting">
+          <div className="drawer-settings">
+            <div className="drawer-setting">
               <span>
                 <Icon name="globe" />
                 {t('common:language')}
               </span>
               <LanguageSwitcher />
             </div>
-            <div className="sheet-setting">
+            <div className="drawer-setting">
               <span>
                 <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
                 {t('common:theme')}
@@ -312,7 +311,7 @@ export function AppLayout({
               </div>
             </div>
           </div>
-          <div className="sheet-footer">
+          <div className="drawer-footer">
             <AppVersion info={version} />
             <button type="button" className="btn ghost danger" onClick={onLogout}>
               <Icon name="logout" />
