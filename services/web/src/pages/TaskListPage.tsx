@@ -6,7 +6,14 @@ import { DueBadge, PriorityBadge, StatusBadge } from '../components/Badges'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { SortableSiblingItem, SortableSiblingList } from '../components/SortableSiblingList'
-import { PRIORITIES, STATUSES, isClosed, priorityLabel, statusLabel } from '../lib/format'
+import {
+  PRIORITIES,
+  STATUSES,
+  isClosed,
+  priorityLabel,
+  statusLabel,
+  type Status,
+} from '../lib/format'
 import {
   SMART_FILTERS,
   filterLabel,
@@ -16,6 +23,7 @@ import {
 } from '../lib/smartFilters'
 import { ranksForOrder, reorderBodyAfterMove } from '../lib/taskReorder'
 import { useAction } from '../lib/useAction'
+import { TaskKanbanBoard } from './TaskKanbanBoard'
 
 type TaskNode = Task & { children: TaskNode[] }
 type StatusChip = 'active' | 'all' | (typeof STATUSES)[number]
@@ -207,8 +215,9 @@ function TaskRow({
 }
 
 export function TaskListPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const archived = searchParams.get('view') === 'archived'
+  const layout = searchParams.get('layout') === 'kanban' ? 'kanban' : 'list'
   const { status: auth } = useAuth()
   const userId = auth?.user?.id ?? null
   const [tasks, setTasks] = useState<Task[] | null>(null)
@@ -225,6 +234,18 @@ export function TaskListPage() {
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState(3)
   const { busy, error, setError, run } = useAction()
+
+  function setLayout(next: 'list' | 'kanban') {
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev)
+        if (next === 'kanban') params.set('layout', 'kanban')
+        else params.delete('layout')
+        return params
+      },
+      { replace: true },
+    )
+  }
 
   const load = useCallback(async () => {
     const rows = await api.listTasks({ archived })
@@ -256,6 +277,11 @@ export function TaskListPage() {
     [tree, filter, query, pinned, userId],
   )
   const visibleIds = useMemo(() => collectIds(visible), [visible])
+  const boardTasks = useMemo(() => {
+    if (tasks == null) return []
+    const byId = new Map(tasks.map((t) => [t.id, t]))
+    return visibleIds.map((id) => byId.get(id)).filter((t): t is Task => t != null)
+  }, [tasks, visibleIds])
   const childrenById = useMemo(() => {
     const map = new Map<string, Task[]>()
     for (const t of tasks ?? []) {
@@ -342,6 +368,10 @@ export function TaskListPage() {
 
   function toggleDone(task: Task) {
     const next = task.status === 'done' ? 'backlog' : 'done'
+    applyStatus(task, next)
+  }
+
+  function applyStatus(task: Task, next: Status) {
     setPinned((prev) => new Set(prev).add(task.id))
     setTasks(
       (prev) =>
@@ -430,7 +460,15 @@ export function TaskListPage() {
   const statusChips: StatusChip[] = ['active', 'all', ...STATUSES]
 
   return (
-    <main className={selectedCount > 0 ? 'page has-bulkbar' : 'page'}>
+    <main
+      className={[
+        'page',
+        layout === 'kanban' ? 'wide' : '',
+        selectedCount > 0 ? 'has-bulkbar' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <header className="page-header">
         <div>
           <h1>{archived ? 'Archived' : 'Tasks'}</h1>
@@ -441,6 +479,26 @@ export function TaskListPage() {
                 ? `${counts.all} archived task${counts.all === 1 ? '' : 's'}`
                 : `${counts.active} active · ${counts.done ?? 0} done`}
           </p>
+        </div>
+        <div className="layout-toggle" role="group" aria-label="Layout">
+          <button
+            type="button"
+            className={layout === 'list' ? 'btn small active' : 'btn ghost small'}
+            aria-pressed={layout === 'list'}
+            onClick={() => setLayout('list')}
+          >
+            <Icon name="list" size={14} />
+            List
+          </button>
+          <button
+            type="button"
+            className={layout === 'kanban' ? 'btn small active' : 'btn ghost small'}
+            aria-pressed={layout === 'kanban'}
+            onClick={() => setLayout('kanban')}
+          >
+            <Icon name="columns" size={14} />
+            Board
+          </button>
         </div>
       </header>
 
@@ -577,6 +635,8 @@ export function TaskListPage() {
               : 'Add your first task above, or let an agent create one via the API.'
             : 'Try a different filter or search term.'}
         </EmptyState>
+      ) : layout === 'kanban' ? (
+        <TaskKanbanBoard tasks={boardTasks} onStatusChange={applyStatus} />
       ) : (
         <>
           <div className="select-bar">

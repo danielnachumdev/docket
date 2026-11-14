@@ -39,6 +39,8 @@ const PATHS = {
   mailOpen:
     'M22 7l-9 5.7a2 2 0 0 1-2 0L2 7M22 17V7l-10 6.4L2 7v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z',
   grip: 'M8 7h8M8 12h8M8 17h8',
+  list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  columns: 'M4 4h5v16H4zM10.5 4h3v16h-3zM15 4h5v16h-5z',
 } as const
 
 export type IconName = keyof typeof PATHS
