@@ -1058,13 +1058,13 @@ html[dir='rtl'] .user-bidi-mixed {
   font-size: 0.75rem;
 }
 
-.app-version a.version-link,
+a.app-version.version-link,
 a.app-version-compact {
   color: inherit;
   text-decoration: none;
 }
 
-.app-version a.version-link:hover,
+a.app-version.version-link:hover,
 a.app-version-compact:hover {
   text-decoration: underline;
 }
@@ -1099,30 +1099,15 @@ a.app-version-compact:hover {
   transform: scaleX(-1);
 }
 
-.app-version-compact.update {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: var(--accent);
-}
-
-.update-dot {
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.update-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
+.app-version.update {
   color: var(--accent);
   font-weight: 600;
 }
 
-.update-link:hover {
-  text-decoration: underline;
+.app-version-compact.update {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .user-chip {

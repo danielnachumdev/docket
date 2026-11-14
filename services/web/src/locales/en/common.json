@@ -34,9 +34,8 @@
   "account": "Account",
   "accountMenu": "Account menu",
   "releaseNotes": "Release notes",
-  "updateAvailable": "Update available",
   "updateAvailableVersion": "Update available: v{{version}}",
-  "versionAvailable": "v{{version}} available",
+  "versionUpgrade": "v{{current}} -> v{{latest}}",
   "emDash": "—",
   "bytes": {
     "zero": "0 B"
