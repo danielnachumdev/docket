@@ -19,3 +19,7 @@ class ArtifactStorage(ABC):
     @abstractmethod
     def exists(self, key: str) -> bool:
         raise NotImplementedError
+
+    @abstractmethod
+    def size(self, key: str) -> int:
+        raise NotImplementedError
