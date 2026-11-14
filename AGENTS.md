@@ -70,6 +70,14 @@ Create file artifacts via JSON with `content_base64`. Content streams through `G
 - **Agent writes:** Bearer API tokens must hold an active claim/lease on a task to mutate it (`claim` → work → `heartbeat` → `release`). Enforced centrally in `TaskAccessService` via `TaskClaimService.require_agent_lease` (409 if missing). Session users are exempt and may write while an agent holds a lease. Create-task and reads do not require a lease; claim/renew/release stay on `tasks:claim`.
 - **Invites:** after bootstrap, registration is invite-only (`users:admin` mints links)
 
+## User preferences
+
+Per-user UI prefs sync via `GET`/`PATCH /api/me/preferences` (authenticated). Stored as JSON text on `users.preferences_json` with an allowlist schema (`theme`, `locale`, …).
+
+- **Server wins** when authenticated and a key is set; if the server key is empty, the SPA seeds once from `localStorage` (`docket.theme` / `docket.locale`).
+- Guests stay local-only; `localStorage` is a first-paint / pre-auth cache only.
+- **Add a key:** extend `schemas/preferences.py` allowlist + `PreferencesCodec`, add a client apply handler in `services/web/src/preferences.tsx`, mirror cache key if needed for FOUC.
+
 ## Conventions
 
 - Prefer SQLite-lean schema; avoid heavyweight deps without need.

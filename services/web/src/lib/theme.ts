@@ -1,32 +1,28 @@
-import { useCallback, useEffect, useState } from 'react'
-
 export type Theme = 'light' | 'dark'
 
-const STORAGE_KEY = 'docket.theme'
+export const THEME_STORAGE_KEY = 'docket.theme'
 
-function systemTheme(): Theme {
+export function systemTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-function storedTheme(): Theme | null {
-  const value = localStorage.getItem(STORAGE_KEY)
-  return value === 'light' || value === 'dark' ? value : null
+export function storedTheme(): Theme | null {
+  try {
+    const value = localStorage.getItem(THEME_STORAGE_KEY)
+    return value === 'light' || value === 'dark' ? value : null
+  } catch {
+    return null
+  }
 }
 
-export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => storedTheme() ?? systemTheme())
+export function cacheTheme(theme: Theme): void {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme)
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-  }, [theme])
-
-  const toggle = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark'
-      localStorage.setItem(STORAGE_KEY, next)
-      return next
-    })
-  }, [])
-
-  return { theme, toggle }
+export function applyTheme(theme: Theme): void {
+  document.documentElement.dataset.theme = theme
 }

@@ -9,6 +9,7 @@ from docket.api import (
     auth_api,
     invites_api,
     notifications_api,
+    preferences_api,
     saved_views_api,
     task_comments_api,
     task_shares_api,
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_api.router)
     app.include_router(invites_api.router)
+    app.include_router(preferences_api.router)
     app.include_router(tasks_api.router)
     app.include_router(task_comments_api.router)
     app.include_router(artifacts_api.router)
