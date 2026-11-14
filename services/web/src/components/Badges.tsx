@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { dueState, formatDateTime, formatRelative, priorityLabel, statusLabel } from '../lib/format'
 import { Icon } from './Icon'
 
@@ -11,8 +12,9 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function PriorityBadge({ priority }: { priority: number }) {
+  const { t } = useTranslation('tasks')
   return (
-    <span className={`priority-badge p${priority}`} title={`Priority ${priority}`}>
+    <span className={`priority-badge p${priority}`} title={t('priorityN', { priority })}>
       <span className="priority-bars" aria-hidden="true">
         <i />
         <i />

@@ -1,0 +1,10 @@
+{
+  "main": "Main",
+  "tasks": "Tasks",
+  "archived": "Archived",
+  "inbox": "Inbox",
+  "apiTokens": "API tokens",
+  "webhooks": "Webhooks",
+  "invites": "Invites",
+  "unreadCount": "{{count}} unread"
+}

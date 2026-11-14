@@ -1,0 +1,30 @@
+{
+  "status": {
+    "backlog": "Backlog",
+    "open": "Backlog",
+    "in_progress": "In progress",
+    "blocked": "Blocked",
+    "on_hold": "On hold",
+    "failed": "Failed",
+    "done": "Done",
+    "cancelled": "Cancelled"
+  },
+  "priority": {
+    "1": "Urgent",
+    "2": "High",
+    "3": "Normal",
+    "4": "Low",
+    "fallback": "P{{priority}}"
+  },
+  "filter": {
+    "active": "Active",
+    "all": "All",
+    "my_open": "My open",
+    "due_soon": "Due soon",
+    "on_hold_stale": "On hold > 7d",
+    "claimed": "Claimed by agents"
+  },
+  "relative": {
+    "justNow": "just now"
+  }
+}
