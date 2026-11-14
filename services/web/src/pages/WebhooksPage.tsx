@@ -9,7 +9,14 @@ import { useConfirm } from '../lib/dialogs'
 import { formatDateTime, formatRelative, humanize } from '../lib/format'
 import { useAction } from '../lib/useAction'
 
-const EVENT_TYPES = ['status_changed', 'claimed', 'released', 'commented'] as const
+const EVENT_TYPES = [
+  'status_changed',
+  'claimed',
+  'released',
+  'commented',
+  'shared',
+  'unshared',
+] as const
 
 export function WebhooksPage() {
   const { t } = useTranslation(['integrations', 'common'])

@@ -26,7 +26,7 @@
   },
   "webhooks": {
     "title": "Webhooks",
-    "subtitle": "שליחת אירועי סטטוס, תפיסה ותגובות לגשרי צ׳אט ואוטומציה. ה-AI נשאר חיצוני.",
+    "subtitle": "שליחת אירועי סטטוס, תפיסה, תגובות ושיתוף לגשרי צ׳אט ואוטומציה. ה-AI נשאר חיצוני.",
     "revealTitle": "העתיקו את סוד ה-webhook",
     "revealHint": "מוצג פעם אחת. גשרים מאמתים משלוחים באמצעות הכותרת X-Docket-Signature.",
     "name": "שם",
@@ -38,7 +38,9 @@
       "status_changed": "שינויי סטטוס",
       "claimed": "תפיסות",
       "released": "שחרורים",
-      "commented": "תגובות"
+      "commented": "תגובות",
+      "shared": "שיתוף",
+      "unshared": "הסרת שיתוף"
     },
     "add": "הוספת webhook",
     "listTitle": "ה-webhooks שלך",

@@ -177,6 +177,71 @@ def test_webhook_delivery_errors_fail_soft(monkeypatch) -> None:
     assert "connection refused" in hooks[0]["last_error"]
 
 
+def test_share_and_unshare_fire_webhooks(monkeypatch) -> None:
+    from docket.db import database
+    from docket.models import User
+    from docket.security import password_hasher
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    fake = _FakeHttp()
+    _install_fake(monkeypatch, fake)
+    hook = _create_webhook(client, event_types=["shared", "unshared"])
+    secret = hook["secret"]
+
+    session = database.session()
+    try:
+        user = User(
+            email="alex@example.com",
+            display_name="Alex",
+            password_hash=password_hasher.hash("password123"),
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        sharee_id = user.id
+    finally:
+        session.close()
+
+    task = client.post("/api/tasks", json={"title": "Share bridge"}).json()
+    task_id = task["id"]
+    share = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "alex@example.com", "role": "editor"},
+    )
+    assert share.status_code == 201
+    membership_id = share.json()["id"]
+    assert len(fake.calls) == 1
+    _assert_signed_delivery(
+        fake.calls[0],
+        secret=secret,
+        event_type="shared",
+        task_id=task_id,
+        data_subset={
+            "user_id": sharee_id,
+            "email": "alex@example.com",
+            "role": "editor",
+            "membership_id": membership_id,
+        },
+    )
+
+    unshare = client.delete(f"/api/tasks/{task_id}/shares/{membership_id}")
+    assert unshare.status_code == 204
+    assert len(fake.calls) == 2
+    _assert_signed_delivery(
+        fake.calls[1],
+        secret=secret,
+        event_type="unshared",
+        task_id=task_id,
+        data_subset={
+            "user_id": sharee_id,
+            "email": "alex@example.com",
+            "role": "editor",
+            "membership_id": membership_id,
+        },
+    )
+
+
 def test_event_type_filter_skips_unsubscribed(monkeypatch) -> None:
     client = TestClient(create_app())
     _bootstrap(client)

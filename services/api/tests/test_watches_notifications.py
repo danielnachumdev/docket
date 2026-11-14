@@ -54,6 +54,7 @@ def test_watch_status_change_creates_notification() -> None:
 
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")
+    assert client.post("/api/notifications/read-all").status_code == 200
 
     watch = client.put(f"/api/tasks/{task_id}/watch")
     assert watch.status_code == 200
@@ -77,7 +78,7 @@ def test_watch_status_change_creates_notification() -> None:
     assert count.status_code == 200
     assert count.json()["count"] == 1
 
-    feed = client.get("/api/notifications")
+    feed = client.get("/api/notifications?unread_only=true")
     assert feed.status_code == 200
     assert len(feed.json()) == 1
     note = feed.json()[0]
@@ -110,7 +111,12 @@ def test_comment_mentions_and_watchers() -> None:
 
     client.post("/api/auth/logout")
     _login(client, "blair@example.com", "password123")
+    assert client.post("/api/notifications/read-all").status_code == 200
     assert client.put(f"/api/tasks/{task_id}/watch").status_code == 200
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    assert client.post("/api/notifications/read-all").status_code == 200
 
     client.post("/api/auth/logout")
     _login(client, "ops@example.com", "password1234")
@@ -125,13 +131,13 @@ def test_comment_mentions_and_watchers() -> None:
 
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")
-    alex_feed = client.get("/api/notifications").json()
+    alex_feed = client.get("/api/notifications?unread_only=true").json()
     assert len(alex_feed) == 1
     assert alex_feed[0]["kind"] == "mentioned"
 
     client.post("/api/auth/logout")
     _login(client, "blair@example.com", "password123")
-    blair_feed = client.get("/api/notifications").json()
+    blair_feed = client.get("/api/notifications?unread_only=true").json()
     assert len(blair_feed) == 1
     assert blair_feed[0]["kind"] == "commented"
 
@@ -152,6 +158,7 @@ def test_unwatch_stops_notifications_and_actor_skipped() -> None:
 
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")
+    assert client.post("/api/notifications/read-all").status_code == 200
     client.put(f"/api/tasks/{task_id}/watch")
     client.delete(f"/api/tasks/{task_id}/watch")
     assert client.get(f"/api/tasks/{task_id}/watch").json() == {"watching": False}
@@ -180,6 +187,7 @@ def test_mark_all_read() -> None:
 
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")
+    assert client.post("/api/notifications/read-all").status_code == 200
     client.put(f"/api/tasks/{task_id}/watch")
 
     client.post("/api/auth/logout")

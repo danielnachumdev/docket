@@ -26,7 +26,7 @@
   },
   "webhooks": {
     "title": "Webhooks",
-    "subtitle": "Push status, claim, and comment events to chat or automation bridges. AI stays external.",
+    "subtitle": "Push status, claim, comment, and share events to chat or automation bridges. AI stays external.",
     "revealTitle": "Copy your webhook secret",
     "revealHint": "Shown once. Bridges verify deliveries with the X-Docket-Signature header.",
     "name": "Name",
@@ -38,7 +38,9 @@
       "status_changed": "Status changes",
       "claimed": "Claims",
       "released": "Releases",
-      "commented": "Comments"
+      "commented": "Comments",
+      "shared": "Shared",
+      "unshared": "Unshared"
     },
     "add": "Add webhook",
     "listTitle": "Your webhooks",

@@ -14,7 +14,7 @@ class Notification(Base):
     task_id: Mapped[int | None] = mapped_column(
         ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True
     )
-    # status_changed | commented | mentioned
+    # status_changed | commented | mentioned | shared | invite_accepted
     kind: Mapped[str] = mapped_column(String(64))
     title: Mapped[str] = mapped_column(String(300))
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
