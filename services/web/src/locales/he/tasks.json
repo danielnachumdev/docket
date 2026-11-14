@@ -51,5 +51,22 @@
   "markRead": "סימון כנקרא",
   "markUnread": "סימון כלא נקרא",
   "markReadNamed": "סימון \"{{title}}\" כנקרא",
-  "markUnreadNamed": "סימון \"{{title}}\" כלא נקרא"
+  "markUnreadNamed": "סימון \"{{title}}\" כלא נקרא",
+  "comments": "תגובות",
+  "commentsEmpty": "עדיין אין תגובות.",
+  "commentPlaceholder": "הוספת תגובה… השתמשו ב־@ # & ~ לאנשים, משימות, ארטיפקטים, תגובות",
+  "commentSubmit": "תגובה",
+  "commentSave": "שמירה",
+  "commentCancel": "ביטול",
+  "commentEdit": "עריכה",
+  "commentDelete": "מחיקה",
+  "commentDeleteConfirm": "למחוק את התגובה הזו?",
+  "commentReadOnly": "אפשר לקרוא את השרשור, אבל להגיב נדרשת הרשאת מגיב או גבוהה יותר.",
+  "commentShorthandHint": "קיצורים: @אנשים #משימה &ארטיפקט ~תגובה.",
+  "commentAddFailed": "לא ניתן להוסיף תגובה",
+  "commentUpdateFailed": "לא ניתן לעדכן תגובה",
+  "commentDeleteFailed": "לא ניתן למחוק תגובה",
+  "shareRoleViewer": "יכול לצפות",
+  "shareRoleCommentor": "יכול להגיב",
+  "shareRoleEditor": "יכול לערוך"
 }
