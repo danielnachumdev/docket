@@ -29,6 +29,12 @@ class LocalFilesystemArtifactStorage(ArtifactStorage):
     def exists(self, key: str) -> bool:
         return self._path_for(key).is_file()
 
+    def size(self, key: str) -> int:
+        path = self._path_for(key)
+        if not path.is_file():
+            raise FileNotFoundError(key)
+        return path.stat().st_size
+
     def _path_for(self, key: str) -> Path:
         relative = Path(key)
         if relative.is_absolute() or ".." in relative.parts:

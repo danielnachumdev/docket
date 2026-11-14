@@ -1,5 +1,6 @@
 import base64
 import binascii
+from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import uuid4
 
@@ -70,23 +71,43 @@ class ArtifactService:
 
     def list_artifacts(self, principal: Principal, task_ref: str) -> list[Artifact]:
         task = self._access.get_task(principal, task_ref, "tasks:read")
-        return self._gateway.list_for_task(task.id)
+        artifacts = self._gateway.list_for_task(task.id)
+        self.ensure_byte_sizes(artifacts)
+        return artifacts
 
     def list_accessible(self, principal: Principal) -> list[tuple[Artifact, Task]]:
         task_ids = self._access.accessible_task_ids_select(principal.user_id)
-        return self._gateway.list_with_tasks_for_ids(task_ids)
+        rows = self._gateway.list_with_tasks_for_ids(task_ids)
+        self.ensure_byte_sizes([artifact for artifact, _ in rows])
+        return rows
 
     def get_artifact(
         self, principal: Principal, task_ref: str, artifact_id: int
     ) -> Artifact:
         task = self._access.get_task(principal, task_ref, "tasks:read")
-        return self._require_artifact(task.id, artifact_id)
+        artifact = self._require_artifact(task.id, artifact_id)
+        self.ensure_byte_sizes([artifact])
+        return artifact
 
     def get_content(
         self, principal: Principal, task_ref: str, artifact_id: int
     ) -> ArtifactContent:
         artifact = self.get_artifact(principal, task_ref, artifact_id)
         return self._read_content(artifact)
+
+    def ensure_byte_sizes(self, artifacts: Sequence[Artifact]) -> None:
+        """Backfill byte_size from storage for pre-column file rows (size 0)."""
+        changed = False
+        for artifact in artifacts:
+            if artifact.byte_size != 0 or not artifact.storage_key:
+                continue
+            try:
+                artifact.byte_size = self._storage.size(artifact.storage_key)
+            except FileNotFoundError:
+                continue
+            changed = True
+        if changed:
+            self._gateway.commit()
 
     def can_modify(
         self, principal: Principal, artifact: Artifact, task: Task | None = None
