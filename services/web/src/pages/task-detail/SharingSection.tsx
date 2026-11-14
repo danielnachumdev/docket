@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { api, type TaskShare } from '../../api'
+import { api, type Contact, type TaskShare } from '../../api'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
@@ -16,9 +16,22 @@ type Props = {
 
 export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
   const { t } = useTranslation(['detail', 'tasks'])
+  const listId = useId()
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'viewer' | 'commentor' | 'editor'>('viewer')
+  const [suggestions, setSuggestions] = useState<Contact[]>([])
   const { busy, error, setError, run } = useAction()
+
+  useEffect(() => {
+    if (!isOwner) return
+    const handle = window.setTimeout(() => {
+      void api
+        .listContacts(email.trim() || undefined)
+        .then((rows) => setSuggestions(rows.filter((c) => c.email).slice(0, 8)))
+        .catch(() => setSuggestions([]))
+    }, 200)
+    return () => window.clearTimeout(handle)
+  }, [email, isOwner])
 
   function roleLabel(role: string) {
     if (role === 'editor') return t('tasks:shareRoleEditor')
@@ -80,8 +93,23 @@ export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder={t('sharing.emailPlaceholder')}
             aria-label={t('sharing.emailLabel')}
+            list={listId}
             required
           />
+          <datalist id={listId}>
+            {suggestions.map((c) =>
+              c.email ? (
+                <option
+                  key={c.id}
+                  value={c.email}
+                  label={`${c.display_name} · ${c.email}`}
+                />
+              ) : null,
+            )}
+          </datalist>
+          {suggestions.length > 0 && (
+            <p className="muted small">{t('sharing.contactsHint')}</p>
+          )}
           <div className="inline-form">
             <select
               className="grow"

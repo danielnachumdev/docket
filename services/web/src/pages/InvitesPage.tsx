@@ -9,7 +9,11 @@ import { useConfirm } from '../lib/dialogs'
 import { formatDateTime, formatRelative } from '../lib/format'
 import { useAction } from '../lib/useAction'
 
-export function InvitesPage() {
+type Props = {
+  canMint?: boolean
+}
+
+export function InvitesPage({ canMint = false }: Props) {
   const { t } = useTranslation(['integrations', 'common'])
   const confirm = useConfirm()
   const [invites, setInvites] = useState<RegistrationInvite[] | null>(null)
@@ -18,8 +22,12 @@ export function InvitesPage() {
   const { busy, error, setError, run } = useAction()
 
   const load = useCallback(async () => {
+    if (!canMint) {
+      setInvites([])
+      return
+    }
     setInvites(await api.listInvites())
-  }, [])
+  }, [canMint])
 
   useEffect(() => {
     load().catch((err: Error) => setError(err.message))
@@ -27,6 +35,7 @@ export function InvitesPage() {
 
   function onCreate(e: FormEvent) {
     e.preventDefault()
+    if (!canMint) return
     setCreatedPath(null)
     void run(async () => {
       const created = await api.createInvite({
@@ -39,6 +48,7 @@ export function InvitesPage() {
   }
 
   async function onRevoke(invite: RegistrationInvite) {
+    if (!canMint) return
     const ok = await confirm({
       title: t('invites.revokeTitle'),
       description: t('invites.revokeBody'),
@@ -57,6 +67,7 @@ export function InvitesPage() {
       <PageHeader title={t('invites.title')} subtitle={t('invites.subtitle')} />
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
+      {!canMint && <Alert>{t('invites.ownerOnlyHint')}</Alert>}
       {createdPath && (
         <SecretReveal
           icon="users"
@@ -77,9 +88,15 @@ export function InvitesPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder={t('invites.emailPlaceholder')}
             maxLength={320}
+            disabled={!canMint || busy}
           />
         </label>
-        <button type="submit" className="btn primary" disabled={busy}>
+        <button
+          type="submit"
+          className="btn primary"
+          disabled={!canMint || busy}
+          title={!canMint ? t('invites.mintDisabled') : undefined}
+        >
           <Icon name="plus" />
           {t('invites.create')}
         </button>
@@ -93,7 +110,7 @@ export function InvitesPage() {
         <Skeleton rows={3} />
       ) : invites.length === 0 ? (
         <EmptyState icon="users" title={t('invites.emptyTitle')}>
-          {t('invites.emptyHint')}
+          {canMint ? t('invites.emptyHint') : t('invites.ownerOnlyHint')}
         </EmptyState>
       ) : (
         <ul className="card list">
@@ -127,7 +144,7 @@ export function InvitesPage() {
                   <span className="tag">{t('invites.usedTag')}</span>
                 ) : expired ? (
                   <span className="tag">{t('invites.expiredTag')}</span>
-                ) : (
+                ) : canMint ? (
                   <button
                     type="button"
                     className="btn ghost small danger"
@@ -136,7 +153,7 @@ export function InvitesPage() {
                   >
                     {t('common:revoke')}
                   </button>
-                )}
+                ) : null}
               </li>
             )
           })}

@@ -10,6 +10,10 @@ class UserOut(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    """Profile self-update. Email is intentionally omitted and non-changeable."""
+
+    model_config = ConfigDict(extra="forbid")
+
     display_name: str = Field(min_length=1, max_length=200)
 
     @field_validator("display_name")

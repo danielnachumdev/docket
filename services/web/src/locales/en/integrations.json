@@ -76,6 +76,19 @@
     "revokeTitle": "Revoke invite?",
     "revokeBody": "This unused link will stop working immediately.",
     "createFailed": "Could not create invite",
-    "revokeFailed": "Could not revoke invite"
+    "revokeFailed": "Could not revoke invite",
+    "ownerOnlyHint": "Only the workspace owner can create registration invites.",
+    "mintDisabled": "Owner only"
+  },
+  "contacts": {
+    "title": "People",
+    "subtitle": "People you've already collaborated with or invited — for sharing and discovery. There is no global directory.",
+    "searchLabel": "Search people",
+    "searchPlaceholder": "Search by name or email…",
+    "emptyTitle": "No people yet",
+    "emptyHint": "Share a task or invite someone to build your contacts.",
+    "emptySearchHint": "No matches in your contacts.",
+    "fromGraph": "From your collaboration graph",
+    "loadFailed": "Could not load people"
   }
 }

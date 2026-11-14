@@ -89,7 +89,8 @@
     "roleLabel": "הרשאת שיתוף",
     "share": "שיתוף",
     "shareFailed": "לא ניתן לשתף את המשימה",
-    "unshareFailed": "לא ניתן להפסיק את השיתוף"
+    "unshareFailed": "לא ניתן להפסיק את השיתוף",
+    "contactsHint": "הצעות מהאנשים שלכם"
   },
   "claim": {
     "title": "תפיסה / חכירה",

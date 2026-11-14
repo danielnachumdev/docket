@@ -44,6 +44,21 @@ def test_patch_me_rejects_empty_name() -> None:
     assert whitespace.status_code == 422
 
 
+def test_patch_me_rejects_email_change() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+
+    res = client.patch(
+        "/api/auth/me",
+        json={"display_name": "Ops", "email": "other@example.com"},
+    )
+    assert res.status_code == 422
+
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == "ops@example.com"
+
+
 def test_patch_me_via_api_token() -> None:
     client = TestClient(create_app())
     user = bootstrap_owner(client)

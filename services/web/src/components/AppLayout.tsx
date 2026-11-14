@@ -26,7 +26,6 @@ export function Logo() {
 
 type Props = {
   user: User
-  canInvite?: boolean
   theme: Theme
   onToggleTheme: () => void
   onLogout: () => void
@@ -93,7 +92,6 @@ function NavLink({
 
 export function AppLayout({
   user,
-  canInvite = false,
   theme,
   onToggleTheme,
   onLogout,
@@ -147,16 +145,18 @@ export function AppLayout({
       icon: 'webhook',
       match: (path) => path === '/webhooks',
     },
-    ...(canInvite
-      ? [
-          {
-            to: '/invites',
-            label: t('nav:invites'),
-            icon: 'users' as const,
-            match: (path: string) => path === '/invites',
-          },
-        ]
-      : []),
+    {
+      to: '/people',
+      label: t('nav:people'),
+      icon: 'users',
+      match: (path) => path === '/people',
+    },
+    {
+      to: '/invites',
+      label: t('nav:invites'),
+      icon: 'users',
+      match: (path) => path === '/invites',
+    },
   ]
 
   const tabs = workspace.slice(0, 3)
