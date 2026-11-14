@@ -92,6 +92,9 @@ export type Artifact = {
   content_type: string | null
   created_by_user_id: number
   created_at: string
+  can_modify?: boolean
+  task_title?: string | null
+  task_number?: number | null
 }
 
 export type TaskLink = {
@@ -322,6 +325,7 @@ export const api = {
     request<Task>(`/api/tasks/${id}/unread`, { method: 'POST' }),
   deleteTask: (id: string) =>
     request<void>(`/api/tasks/${id}`, { method: 'DELETE' }),
+  listArtifacts: () => request<Artifact[]>('/api/artifacts'),
   addArtifact: (
     id: string,
     body: {

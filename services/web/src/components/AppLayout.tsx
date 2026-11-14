@@ -68,6 +68,12 @@ export function AppLayout({
       match: (path) => path === '/notifications',
     },
     {
+      to: '/artifacts',
+      label: t('nav:artifacts'),
+      icon: 'paperclip',
+      match: (path) => path === '/artifacts',
+    },
+    {
       to: '/tokens',
       label: t('nav:apiTokens'),
       icon: 'key',

@@ -3,6 +3,7 @@
   "tasks": "Tasks",
   "archived": "Archived",
   "inbox": "Inbox",
+  "artifacts": "Artifacts",
   "apiTokens": "API tokens",
   "webhooks": "Webhooks",
   "invites": "Invites",

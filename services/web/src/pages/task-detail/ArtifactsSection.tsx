@@ -143,16 +143,18 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
                       <Icon name="download" />
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="icon-btn danger"
-                    disabled={busy}
-                    aria-label={`Delete ${a.title}`}
-                    title="Delete"
-                    onClick={() => onDelete(a)}
-                  >
-                    <Icon name="trash" />
-                  </button>
+                  {a.can_modify && (
+                    <button
+                      type="button"
+                      className="icon-btn danger"
+                      disabled={busy}
+                      aria-label={`Delete ${a.title}`}
+                      title="Delete"
+                      onClick={() => onDelete(a)}
+                    >
+                      <Icon name="trash" />
+                    </button>
+                  )}
                 </span>
               </div>
               {a.content_text && a.kind !== 'file' && a.kind !== 'link' && (

@@ -158,6 +158,9 @@ class ArtifactOut(BaseModel):
     content_type: str | None
     created_by_user_id: int
     created_at: datetime
+    can_modify: bool = False
+    task_title: str | None = None
+    task_number: int | None = None
 
 
 class TaskLinkCreate(BaseModel):

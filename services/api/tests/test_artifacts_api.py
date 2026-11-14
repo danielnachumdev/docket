@@ -298,3 +298,208 @@ def test_artifact_link_and_missing() -> None:
 
     assert client.get(f"/api/tasks/{task_id}/artifacts/99999").status_code == 404
     assert client.delete(f"/api/tasks/{task_id}/artifacts/99999").status_code == 404
+
+
+def _create_member_user(email: str, display_name: str, password: str):
+    from sqlalchemy import select
+
+    from docket.db import database
+    from docket.models import Membership, Role, User
+    from docket.security import password_hasher
+
+    session = database.session()
+    try:
+        role = session.scalar(select(Role).where(Role.name == "member"))
+        assert role is not None
+        user = User(
+            email=email,
+            display_name=display_name,
+            password_hash=password_hasher.hash(password),
+        )
+        session.add(user)
+        session.flush()
+        session.add(
+            Membership(
+                user_id=user.id,
+                role_id=role.id,
+                scope_type="global",
+                scope_task_id=None,
+            )
+        )
+        session.commit()
+        session.refresh(user)
+        session.expunge(user)
+        return user
+    finally:
+        session.close()
+
+
+def _create_user(email: str, display_name: str, password: str):
+    from docket.db import database
+    from docket.models import User
+    from docket.security import password_hasher
+
+    session = database.session()
+    try:
+        user = User(
+            email=email,
+            display_name=display_name,
+            password_hash=password_hasher.hash(password),
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        session.expunge(user)
+        return user
+    finally:
+        session.close()
+
+
+def _login(client: TestClient, email: str, password: str) -> None:
+    res = client.post("/api/auth/login", json={"email": email, "password": password})
+    assert res.status_code == 200
+
+
+def test_list_accessible_artifacts_includes_owned_and_shared() -> None:
+    client = TestClient(create_app())
+    _bootstrap(client)
+    owned_task = _create_task(client)
+    owned = client.post(
+        f"/api/tasks/{owned_task}/artifacts",
+        json={"kind": "text", "title": "Owner note", "content_text": "mine"},
+    )
+    assert owned.status_code == 201
+
+    _create_member_user("alex@example.com", "Alex", "password1234")
+    other = TestClient(create_app())
+    _login(other, "alex@example.com", "password1234")
+    other_task = other.post("/api/tasks", json={"title": "Alex task", "priority": 2})
+    assert other_task.status_code == 201
+    other_task_id = other_task.json()["id"]
+    other_art = other.post(
+        f"/api/tasks/{other_task_id}/artifacts",
+        json={"kind": "text", "title": "Private note", "content_text": "secret"},
+    )
+    assert other_art.status_code == 201
+
+    shared_task = client.post("/api/tasks", json={"title": "Shared board", "priority": 2})
+    assert shared_task.status_code == 201
+    shared_id = shared_task.json()["id"]
+    shared_art = client.post(
+        f"/api/tasks/{shared_id}/artifacts",
+        json={"kind": "text", "title": "Shared note", "content_text": "visible"},
+    )
+    assert shared_art.status_code == 201
+    share = client.post(
+        f"/api/tasks/{shared_id}/shares",
+        json={"email": "alex@example.com", "role": "viewer"},
+    )
+    assert share.status_code == 201
+
+    owner_list = client.get("/api/artifacts")
+    assert owner_list.status_code == 200
+    owner_titles = {row["title"] for row in owner_list.json()}
+    assert "Owner note" in owner_titles
+    assert "Shared note" in owner_titles
+    assert "Private note" not in owner_titles
+    owner_row = next(r for r in owner_list.json() if r["title"] == "Owner note")
+    assert owner_row["can_modify"] is True
+    assert owner_row["task_title"] == "Demo task"
+
+    viewer_list = other.get("/api/artifacts")
+    assert viewer_list.status_code == 200
+    viewer_titles = {row["title"] for row in viewer_list.json()}
+    assert "Private note" in viewer_titles
+    assert "Shared note" in viewer_titles
+    assert "Owner note" not in viewer_titles
+    shared_row = next(r for r in viewer_list.json() if r["title"] == "Shared note")
+    assert shared_row["can_modify"] is False
+    assert shared_row["task_title"] == "Shared board"
+
+
+def test_shared_viewer_can_read_but_not_mutate_artifacts() -> None:
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+    created = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={"kind": "text", "title": "Ops note", "content_text": "hello"},
+    )
+    assert created.status_code == 201
+    artifact_id = created.json()["id"]
+    assert created.json()["can_modify"] is True
+
+    _create_user("alex@example.com", "Alex", "password1234")
+    share = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "alex@example.com", "role": "viewer"},
+    )
+    assert share.status_code == 201
+
+    viewer = TestClient(create_app())
+    _login(viewer, "alex@example.com", "password1234")
+    listed = viewer.get(f"/api/tasks/{task_id}/artifacts")
+    assert listed.status_code == 200
+    assert listed.json()[0]["can_modify"] is False
+    content = viewer.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}/content")
+    assert content.status_code == 200
+    assert content.content == b"hello"
+
+    patched = viewer.patch(
+        f"/api/tasks/{task_id}/artifacts/{artifact_id}",
+        json={"title": "Hijacked"},
+    )
+    assert patched.status_code == 403
+    deleted = viewer.delete(f"/api/tasks/{task_id}/artifacts/{artifact_id}")
+    assert deleted.status_code == 403
+
+
+def test_shared_editor_cannot_mutate_others_artifact() -> None:
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+    created = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={"kind": "text", "title": "Ops note", "content_text": "hello"},
+    )
+    assert created.status_code == 201
+    artifact_id = created.json()["id"]
+
+    _create_user("alex@example.com", "Alex", "password1234")
+    share = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "alex@example.com", "role": "editor"},
+    )
+    assert share.status_code == 201
+
+    editor = TestClient(create_app())
+    _login(editor, "alex@example.com", "password1234")
+    listed = editor.get(f"/api/tasks/{task_id}/artifacts")
+    assert listed.status_code == 200
+    assert listed.json()[0]["can_modify"] is False
+
+    patched = editor.patch(
+        f"/api/tasks/{task_id}/artifacts/{artifact_id}",
+        json={"title": "Hijacked"},
+    )
+    assert patched.status_code == 403
+    assert "uploader" in patched.json()["detail"].lower()
+
+    deleted = editor.delete(f"/api/tasks/{task_id}/artifacts/{artifact_id}")
+    assert deleted.status_code == 403
+
+    own = editor.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={"kind": "text", "title": "Editor note", "content_text": "mine"},
+    )
+    assert own.status_code == 201
+    own_id = own.json()["id"]
+    assert own.json()["can_modify"] is True
+    assert (
+        editor.patch(
+            f"/api/tasks/{task_id}/artifacts/{own_id}",
+            json={"title": "Editor note edited"},
+        ).status_code
+        == 200
+    )
+    assert editor.delete(f"/api/tasks/{task_id}/artifacts/{own_id}").status_code == 204

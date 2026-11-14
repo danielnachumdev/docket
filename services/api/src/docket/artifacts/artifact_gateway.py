@@ -1,7 +1,7 @@
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
-from docket.models import Artifact
+from docket.models import Artifact, Task
 
 
 class ArtifactGateway:
@@ -24,6 +24,18 @@ class ArtifactGateway:
             self._db.scalars(
                 select(Artifact)
                 .where(Artifact.task_id == task_id)
+                .order_by(Artifact.created_at.desc(), Artifact.id.desc())
+            ).all()
+        )
+
+    def list_with_tasks_for_ids(
+        self, task_ids: Select[tuple[int]]
+    ) -> list[tuple[Artifact, Task]]:
+        return list(
+            self._db.execute(
+                select(Artifact, Task)
+                .join(Task, Task.id == Artifact.task_id)
+                .where(Artifact.task_id.in_(task_ids))
                 .order_by(Artifact.created_at.desc(), Artifact.id.desc())
             ).all()
         )

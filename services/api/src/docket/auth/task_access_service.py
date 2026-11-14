@@ -32,7 +32,7 @@ class TaskAccessService:
         self, principal: Principal, task_ref: str, permission: str
     ) -> Task:
         task = self._lookup(task_ref)
-        if task is None or not self._may_access(principal, task, permission):
+        if task is None or not self.may_access(principal, task, permission):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
         return task
 
@@ -45,7 +45,7 @@ class TaskAccessService:
     def _lookup(self, task_ref: str) -> Task | None:
         return self._db.scalar(select(Task).where(Task.public_id == task_ref))
 
-    def _may_access(
+    def may_access(
         self, principal: Principal, task: Task, permission: str
     ) -> bool:
         if task.owner_user_id == principal.user_id:
