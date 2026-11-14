@@ -7,6 +7,8 @@ export const SMART_FILTERS = [
   'due_soon',
   'on_hold_stale',
   'claimed',
+  'unread',
+  'read',
 ] as const
 
 export type SmartFilter = (typeof SMART_FILTERS)[number]
@@ -65,6 +67,10 @@ export function matchesSmartFilter(
     }
     case 'claimed':
       return isClaimActive(task, now)
+    case 'unread':
+      return Boolean(task.unread)
+    case 'read':
+      return !task.unread
     default:
       return false
   }
