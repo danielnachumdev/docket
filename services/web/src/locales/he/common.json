@@ -34,9 +34,8 @@
   "account": "חשבון",
   "accountMenu": "תפריט חשבון",
   "releaseNotes": "הערות גרסה",
-  "updateAvailable": "עדכון זמין",
   "updateAvailableVersion": "עדכון זמין: v{{version}}",
-  "versionAvailable": "v{{version}} זמין",
+  "versionUpgrade": "v{{current}} -> v{{latest}}",
   "emDash": "—",
   "bytes": {
     "zero": "0 B"

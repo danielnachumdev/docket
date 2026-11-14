@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type VersionStatus } from '../api'
-import { Icon } from './Icon'
 
 export function useAppVersion(): VersionStatus | null {
   const [info, setInfo] = useState<VersionStatus | null>(null)
@@ -65,50 +64,27 @@ export function AppVersion({
   const { t } = useTranslation('common')
   if (!info?.version) return null
 
-  const label = `v${info.version}`
-  const update = info.update_available
-  const href = info.release_url
-  const updateTitle = info.latest_version
-    ? t('updateAvailableVersion', { version: info.latest_version })
-    : t('updateAvailable')
-  const notesTitle = href ? t('releaseNotes') : undefined
+  const current = `v${info.version}`
+  const showUpgrade = Boolean(info.update_available && info.latest_version)
+  const label = showUpgrade
+    ? t('versionUpgrade', { current: info.version, latest: info.latest_version })
+    : current
+  const href = showUpgrade ? info.release_url : null
+  const title = showUpgrade
+    ? href
+      ? t('releaseNotes')
+      : t('updateAvailableVersion', { version: info.latest_version })
+    : undefined
 
-  if (compact) {
-    return (
-      <ReleaseNotesLink
-        href={href}
-        className={`app-version app-version-compact${update ? ' update' : ' muted'}`}
-        title={update ? updateTitle : notesTitle}
-      >
-        {label}
-        {update ? <span className="update-dot" aria-hidden="true" /> : null}
-      </ReleaseNotesLink>
-    )
-  }
+  const className = [
+    'app-version',
+    compact ? 'app-version-compact' : 'mono version-link',
+    showUpgrade ? 'update' : 'muted',
+  ].join(' ')
 
   return (
-    <div className="app-version">
-      <ReleaseNotesLink
-        href={href}
-        className={`mono version-link${href ? '' : ' muted'}`}
-        title={notesTitle}
-      >
-        {label}
-      </ReleaseNotesLink>
-      {update ? (
-        <ReleaseNotesLink
-          href={href}
-          className="update-link"
-          title={
-            info.latest_version
-              ? t('versionAvailable', { version: info.latest_version })
-              : t('updateAvailable')
-          }
-        >
-          <Icon name="external" size={12} />
-          {t('updateAvailable')}
-        </ReleaseNotesLink>
-      ) : null}
-    </div>
+    <ReleaseNotesLink href={href} className={className} title={title}>
+      {label}
+    </ReleaseNotesLink>
   )
 }
