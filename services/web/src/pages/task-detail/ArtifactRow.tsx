@@ -2,9 +2,10 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type Artifact } from '../../api'
 import { Icon } from '../../components/Icon'
+import { UserBidiText } from '../../components/UserBidiText'
 import { artifactKindIcon } from '../../lib/artifactMedia'
-import { useConfirm } from '../../lib/dialogs'
 import { artifactDisplayBytes } from '../../lib/artifactsLibrary'
+import { useConfirm } from '../../lib/dialogs'
 import { formatBytes, formatDateTime, formatRelative, humanize } from '../../lib/format'
 import { ArtifactFilePreview } from './ArtifactFilePreview'
 
@@ -48,7 +49,7 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
           <Icon name={artifactKindIcon(a.kind)} />
         </span>
         <span className="grow min-0">
-          <strong className="truncate block">{a.title}</strong>
+          <UserBidiText text={a.title} as="strong" className="truncate block" />
           <span className="muted small meta-line">
             {context}
             <span>{kindLabel}</span>
@@ -104,11 +105,15 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
       {a.content_text && a.kind !== 'file' && a.kind !== 'link' && (
         <details className="artifact-body">
           <summary>{t('showContent')}</summary>
-          <pre>{a.content_text}</pre>
+          <UserBidiText text={a.content_text} as="pre" />
         </details>
       )}
       {a.kind === 'link' && a.content_text && !isUrl(a.content_text) && (
-        <p className="muted small break artifact-body">{a.content_text}</p>
+        <UserBidiText
+          text={a.content_text}
+          as="p"
+          className="muted small break artifact-body"
+        />
       )}
       <ArtifactFilePreview taskId={a.task_id} artifact={a} />
     </li>

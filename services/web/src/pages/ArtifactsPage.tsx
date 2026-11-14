@@ -6,6 +6,7 @@ import { useAuth } from '../auth'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
+import { UserBidiText } from '../components/UserBidiText'
 import {
   ARTIFACT_KIND_FILTERS,
   ARTIFACT_SORTS,
@@ -266,7 +267,7 @@ export function ArtifactsPage() {
                     <Icon name={isCollapsed ? 'chevronRight' : 'chevronDown'} size={14} />
                   </button>
                   <Link to={`/tasks/${group.taskId}`} className="artifact-group-title">
-                    {label}
+                    <UserBidiText text={label} />
                   </Link>
                   <span className="muted small artifact-group-count">
                     {t('groupCount', { count: group.artifacts.length })}

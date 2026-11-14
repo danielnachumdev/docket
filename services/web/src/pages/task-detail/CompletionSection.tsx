@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { UserBidiText } from '../../components/UserBidiText'
+import { userBidiAttrs } from '../../lib/bidi'
 
 type Props = {
   requireArtifact: boolean
@@ -31,7 +33,7 @@ export function CompletionSection({
       <label className="field">
         <span>{t('completion.schema')}</span>
         <textarea
-          className="mono"
+          {...userBidiAttrs(schemaText, 'mono')}
           rows={6}
           spellCheck={false}
           placeholder='{"type":"object","required":["summary"],"properties":{"summary":{"type":"string"}}}'
@@ -43,7 +45,11 @@ export function CompletionSection({
       {recordedOutcome && (
         <label className="field">
           <span>{t('completion.recordedOutcome')}</span>
-          <pre className="outcome-preview mono">{pretty(recordedOutcome)}</pre>
+          <UserBidiText
+            text={pretty(recordedOutcome)}
+            as="pre"
+            className="outcome-preview mono"
+          />
         </label>
       )}
     </section>

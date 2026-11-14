@@ -7,6 +7,8 @@ import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
 import { SortableSiblingItem, SortableSiblingList } from '../../components/SortableSiblingList'
+import { UserBidiText } from '../../components/UserBidiText'
+import { userBidiAttrs } from '../../lib/bidi'
 import { PRIORITIES, isClosed, priorityLabel } from '../../lib/format'
 import { ranksForOrder, reorderBodyAfterMove } from '../../lib/taskReorder'
 import { useAction } from '../../lib/useAction'
@@ -95,7 +97,7 @@ export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
                     {dragHandle}
                     <Link to={`/tasks/${child.id}`} className="subtask-link grow">
                       <StatusBadge status={child.status} />
-                      <span className="grow truncate">{child.title}</span>
+                      <UserBidiText text={child.title} className="grow truncate" />
                       <DueBadge due={child.due_at} closed={isClosed(child.status)} />
                       <PriorityBadge priority={child.priority} />
                     </Link>
@@ -114,6 +116,7 @@ export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
+          {...userBidiAttrs(title)}
         />
         <select
           className="compact-select"

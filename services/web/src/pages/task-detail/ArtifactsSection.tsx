@@ -5,6 +5,7 @@ import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
 import { artifactKindIcon } from '../../lib/artifactMedia'
+import { userBidiAttrs } from '../../lib/bidi'
 import { useAction } from '../../lib/useAction'
 import { ArtifactRow } from './ArtifactRow'
 
@@ -113,6 +114,7 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
               placeholder={kind === 'link' ? t('linkTitlePlaceholder') : t('titlePlaceholder')}
               required={kind !== 'file'}
               autoFocus
+              {...userBidiAttrs(title)}
             />
           </label>
           {kind === 'file' ? (
@@ -134,6 +136,7 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
                 onChange={(e) => setText(e.target.value)}
                 placeholder={t('urlPlaceholder')}
                 required
+                {...userBidiAttrs(text)}
               />
             </label>
           ) : (
@@ -144,6 +147,7 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={t('contentPlaceholder')}
+                {...userBidiAttrs(text)}
               />
             </label>
           )}

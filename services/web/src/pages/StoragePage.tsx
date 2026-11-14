@@ -6,6 +6,7 @@ import { api, type StorageOverview } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
+import { UserBidiText } from '../components/UserBidiText'
 import { formatBytes } from '../lib/format'
 
 type Props = {
@@ -138,9 +139,10 @@ export function StoragePage({ canAdmin = false }: Props) {
                   </span>
                   <span className="grow min-0">
                     <Link to={`/tasks/${row.task_id}`} className="block truncate strong-link">
-                      <strong>
-                        #{row.task_number} {row.title}
-                      </strong>
+                      <UserBidiText
+                        text={`#${row.task_number} ${row.title}`}
+                        as="strong"
+                      />
                     </Link>
                     <span className="muted small meta-line">
                       <span>

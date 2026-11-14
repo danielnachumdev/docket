@@ -22,6 +22,8 @@ import { useAuth } from '../../auth'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
+import { UserBidiText } from '../../components/UserBidiText'
+import { userBidiAttrs } from '../../lib/bidi'
 import { useConfirm } from '../../lib/dialogs'
 import { formatDateTime, formatRelative } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
@@ -298,7 +300,9 @@ export function CommentsSection({
                   {c.updated_at !== c.created_at ? ` · ${t('commentEdited')}` : ''}
                 </span>
               </div>
-              <div className="comment-body">{renderBody(c.body, c.refs ?? [], onRefClick)}</div>
+              <div {...userBidiAttrs(c.body, 'comment-body')}>
+                {renderBody(c.body, c.refs ?? [], onRefClick)}
+              </div>
               {(c.can_edit || c.author_user_id === meId) && canComment && (
                 <div className="row-actions">
                   <button
@@ -360,6 +364,7 @@ export function CommentsSection({
               onClick={(e) => detectTrigger(body, e.currentTarget.selectionStart)}
               placeholder={t('commentPlaceholder')}
               disabled={busy}
+              {...userBidiAttrs(body)}
             />
           </label>
           {trigger && pickerItems.length > 0 && (
@@ -371,8 +376,8 @@ export function CommentsSection({
                     className="comment-picker-item"
                     onClick={() => insertToken(item.insert)}
                   >
-                    <span>{item.label}</span>
-                    <span className="muted small">{item.detail}</span>
+                    <UserBidiText text={item.label} />
+                    <UserBidiText text={item.detail} className="muted small" />
                   </button>
                 </li>
               ))}
