@@ -639,7 +639,7 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-columns: 14.5rem minmax(0, 1fr);
   min-height: 100dvh;
 }
 
@@ -850,9 +850,11 @@ a.app-version-compact:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
-  max-width: 68rem;
+  /* Fill the main pane on desktop; avoid a narrow centered column. */
+  width: 100%;
+  max-width: min(100%, 96rem);
   margin: 0 auto;
-  padding: 2rem 2rem 4rem;
+  padding: 1.75rem clamp(1.25rem, 2.2vw, 2.75rem) 4rem;
 }
 
 .page.narrow {
@@ -860,7 +862,8 @@ a.app-version-compact:hover {
 }
 
 .page.wide {
-  max-width: min(100%, 92rem);
+  /* Board / dense layouts: use the full content column. */
+  max-width: none;
 }
 
 .page.has-savebar,
@@ -1615,13 +1618,13 @@ a.list-row:hover {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 20rem;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
   grid-template-rows: auto 1fr;
   grid-template-areas:
     'main props'
     'main related';
   align-items: start;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .detail-main,
@@ -2269,6 +2272,20 @@ textarea.mono {
 }
 
 /* ---------- Responsive ---------- */
+
+@media (min-width: 1400px) {
+  .layout {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+
+  .page {
+    max-width: min(100%, 110rem);
+  }
+
+  .kanban-board {
+    grid-auto-columns: minmax(15rem, 1fr);
+  }
+}
 
 @media (max-width: 1100px) {
   .detail-grid {
