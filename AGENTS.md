@@ -67,6 +67,7 @@ Create file artifacts via JSON with `content_base64`. Content streams through `G
 
 - **Authn:** `AuthnMiddleware` resolves session cookie or `Authorization: Bearer` into `request.state.principal`
 - **Authz:** route `Depends(require("tasks:write"))` (etc.) checks RBAC for that principal
+- **Agent writes:** Bearer API tokens must hold an active claim/lease on a task to mutate it (`claim` → work → `heartbeat` → `release`). Enforced centrally in `TaskAccessService` via `TaskClaimService.require_agent_lease` (409 if missing). Session users are exempt and may write while an agent holds a lease. Create-task and reads do not require a lease; claim/renew/release stay on `tasks:claim`.
 - **Invites:** after bootstrap, registration is invite-only (`users:admin` mints links)
 
 ## User preferences
