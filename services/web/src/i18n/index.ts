@@ -1,10 +1,15 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import auth from '../locales/en/auth.json'
-import common from '../locales/en/common.json'
-import domain from '../locales/en/domain.json'
-import nav from '../locales/en/nav.json'
-import tasks from '../locales/en/tasks.json'
+import authEn from '../locales/en/auth.json'
+import commonEn from '../locales/en/common.json'
+import domainEn from '../locales/en/domain.json'
+import navEn from '../locales/en/nav.json'
+import tasksEn from '../locales/en/tasks.json'
+import authHe from '../locales/he/auth.json'
+import commonHe from '../locales/he/common.json'
+import domainHe from '../locales/he/domain.json'
+import navHe from '../locales/he/nav.json'
+import tasksHe from '../locales/he/tasks.json'
 import { applyDocumentLocale } from './applyDocumentLocale'
 import {
   DEFAULT_LOCALE,
@@ -24,7 +29,21 @@ export {
 } from './locales'
 export { applyDocumentLocale } from './applyDocumentLocale'
 
-const en = { common, nav, auth, tasks, domain }
+const en = {
+  common: commonEn,
+  nav: navEn,
+  auth: authEn,
+  tasks: tasksEn,
+  domain: domainEn,
+}
+
+const he = {
+  common: commonHe,
+  nav: navHe,
+  auth: authHe,
+  tasks: tasksHe,
+  domain: domainHe,
+}
 
 function detectInitialLocale(): string {
   try {
@@ -39,7 +58,7 @@ function detectInitialLocale(): string {
 void i18n.use(initReactI18next).init({
   resources: {
     en,
-    // ar: { common: arCommon, nav: arNav, ... },  // RTL example
+    he,
   },
   lng: detectInitialLocale(),
   fallbackLng: DEFAULT_LOCALE,

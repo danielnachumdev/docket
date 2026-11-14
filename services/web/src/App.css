@@ -1806,7 +1806,7 @@ a.list-row:hover {
 
 .artifact-preview-md ul,
 .artifact-preview-md ol {
-  padding-left: 1.25rem;
+  padding-inline-start: 1.25rem;
 }
 
 .artifact-preview-md code {
@@ -1830,8 +1830,8 @@ a.list-row:hover {
 }
 
 .artifact-preview-md blockquote {
-  padding-left: 0.75rem;
-  border-left: 3px solid var(--border);
+  padding-inline-start: 0.75rem;
+  border-inline-start: 3px solid var(--border);
   color: var(--muted);
 }
 

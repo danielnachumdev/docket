@@ -1,0 +1,30 @@
+{
+  "status": {
+    "backlog": "בקלוג",
+    "open": "בקלוג",
+    "in_progress": "בתהליך",
+    "blocked": "חסום",
+    "on_hold": "בהמתנה",
+    "failed": "נכשל",
+    "done": "הושלם",
+    "cancelled": "בוטל"
+  },
+  "priority": {
+    "1": "דחוף",
+    "2": "גבוה",
+    "3": "רגיל",
+    "4": "נמוך",
+    "fallback": "P{{priority}}"
+  },
+  "filter": {
+    "active": "פעיל",
+    "all": "הכול",
+    "my_open": "הפתוחות שלי",
+    "due_soon": "מועד קרוב",
+    "on_hold_stale": "בהמתנה > 7 ימים",
+    "claimed": "שסוכנים תפסו"
+  },
+  "relative": {
+    "justNow": "עכשיו"
+  }
+}
