@@ -3,6 +3,7 @@ import { marked } from 'marked'
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import i18n from '../../i18n'
+import { userBidiAttrs } from '../../lib/bidi'
 import { PreviewLoading } from './PreviewLoading'
 
 type Props = {
@@ -14,7 +15,7 @@ type Props = {
 type State =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; html: string }
+  | { status: 'ready'; html: string; source: string }
 
 marked.setOptions({ gfm: true, breaks: false })
 
@@ -33,7 +34,7 @@ export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
         const html = DOMPurify.sanitize(raw, {
           USE_PROFILES: { html: true },
         })
-        setState({ status: 'ready', html })
+        setState({ status: 'ready', html, source: text })
       } catch (err) {
         if (cancelled) return
         setState({
@@ -56,7 +57,7 @@ export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
 
   return (
     <div
-      className="artifact-preview-md"
+      {...userBidiAttrs(state.source, 'artifact-preview-md')}
       dangerouslySetInnerHTML={{ __html: state.html }}
     />
   )

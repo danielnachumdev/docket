@@ -5,6 +5,8 @@ import { api, type Task, type TaskLink } from '../../api'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
+import { UserBidiText } from '../../components/UserBidiText'
+import { isMixedBidi } from '../../lib/bidi'
 import { humanize } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 
@@ -53,7 +55,11 @@ export function LinksSection({ taskId, links, tasksById, onChanged }: Props) {
               <li key={link.id} className="list-row">
                 <span className={`link-kind kind-${link.kind}`}>{label}</span>
                 <Link to={`/tasks/${otherId}`} className="grow truncate">
-                  {other ? other.title : t('links.taskFallback', { id: otherId })}
+                  {other ? (
+                    <UserBidiText text={other.title} />
+                  ) : (
+                    t('links.taskFallback', { id: otherId })
+                  )}
                 </Link>
                 <button
                   type="button"
@@ -83,11 +89,14 @@ export function LinksSection({ taskId, links, tasksById, onChanged }: Props) {
           required
         >
           <option value="">{t('links.targetPlaceholder')}</option>
-          {choices.map((row) => (
-            <option key={row.id} value={row.id}>
-              #{row.number} · {row.title}
-            </option>
-          ))}
+          {choices.map((row) => {
+            const label = `#${row.number} · ${row.title}`
+            return (
+              <option key={row.id} value={row.id} dir={isMixedBidi(label) ? 'rtl' : undefined}>
+                {label}
+              </option>
+            )
+          })}
         </select>
         <div className="inline-form">
           <select

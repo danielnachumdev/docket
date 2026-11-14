@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { Task } from '../api'
 import { DueBadge, PriorityBadge } from '../components/Badges'
+import { UserBidiText } from '../components/UserBidiText'
 import { STATUSES, isClosed, statusLabel, type Status } from '../lib/format'
 
 type Props = {
@@ -43,7 +44,7 @@ function KanbanCardFace({
   return (
     <article className={className ?? (closed ? 'kanban-card closed' : 'kanban-card')} style={style}>
       <Link to={`/tasks/${task.id}`} className="kanban-card-link" onPointerDown={(e) => e.stopPropagation()}>
-        <span className="kanban-card-title">{task.title}</span>
+        <UserBidiText text={task.title} className="kanban-card-title" />
         <span className="kanban-card-meta">
           <PriorityBadge priority={task.priority} />
           <DueBadge due={task.due_at} closed={closed} />

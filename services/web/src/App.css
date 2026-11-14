@@ -1,5 +1,19 @@
 /* ---------- Utilities ---------- */
 
+/* User-authored text: isolate from chrome; mixed strings use dir=rtl for word
+   order while CSS keeps justification aligned to the UI locale (html[dir]). */
+.user-bidi {
+  unicode-bidi: isolate;
+}
+
+html[dir='ltr'] .user-bidi-mixed {
+  text-align: left;
+}
+
+html[dir='rtl'] .user-bidi-mixed {
+  text-align: right;
+}
+
 .muted {
   color: var(--muted);
 }

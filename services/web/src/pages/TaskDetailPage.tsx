@@ -7,6 +7,8 @@ import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { Alert, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { Menu, type MenuItem } from '../components/Menu'
+import { UserBidiText } from '../components/UserBidiText'
+import { isMixedBidi, userBidiAttrs } from '../lib/bidi'
 import { useConfirm } from '../lib/dialogs'
 import { usePageTitle } from '../lib/usePageTitle'
 import {
@@ -382,7 +384,11 @@ export function TaskDetailPage() {
           <>
             <Icon name="chevronRight" size={12} className="flip-rtl" />
             <Link to={`/tasks/${parentTask.id}`} className="truncate">
-              {parentTask.title || t('parentFallback', { number: parentTask.number })}
+              {parentTask.title ? (
+                <UserBidiText text={parentTask.title} />
+              ) : (
+                t('parentFallback', { number: parentTask.number })
+              )}
             </Link>
           </>
         )}
@@ -414,7 +420,7 @@ export function TaskDetailPage() {
       <header className="detail-header">
         <div className="detail-title-row">
           <textarea
-            className="title-input"
+            {...userBidiAttrs(draft.title, 'title-input')}
             value={draft.title}
             rows={1}
             aria-label={t('titleLabel')}
@@ -478,6 +484,7 @@ export function TaskDetailPage() {
             <label className="notes">
               <span className="card-label">{t('notes')}</span>
               <textarea
+                {...userBidiAttrs(draft.body)}
                 rows={Math.min(16, Math.max(4, draft.body.split('\n').length + 1))}
                 value={draft.body}
                 onChange={(e) => update('body', e.target.value)}
@@ -563,13 +570,29 @@ export function TaskDetailPage() {
               <span>{t('parentTask')}</span>
               <select value={draft.parent} onChange={(e) => update('parent', e.target.value)}>
                 <option value="">{t('parentNone')}</option>
-                {parentChoices.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    #{p.number} · {p.title}
-                  </option>
-                ))}
+                {parentChoices.map((p) => {
+                  const label = `#${p.number} · ${p.title}`
+                  return (
+                    <option
+                      key={p.id}
+                      value={p.id}
+                      dir={isMixedBidi(label) ? 'rtl' : undefined}
+                    >
+                      {label}
+                    </option>
+                  )
+                })}
                 {parentTask && !parentChoices.some((p) => p.id === parentTask.id) && (
-                  <option value={parentTask.id}>
+                  <option
+                    value={parentTask.id}
+                    dir={
+                      isMixedBidi(
+                        `#${parentTask.number} · ${parentTask.title || ''}`,
+                      )
+                        ? 'rtl'
+                        : undefined
+                    }
+                  >
                     #{parentTask.number} ·{' '}
                     {parentTask.title || t('parentFallback', { number: parentTask.number })}
                   </option>

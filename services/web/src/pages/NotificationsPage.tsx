@@ -5,6 +5,7 @@ import { api, type Notification } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
+import { UserBidiText } from '../components/UserBidiText'
 import { formatDateTime, formatRelative, humanize } from '../lib/format'
 import { useAction } from '../lib/useAction'
 
@@ -83,10 +84,13 @@ export function NotificationsPage() {
                   {t(`kind.${n.kind}`, { defaultValue: humanize(n.kind) })}
                 </span>
                 <span className="grow min-0">
-                  <span className={unreadItem ? 'block notif-title unread' : 'block notif-title'}>
-                    {n.title}
-                  </span>
-                  {n.body && <span className="muted small block clamp-2">{n.body}</span>}
+                  <UserBidiText
+                    text={n.title}
+                    className={unreadItem ? 'block notif-title unread' : 'block notif-title'}
+                  />
+                  {n.body && (
+                    <UserBidiText text={n.body} className="muted small block clamp-2" />
+                  )}
                 </span>
                 <span className="muted small nowrap" title={formatDateTime(n.created_at)}>
                   {formatRelative(n.created_at)}

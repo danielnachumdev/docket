@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dialog } from '../../components/Dialog'
+import { userBidiAttrs } from '../../lib/bidi'
 
 type Props = {
   requireArtifact: boolean
@@ -79,7 +80,7 @@ export function CompleteDoneDialog({
           <label className="field">
             <span>{t('complete.outcome')}</span>
             <textarea
-              className="mono"
+              {...userBidiAttrs(outcomeText, 'mono')}
               rows={8}
               spellCheck={false}
               value={outcomeText}

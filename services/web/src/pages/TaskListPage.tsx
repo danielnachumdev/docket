@@ -8,6 +8,8 @@ import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
 import { SortableSiblingItem, SortableSiblingList } from '../components/SortableSiblingList'
+import { UserBidiText } from '../components/UserBidiText'
+import { userBidiAttrs } from '../lib/bidi'
 import { useConfirm, usePrompt } from '../lib/dialogs'
 import {
   PRIORITIES,
@@ -161,7 +163,10 @@ function TaskRow({
                     <Icon name="users" size={12} />
                   </span>
                 )}
-                <span className={unread ? 'task-title unread' : 'task-title'}>{task.title}</span>
+                <UserBidiText
+                  text={task.title}
+                  className={unread ? 'task-title unread' : 'task-title'}
+                />
               </span>
               <span className="task-meta">
                 <PriorityBadge priority={task.priority} />
@@ -574,6 +579,7 @@ export function TaskListPage() {
               if (e.key === 'Escape') e.currentTarget.blur()
             }}
             required
+            {...userBidiAttrs(title)}
           />
           <select
             className="compact-select"
