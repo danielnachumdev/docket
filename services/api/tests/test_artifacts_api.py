@@ -3,10 +3,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from docket.config import get_settings
-from docket.db import database
-from docket.main import create_app
-from docket.models import Artifact
+from waymark.config import get_settings
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import Artifact
 
 
 def _bootstrap(client: TestClient) -> None:
@@ -316,9 +316,9 @@ def test_artifact_link_and_missing() -> None:
 def _create_member_user(email: str, display_name: str, password: str):
     from sqlalchemy import select
 
-    from docket.db import database
-    from docket.models import Membership, Role, User
-    from docket.security import password_hasher
+    from waymark.db import database
+    from waymark.models import Membership, Role, User
+    from waymark.security import password_hasher
 
     session = database.session()
     try:
@@ -348,9 +348,9 @@ def _create_member_user(email: str, display_name: str, password: str):
 
 
 def _create_user(email: str, display_name: str, password: str):
-    from docket.db import database
-    from docket.models import User
-    from docket.security import password_hasher
+    from waymark.db import database
+    from waymark.models import User
+    from waymark.security import password_hasher
 
     session = database.session()
     try:

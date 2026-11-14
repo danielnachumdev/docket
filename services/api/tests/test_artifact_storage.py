@@ -2,12 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from docket.artifact_storage import (
+from waymark.artifact_storage import (
     ArtifactStorageFactory,
     GcsArtifactStorage,
     LocalFilesystemArtifactStorage,
 )
-from docket.config import Settings
+from waymark.config import Settings
 
 
 class _FakeBlob:

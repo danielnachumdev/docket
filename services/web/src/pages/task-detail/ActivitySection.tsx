@@ -140,7 +140,7 @@ type Props = {
   actorUserLabel: (event: TaskEvent) => string
 }
 
-const EXPANDED_SESSION_KEY = 'docket.activitySectionExpanded'
+const EXPANDED_SESSION_KEY = 'waymark.activitySectionExpanded'
 
 function readExpandedPreference(): boolean {
   try {

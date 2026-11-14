@@ -1,4 +1,4 @@
-from docket.version_check.version_compare import is_newer, normalize_version
+from waymark.version_check.version_compare import is_newer, normalize_version
 
 
 def test_normalize_strips_v_prefix() -> None:

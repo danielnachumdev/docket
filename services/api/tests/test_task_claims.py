@@ -2,9 +2,9 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
-from docket.db import database
-from docket.main import create_app
-from docket.models import Task
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import Task
 from tests.helpers import bearer, bootstrap_owner, internal_task_id, mint_api_token
 
 

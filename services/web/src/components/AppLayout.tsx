@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { api, type User } from '../api'
 import type { Theme } from '../lib/theme'
 import { Dialog } from './Dialog'
-import docketIcon from '../assets/docket-icon.svg'
+import waymarkIcon from '../assets/waymark-icon.svg'
 import { Icon, type IconName } from './Icon'
 import { ProfileMenu } from './ProfileMenu'
 
@@ -25,7 +25,7 @@ type NavGroup = {
 export function Logo() {
   return (
     <span className="logo" aria-hidden="true">
-      <img src={docketIcon} alt="" width={28} height={28} draggable={false} />
+      <img src={waymarkIcon} alt="" width={28} height={28} draggable={false} />
     </span>
   )
 }
@@ -51,11 +51,11 @@ function useUnreadCount(pathname: string) {
 
   useEffect(() => {
     window.addEventListener('focus', refresh)
-    window.addEventListener('docket:notifications', refresh)
+    window.addEventListener('waymark:notifications', refresh)
     const timer = window.setInterval(refresh, 30_000)
     return () => {
       window.removeEventListener('focus', refresh)
-      window.removeEventListener('docket:notifications', refresh)
+      window.removeEventListener('waymark:notifications', refresh)
       window.clearInterval(timer)
     }
   }, [refresh])

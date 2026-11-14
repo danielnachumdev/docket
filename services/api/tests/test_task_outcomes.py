@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from docket.main import create_app
-from docket.task_outcomes import OutcomeSchemaValidator
+from waymark.main import create_app
+from waymark.task_outcomes import OutcomeSchemaValidator
 from tests.helpers import bootstrap_owner
 
 DEMO_SCHEMA = {

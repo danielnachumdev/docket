@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from docket.main import create_app
+from waymark.main import create_app
 
 
 def _bootstrap(client: TestClient) -> None:

@@ -1,7 +1,7 @@
 # Flood safety net (http context via conf.d include).
 # ~100 r/s per IP (~6000/min) — far above per-token app limits (default 120/min).
 # Only trips pathological floods; agents are policed in FastAPI middleware.
-limit_req_zone $binary_remote_addr zone=docket_api_flood:10m rate=100r/s;
+limit_req_zone $binary_remote_addr zone=waymark_api_flood:10m rate=100r/s;
 
 server {
     listen 80;
@@ -11,7 +11,7 @@ server {
 
     # Defense-in-depth browser headers (SPA + same-origin /api proxy).
     # HSTS (Strict-Transport-Security) belongs at the TLS edge (Cloudflare /
-    # docket-deploy), not on this plain-HTTP :80 listener — enabling it here
+    # waymark-deploy), not on this plain-HTTP :80 listener — enabling it here
     # would break local compose HTTP. Set HSTS only where HTTPS terminates.
     add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
@@ -25,7 +25,7 @@ server {
     # frame-ancestors backs X-Frame-Options.
     add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'self' blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; frame-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self'" always;
 
-    # API_UPSTREAM is substituted at container start (e.g. api:8000 or docket-api:8000).
+    # API_UPSTREAM is substituted at container start (e.g. api:8000 or waymark-api:8000).
     # Match API artifact_max_bytes default (10 MiB) for content_base64 uploads.
     # Health probes must not consume the IP flood budget.
     location = /api/health {
@@ -38,7 +38,7 @@ server {
     }
 
     location /api/ {
-        limit_req zone=docket_api_flood burst=200 nodelay;
+        limit_req zone=waymark_api_flood burst=200 nodelay;
         limit_req_status 429;
         client_max_body_size 10m;
         proxy_pass http://${API_UPSTREAM};

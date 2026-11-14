@@ -5,9 +5,9 @@ import secrets
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from docket.db import database
-from docket.models import ApiToken, Role, Task
-from docket.security import api_token_hasher
+from waymark.db import database
+from waymark.models import ApiToken, Role, Task
+from waymark.security import api_token_hasher
 
 
 def task_by_public_id(public_id: str) -> Task:

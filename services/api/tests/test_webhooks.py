@@ -4,8 +4,8 @@ import json
 
 from fastapi.testclient import TestClient
 
-from docket.main import create_app
-from docket.webhooks.webhook_http_gateway import WebhookHttpResult
+from waymark.main import create_app
+from waymark.webhooks.webhook_http_gateway import WebhookHttpResult
 from tests.helpers import bearer, bootstrap_owner, mint_api_token
 
 
@@ -24,7 +24,7 @@ class _FakeHttp:
 
 def _install_fake(monkeypatch, fake: _FakeHttp) -> None:
     monkeypatch.setattr(
-        "docket.webhooks.webhook_delivery_service.WebhookHttpGateway",
+        "waymark.webhooks.webhook_delivery_service.WebhookHttpGateway",
         lambda *args, **kwargs: fake,
     )
 
@@ -37,7 +37,7 @@ def _create_webhook(
     client: TestClient,
     *,
     name: str = "Slack bridge",
-    url: str = "https://hooks.example.com/docket",
+    url: str = "https://hooks.example.com/waymark",
     event_types: list[str] | None = None,
 ) -> dict:
     body: dict = {"name": name, "url": url}
@@ -178,9 +178,9 @@ def test_webhook_delivery_errors_fail_soft(monkeypatch) -> None:
 
 
 def test_share_and_unshare_fire_webhooks(monkeypatch) -> None:
-    from docket.db import database
-    from docket.models import User
-    from docket.security import password_hasher
+    from waymark.db import database
+    from waymark.models import User
+    from waymark.security import password_hasher
 
     client = TestClient(create_app())
     _bootstrap(client)
@@ -265,10 +265,10 @@ def _assert_signed_delivery(
 ) -> None:
     body = call["content"]
     headers = call["headers"]
-    assert headers["X-Docket-Event"] == event_type
+    assert headers["X-Waymark-Event"] == event_type
     assert headers["Content-Type"] == "application/json"
     expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
-    assert headers["X-Docket-Signature"] == expected
+    assert headers["X-Waymark-Signature"] == expected
     payload = json.loads(body)
     assert payload["type"] == event_type
     assert payload["task"]["id"] == task_id

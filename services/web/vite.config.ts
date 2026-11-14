@@ -11,8 +11,8 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-512-maskable.png'],
       manifest: {
         id: '/',
-        name: 'Docket',
-        short_name: 'Docket',
+        name: 'Waymark',
+        short_name: 'Waymark',
         description: 'Task system of record for people and agents.',
         theme_color: '#6366f1',
         background_color: '#f6f7f9',

@@ -3,11 +3,11 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 
-from docket.db import database
-from docket.main import create_app
-from docket.models import Membership, Role, Task, User
-from docket.models.task_public_id import PUBLIC_ID_LENGTH
-from docket.security import password_hasher
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import Membership, Role, Task, User
+from waymark.models.task_public_id import PUBLIC_ID_LENGTH
+from waymark.security import password_hasher
 
 
 def _assert_short_public_id(value: str) -> None:
@@ -136,9 +136,9 @@ def test_migration_backfills_public_id_and_owner_numbers(tmp_path, monkeypatch) 
     monkeypatch.setenv("ARTIFACT_STORAGE", "local")
     monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(tmp_path / "artifacts"))
 
-    from docket.config import get_settings
-    from docket.db import database
-    import docket.models  # noqa: F401
+    from waymark.config import get_settings
+    from waymark.db import database
+    import waymark.models  # noqa: F401
 
     get_settings.cache_clear()
     database.rebind()

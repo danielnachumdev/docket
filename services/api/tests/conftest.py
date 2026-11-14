@@ -10,10 +10,10 @@ def _isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
     monkeypatch.setenv("ARTIFACT_STORAGE", "local")
     monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(artifact_root))
-    from docket.config import get_settings
-    from docket.db import Base, database
-    import docket.models  # noqa: F401
-    from docket.seed import rbac_seeder
+    from waymark.config import get_settings
+    from waymark.db import Base, database
+    import waymark.models  # noqa: F401
+    from waymark.seed import rbac_seeder
 
     get_settings.cache_clear()
     database.rebind()

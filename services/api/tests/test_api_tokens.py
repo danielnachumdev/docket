@@ -1,9 +1,9 @@
 from fastapi.testclient import TestClient
 
-from docket.db import database
-from docket.main import create_app
-from docket.models import ApiToken
-from docket.security import api_token_hasher
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import ApiToken
+from waymark.security import api_token_hasher
 
 
 def _bootstrap(client: TestClient) -> None:

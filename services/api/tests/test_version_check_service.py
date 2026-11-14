@@ -1,11 +1,11 @@
 import httpx
 
-from docket.version_check import GithubReleasesGateway, VersionCheckService
+from waymark.version_check import GithubReleasesGateway, VersionCheckService
 
 
 class _FakeGateway(GithubReleasesGateway):
     def __init__(self, payload: dict | Exception) -> None:
-        super().__init__(owner="demo", repo="docket")
+        super().__init__(owner="demo", repo="waymark")
         self._payload = payload
         self.calls = 0
 
@@ -20,7 +20,7 @@ def test_update_available_when_latest_newer() -> None:
     gateway = _FakeGateway(
         {
             "tag_name": "v0.2.0",
-            "html_url": "https://github.com/demo/docket/releases/tag/v0.2.0",
+            "html_url": "https://github.com/demo/waymark/releases/tag/v0.2.0",
         }
     )
     service = VersionCheckService(gateway, running_version="0.1.0", cache_ttl_seconds=60)
