@@ -223,6 +223,11 @@ export type VersionStatus = {
   release_url: string | null
 }
 
+export type UserPreferences = {
+  theme: 'light' | 'dark' | null
+  locale: 'en' | 'he' | null
+}
+
 async function requestError(res: Response): Promise<never> {
   let detail = res.statusText
   try {
@@ -278,6 +283,12 @@ async function downloadBlob(path: string, fallbackFilename: string): Promise<voi
 export const api = {
   version: () => request<VersionStatus>('/api/version'),
   status: () => request<AuthStatus>('/api/auth/status'),
+  getPreferences: () => request<UserPreferences>('/api/me/preferences'),
+  patchPreferences: (body: Partial<UserPreferences>) =>
+    request<UserPreferences>('/api/me/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
   bootstrap: (body: { email: string; display_name: string; password: string }) =>
     request<User>('/api/auth/bootstrap', { method: 'POST', body: JSON.stringify(body) }),
   login: (body: { email: string; password: string }) =>

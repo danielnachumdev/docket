@@ -4,6 +4,10 @@ from docket.schemas.auth import (
     LoginIn,
     UserOut,
 )
+from docket.schemas.preferences import (
+    UserPreferencesOut,
+    UserPreferencesPatch,
+)
 from docket.schemas.invites import (
     InviteCreate,
     InviteCreatedOut,
@@ -95,6 +99,8 @@ __all__ = [
     "TaskWatchOut",
     "UnreadCountOut",
     "UserOut",
+    "UserPreferencesOut",
+    "UserPreferencesPatch",
     "VersionStatusOut",
     "WebhookCreate",
     "WebhookCreatedOut",

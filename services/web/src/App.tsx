@@ -2,7 +2,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth'
 import { AppLayout } from './components/AppLayout'
 import { Spinner } from './components/Feedback'
-import { useTheme } from './lib/theme'
+import { PreferencesProvider, useTheme } from './preferences'
 import { ArtifactsPage } from './pages/ArtifactsPage'
 import { InvitesPage } from './pages/InvitesPage'
 import { LoginPage } from './pages/LoginPage'
@@ -60,7 +60,9 @@ function Shell() {
 export default function App() {
   return (
     <AuthProvider>
-      <Shell />
+      <PreferencesProvider>
+        <Shell />
+      </PreferencesProvider>
     </AuthProvider>
   )
 }

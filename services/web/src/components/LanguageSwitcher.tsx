@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { LOCALES, resolveLocaleCode } from '../i18n'
+import { usePreferences } from '../preferences'
 
 type Props = {
   className?: string
@@ -7,6 +8,7 @@ type Props = {
 
 export function LanguageSwitcher({ className }: Props) {
   const { t, i18n } = useTranslation('common')
+  const { setLocale } = usePreferences()
   const current = resolveLocaleCode(i18n.resolvedLanguage ?? i18n.language)
 
   return (
@@ -17,7 +19,7 @@ export function LanguageSwitcher({ className }: Props) {
         value={current}
         aria-label={t('language')}
         onChange={(e) => {
-          void i18n.changeLanguage(e.target.value)
+          setLocale(e.target.value)
         }}
       >
         {LOCALES.map((locale) => (
