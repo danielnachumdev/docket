@@ -37,5 +37,8 @@
   "updateAvailable": "Update available",
   "updateAvailableVersion": "Update available: v{{version}}",
   "versionAvailable": "v{{version}} available",
-  "emDash": "—"
+  "emDash": "—",
+  "bytes": {
+    "zero": "0 B"
+  }
 }

@@ -110,6 +110,7 @@ class TaskResponseMapper:
             content_text=artifact.content_text,
             storage_key=artifact.storage_key,
             content_type=artifact.content_type,
+            byte_size=artifact.byte_size,
             created_by_user_id=artifact.created_by_user_id,
             created_at=artifact.created_at,
             can_modify=can_modify,

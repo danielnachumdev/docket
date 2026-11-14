@@ -37,5 +37,8 @@
   "updateAvailable": "עדכון זמין",
   "updateAvailableVersion": "עדכון זמין: v{{version}}",
   "versionAvailable": "v{{version}} זמין",
-  "emDash": "—"
+  "emDash": "—",
+  "bytes": {
+    "zero": "0 B"
+  }
 }

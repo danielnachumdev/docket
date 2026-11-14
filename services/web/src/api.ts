@@ -90,6 +90,8 @@ export type Artifact = {
   content_text: string | null
   storage_key: string | null
   content_type: string | null
+  /** Stored blob bytes for kind=file; 0 for inline kinds. */
+  byte_size?: number
   created_by_user_id: number
   created_at: string
   can_modify?: boolean
