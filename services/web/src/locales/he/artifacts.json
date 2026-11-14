@@ -1,0 +1,43 @@
+{
+  "title": "קבצים מצורפים",
+  "subtitle": "הערות, קישורים וקבצים ממשימות שיש לך גישה אליהן. ניתן לשנות או למחוק רק את מה שהעלית.",
+  "emptyTitle": "עדיין אין קבצים מצורפים",
+  "emptyHint": "צרפו הערות, קישורים או קבצים למשימה — הם יופיעו כאן.",
+  "sectionEmpty": "עדיין אין קבצים מצורפים. צרפו הערות, קישורים או קבצים שהופקו עבור המשימה.",
+  "taskFallback": "משימה",
+  "attach": "צירוף",
+  "kindLabel": "סוג קובץ מצורף",
+  "kind": {
+    "text": "הערה",
+    "link": "קישור",
+    "file": "קובץ",
+    "json": "JSON"
+  },
+  "titleField": "כותרת",
+  "titleFileHint": "כותרת (ברירת מחדל: שם הקובץ)",
+  "titlePlaceholder": "כותרת",
+  "linkTitlePlaceholder": "בקשת משיכה, מסמך, דשבורד…",
+  "chooseFile": "בחירת קובץ להעלאה",
+  "url": "כתובת URL",
+  "urlPlaceholder": "https://example.com/…",
+  "content": "תוכן",
+  "contentPlaceholder": "הערות, לוגים, סיכומים…",
+  "showContent": "הצגת תוכן",
+  "openNamed": "פתיחת {{title}}",
+  "openLink": "פתיחת קישור",
+  "downloadNamed": "הורדת {{title}}",
+  "deleteNamed": "מחיקת {{title}}",
+  "deleteTitle": "למחוק את הקובץ המצורף?",
+  "deleteBody": "\"{{title}}\" יוסר לצמיתות.",
+  "loadingPreview": "טוען תצוגה מקדימה…",
+  "previewFailed": "התצוגה המקדימה נכשלה",
+  "enlargeNamed": "הגדלת {{title}}",
+  "enlarge": "הגדלת התצוגה",
+  "errors": {
+    "chooseFile": "בחרו קובץ לצירוף",
+    "needTitle": "תנו כותרת לקובץ המצורף",
+    "attach": "לא ניתן לצרף",
+    "delete": "לא ניתן למחוק את הקובץ המצורף",
+    "download": "ההורדה נכשלה"
+  }
+}

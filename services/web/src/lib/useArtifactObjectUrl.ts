@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import i18n from '../i18n'
 import { inferArtifactMediaType } from './artifactMedia'
 
 type Args = {
@@ -41,7 +42,7 @@ export function useArtifactObjectUrl({
         setSrc(objectUrl)
       } catch (err) {
         if (cancelled) return
-        setError(err instanceof Error ? err.message : 'Preview failed')
+        setError(err instanceof Error ? err.message : i18n.t('previewFailed', { ns: 'artifacts' }))
       }
     })()
     return () => {

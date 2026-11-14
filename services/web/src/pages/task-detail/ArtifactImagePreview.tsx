@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useArtifactObjectUrl } from '../../lib/useArtifactObjectUrl'
+import { PreviewLoading } from './PreviewLoading'
 
 type Props = {
   taskId: string
@@ -9,6 +11,7 @@ type Props = {
 }
 
 export function ArtifactImagePreview({ taskId, artifactId, title, contentType }: Props) {
+  const { t } = useTranslation('artifacts')
   const { src, error } = useArtifactObjectUrl({ taskId, artifactId, title, contentType })
   const [lightbox, setLightbox] = useState(false)
 
@@ -25,7 +28,7 @@ export function ArtifactImagePreview({ taskId, artifactId, title, contentType }:
     return <p className="muted small artifact-preview-error">{error}</p>
   }
   if (!src) {
-    return <p className="muted small">Loading preview…</p>
+    return <PreviewLoading />
   }
 
   return (
@@ -34,8 +37,8 @@ export function ArtifactImagePreview({ taskId, artifactId, title, contentType }:
         type="button"
         className="artifact-preview-btn"
         onClick={() => setLightbox(true)}
-        aria-label={`Enlarge ${title}`}
-        title="Enlarge preview"
+        aria-label={t('enlargeNamed', { title })}
+        title={t('enlarge')}
       >
         <img className="artifact-preview" src={src} alt={title} />
       </button>

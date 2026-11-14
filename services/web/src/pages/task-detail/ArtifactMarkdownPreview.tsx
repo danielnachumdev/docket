@@ -2,6 +2,8 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
+import i18n from '../../i18n'
+import { PreviewLoading } from './PreviewLoading'
 
 type Props = {
   taskId: string
@@ -36,7 +38,7 @@ export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
         if (cancelled) return
         setState({
           status: 'error',
-          message: err instanceof Error ? err.message : 'Preview failed',
+          message: err instanceof Error ? err.message : i18n.t('previewFailed', { ns: 'artifacts' }),
         })
       }
     })()
@@ -49,7 +51,7 @@ export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
     return <p className="muted small artifact-preview-error">{state.message}</p>
   }
   if (state.status === 'loading') {
-    return <p className="muted small">Loading preview…</p>
+    return <PreviewLoading />
   }
 
   return (

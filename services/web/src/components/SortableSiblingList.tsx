@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { CSSProperties, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Icon } from './Icon'
 
 type ListProps = {
@@ -61,6 +62,7 @@ type ItemProps = {
 }
 
 export function SortableSiblingItem({ id, disabled, children }: ItemProps) {
+  const { t } = useTranslation('common')
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
     disabled,
@@ -73,8 +75,8 @@ export function SortableSiblingItem({ id, disabled, children }: ItemProps) {
     <button
       type="button"
       className="icon-btn ghost drag-handle"
-      aria-label="Drag to reorder"
-      title="Drag to reorder"
+      aria-label={t('dragToReorder')}
+      title={t('dragToReorder')}
       disabled={disabled}
       {...attributes}
       {...listeners}

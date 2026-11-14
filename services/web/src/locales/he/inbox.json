@@ -1,0 +1,17 @@
+{
+  "title": "דואר נכנס",
+  "caughtUp": "אין התראות חדשות.",
+  "unreadCount_one": "התראה אחת שלא נקראה",
+  "unreadCount_two": "שתי התראות שלא נקראו",
+  "unreadCount_other": "{{count}} התראות שלא נקראו",
+  "markAllRead": "סימון הכול כנקרא",
+  "markAllFailed": "לא ניתן לסמן הכול כנקרא",
+  "emptyTitle": "עדיין אין התראות",
+  "emptyHint": "עקבו אחרי משימה כדי לקבל עדכונים כשהסטטוס שלה משתנה או כשמישהו מזכיר אתכם.",
+  "kind": {
+    "status_changed": "סטטוס",
+    "commented": "תגובה",
+    "mentioned": "אזכור",
+    "invite_accepted": "הזמנה"
+  }
+}

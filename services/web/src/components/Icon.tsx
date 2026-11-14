@@ -41,7 +41,9 @@ const PATHS = {
   grip: 'M8 7h8M8 12h8M8 17h8',
   list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
   columns: 'M4 4h5v16H4zM10.5 4h3v16h-3zM15 4h5v16h-5z',
-} as const
+  more: 'M5 11.4a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2zM12 11.4a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2zM19 11.4a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2z',
+  menu: 'M4 6h16M4 12h16M4 18h16',
+  globe: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z',} as const
 
 export type IconName = keyof typeof PATHS
 

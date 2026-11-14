@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth'
 import { AppLayout } from './components/AppLayout'
+import { DialogsProvider } from './components/DialogsProvider'
 import { Spinner } from './components/Feedback'
 import { PreferencesProvider, useTheme } from './preferences'
 import { ArtifactsPage } from './pages/ArtifactsPage'
@@ -61,7 +62,9 @@ export default function App() {
   return (
     <AuthProvider>
       <PreferencesProvider>
-        <Shell />
+        <DialogsProvider>
+          <Shell />
+        </DialogsProvider>
       </PreferencesProvider>
     </AuthProvider>
   )

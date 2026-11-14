@@ -1,5 +1,7 @@
 {
   "main": "Main",
+  "workspace": "Workspace",
+  "integrations": "Integrations",
   "tasks": "Tasks",
   "archived": "Archived",
   "inbox": "Inbox",
@@ -7,5 +9,6 @@
   "apiTokens": "API tokens",
   "webhooks": "Webhooks",
   "invites": "Invites",
+  "more": "More",
   "unreadCount": "{{count}} unread"
 }

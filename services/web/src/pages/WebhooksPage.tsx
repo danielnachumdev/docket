@@ -1,56 +1,23 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api, type Webhook } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
-import { formatDateTime, formatRelative } from '../lib/format'
+import { PageHeader } from '../components/PageHeader'
+import { SecretReveal } from '../components/SecretReveal'
+import { useConfirm } from '../lib/dialogs'
+import { formatDateTime, formatRelative, humanize } from '../lib/format'
 import { useAction } from '../lib/useAction'
 
-const EVENT_OPTIONS = [
-  { id: 'status_changed', label: 'Status changes' },
-  { id: 'claimed', label: 'Claims' },
-  { id: 'released', label: 'Releases' },
-  { id: 'commented', label: 'Comments' },
-] as const
-
-function NewSecretReveal({ secret, onDismiss }: { secret: string; onDismiss: () => void }) {
-  const [copied, setCopied] = useState(false)
-
-  async function copy() {
-    await navigator.clipboard.writeText(secret)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <section className="card reveal">
-      <header className="card-header">
-        <h2>
-          <Icon name="key" />
-          Copy your webhook secret
-        </h2>
-        <button type="button" className="icon-btn" aria-label="Dismiss" onClick={onDismiss}>
-          <Icon name="x" />
-        </button>
-      </header>
-      <p className="muted small">
-        Shown once. Bridges verify deliveries with the <code>X-Docket-Signature</code> header.
-      </p>
-      <div className="secret">
-        <code>{secret}</code>
-        <button type="button" className="btn small" onClick={() => void copy()}>
-          <Icon name={copied ? 'check' : 'copy'} />
-          {copied ? 'Copied' : 'Copy'}
-        </button>
-      </div>
-    </section>
-  )
-}
+const EVENT_TYPES = ['status_changed', 'claimed', 'released', 'commented'] as const
 
 export function WebhooksPage() {
+  const { t } = useTranslation(['integrations', 'common'])
+  const confirm = useConfirm()
   const [hooks, setHooks] = useState<Webhook[] | null>(null)
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
-  const [eventTypes, setEventTypes] = useState<string[]>(EVENT_OPTIONS.map((o) => o.id))
+  const [eventTypes, setEventTypes] = useState<string[]>([...EVENT_TYPES])
   const [createdSecret, setCreatedSecret] = useState<string | null>(null)
   const { busy, error, setError, run } = useAction()
 
@@ -61,6 +28,9 @@ export function WebhooksPage() {
   useEffect(() => {
     load().catch((err: Error) => setError(err.message))
   }, [load, setError])
+
+  const eventLabel = (id: string) =>
+    t(`webhooks.event.${id}`, { defaultValue: humanize(id) })
 
   function toggleEvent(id: string) {
     setEventTypes((prev) =>
@@ -85,141 +55,162 @@ export function WebhooksPage() {
       setUrl('')
       setCreatedSecret(created.secret)
       await load()
-    }, 'Could not create webhook')
+    }, t('webhooks.createFailed'))
   }
 
   function onToggle(hook: Webhook) {
     void run(async () => {
       await api.updateWebhook(hook.id, { enabled: !hook.enabled })
       await load()
-    }, 'Could not update webhook')
+    }, t('webhooks.updateFailed'))
   }
 
-  function onDelete(hook: Webhook) {
-    if (!window.confirm(`Delete webhook “${hook.name}”?`)) return
+  async function onDelete(hook: Webhook) {
+    const ok = await confirm({
+      title: t('webhooks.deleteTitle'),
+      description: t('webhooks.deleteBody', { name: hook.name }),
+      confirmLabel: t('common:delete'),
+      danger: true,
+    })
+    if (!ok) return
     void run(async () => {
       await api.deleteWebhook(hook.id)
       await load()
-    }, 'Could not delete webhook')
+    }, t('webhooks.deleteFailed'))
   }
 
   return (
     <main className="page narrow">
-      <header className="page-header">
-        <div>
-          <h1>Webhooks</h1>
-          <p className="muted">
-            Push status, claim, and comment events to Instinct, WhatsApp, or Slack bridges. AI stays
-            external.
-          </p>
-        </div>
-      </header>
+      <PageHeader title={t('webhooks.title')} subtitle={t('webhooks.subtitle')} />
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {createdSecret && (
-        <NewSecretReveal secret={createdSecret} onDismiss={() => setCreatedSecret(null)} />
+        <SecretReveal
+          icon="key"
+          title={t('webhooks.revealTitle')}
+          secret={createdSecret}
+          onDismiss={() => setCreatedSecret(null)}
+        >
+          {t('webhooks.revealHint')}
+        </SecretReveal>
       )}
 
-      <form className="card token-form stack" onSubmit={onCreate}>
-        <label className="field grow">
-          <span>Name</span>
-          <input
-            type="text"
-            name="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. demo-slack"
-            required
-            maxLength={120}
-          />
-        </label>
-        <label className="field grow">
-          <span>Endpoint URL</span>
-          <input
-            type="url"
-            name="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://hooks.example.com/docket"
-            required
-          />
-        </label>
+      <form className="card stack" onSubmit={onCreate}>
+        <div className="token-form">
+          <label className="field grow">
+            <span>{t('webhooks.name')}</span>
+            <input
+              type="text"
+              name="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('webhooks.namePlaceholder')}
+              required
+              maxLength={120}
+            />
+          </label>
+          <label className="field grow">
+            <span>{t('webhooks.url')}</span>
+            <input
+              type="url"
+              name="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder={t('webhooks.urlPlaceholder')}
+              required
+            />
+          </label>
+        </div>
         <fieldset className="field">
-          <legend>Events</legend>
+          <legend>{t('webhooks.events')}</legend>
           <div className="chip-row">
-            {EVENT_OPTIONS.map((opt) => (
-              <label key={opt.id} className="chip-toggle">
+            {EVENT_TYPES.map((id) => (
+              <label key={id} className="chip-toggle">
                 <input
                   type="checkbox"
-                  checked={eventTypes.includes(opt.id)}
-                  onChange={() => toggleEvent(opt.id)}
+                  checked={eventTypes.includes(id)}
+                  onChange={() => toggleEvent(id)}
                 />
-                <span>{opt.label}</span>
+                <span>{eventLabel(id)}</span>
               </label>
             ))}
           </div>
         </fieldset>
-        <button
-          type="submit"
-          className="btn primary"
-          disabled={busy || eventTypes.length === 0}
-        >
-          <Icon name="plus" />
-          Add webhook
-        </button>
+        <div className="actions end">
+          <button
+            type="submit"
+            className="btn primary"
+            disabled={busy || eventTypes.length === 0}
+          >
+            <Icon name="plus" />
+            {t('webhooks.add')}
+          </button>
+        </div>
       </form>
 
       <div className="section-head">
-        <h2>Your webhooks</h2>
+        <h2>{t('webhooks.listTitle')}</h2>
       </div>
 
       {hooks == null ? (
         <Skeleton rows={3} />
       ) : hooks.length === 0 ? (
-        <EmptyState icon="webhook" title="No webhooks yet">
-          Add an HTTPS endpoint above to receive task events.
+        <EmptyState icon="webhook" title={t('webhooks.emptyTitle')}>
+          {t('webhooks.emptyHint')}
         </EmptyState>
       ) : (
-        <ul className="card list token-list">
+        <ul className="card list">
           {hooks.map((hook) => (
             <li key={hook.id} className={hook.enabled ? 'list-row' : 'list-row revoked'}>
               <span className="artifact-icon">
                 <Icon name="webhook" />
               </span>
               <span className="grow min-0">
-                <strong className="block truncate">{hook.name}</strong>
-                <span className="muted small token-meta">
-                  <span className="truncate">{hook.url}</span>
-                  <span>{hook.event_types.join(', ')}</span>
+                <strong className="block truncate">
+                  {hook.name}
+                  {!hook.enabled && <span className="tag inline-tag">{t('webhooks.disabled')}</span>}
+                </strong>
+                <span className="muted small block truncate mono">{hook.url}</span>
+                <span className="muted small meta-line">
+                  <span>{hook.event_types.map(eventLabel).join(', ')}</span>
                   <span title={formatDateTime(hook.created_at)}>
-                    Created {formatRelative(hook.created_at)}
+                    {t('created', { when: formatRelative(hook.created_at) })}
                   </span>
                   <span title={formatDateTime(hook.last_delivered_at)}>
                     {hook.last_delivered_at
-                      ? `Last delivery ${formatRelative(hook.last_delivered_at)}${
-                          hook.last_status_code != null ? ` · HTTP ${hook.last_status_code}` : ''
-                        }`
-                      : 'Never delivered'}
+                      ? hook.last_status_code != null
+                        ? t('webhooks.lastDeliveryStatus', {
+                            when: formatRelative(hook.last_delivered_at),
+                            code: hook.last_status_code,
+                          })
+                        : t('webhooks.lastDelivery', { when: formatRelative(hook.last_delivered_at) })
+                      : t('webhooks.neverDelivered')}
                   </span>
-                  {hook.last_error && <span className="danger-text">Error: {hook.last_error}</span>}
+                  {hook.last_error && (
+                    <span className="danger-text">
+                      {t('webhooks.error', { message: hook.last_error })}
+                    </span>
+                  )}
                 </span>
               </span>
-              <span className="actions">
+              <span className="row-actions">
                 <button
                   type="button"
                   className="btn ghost small"
                   disabled={busy}
                   onClick={() => onToggle(hook)}
                 >
-                  {hook.enabled ? 'Disable' : 'Enable'}
+                  {hook.enabled ? t('common:disable') : t('common:enable')}
                 </button>
                 <button
                   type="button"
-                  className="btn ghost small danger"
+                  className="icon-btn danger"
                   disabled={busy}
-                  onClick={() => onDelete(hook)}
+                  aria-label={t('common:delete')}
+                  title={t('common:delete')}
+                  onClick={() => void onDelete(hook)}
                 >
-                  Delete
+                  <Icon name="trash" />
                 </button>
               </span>
             </li>

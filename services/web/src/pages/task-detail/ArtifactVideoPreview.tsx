@@ -1,4 +1,5 @@
 import { useArtifactObjectUrl } from '../../lib/useArtifactObjectUrl'
+import { PreviewLoading } from './PreviewLoading'
 
 type Props = {
   taskId: string
@@ -14,7 +15,7 @@ export function ArtifactVideoPreview({ taskId, artifactId, title, contentType }:
     return <p className="muted small artifact-preview-error">{error}</p>
   }
   if (!src) {
-    return <p className="muted small">Loading preview…</p>
+    return <PreviewLoading />
   }
 
   return (

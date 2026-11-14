@@ -1,12 +1,8 @@
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 import type { TaskEvent } from '../../api'
 import { Section } from '../../components/Section'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
-
-const FIELD_LABELS: Record<string, string> = {
-  body: 'notes',
-  due_at: 'deadline',
-  parent_task_id: 'parent',
-}
 
 type Payload = Record<string, unknown>
 
@@ -20,79 +16,110 @@ function parsePayload(raw: string | null): Payload | null {
   }
 }
 
-function quoted(value: unknown) {
-  return typeof value === 'string' && value ? ` “${value}”` : ''
+function text(value: unknown) {
+  return typeof value === 'string' && value ? value : null
 }
 
 function leaseSeconds(payload: Payload | null) {
   const seconds = payload?.lease_seconds
-  return typeof seconds === 'number' ? ` (${seconds}s lease)` : ''
+  return typeof seconds === 'number' ? seconds : null
 }
 
-function describe(event: TaskEvent, payload: Payload | null) {
+function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
+  const e = (key: string, values: Record<string, string | number> = {}) =>
+    t(`activity.event.${key}`, values)
   switch (event.type) {
     case 'created':
-      return 'created this task'
-    case 'status_changed':
-      return payload?.to
-        ? `changed status${payload.from ? ` from ${statusLabel(String(payload.from))}` : ''} to ${statusLabel(String(payload.to))}`
-        : 'changed status'
-    case 'updated': {
-      const fields = Object.keys(payload ?? {}).map((k) => FIELD_LABELS[k] ?? humanize(k).toLowerCase())
-      return fields.length ? `updated ${fields.join(', ')}` : 'updated this task'
+      return e('created')
+    case 'status_changed': {
+      if (!payload?.to) return e('statusChanged')
+      const to = statusLabel(String(payload.to))
+      return payload.from
+        ? e('statusChangedFromTo', { from: statusLabel(String(payload.from)), to })
+        : e('statusChangedTo', { to })
     }
-    case 'artifact_added':
-      return `attached${quoted(payload?.title)}`
-    case 'artifact_deleted':
-      return `removed artifact${quoted(payload?.title)}`
+    case 'updated': {
+      const fields = Object.keys(payload ?? {}).map((k) =>
+        t(`activity.field.${k}`, { defaultValue: humanize(k).toLowerCase() }),
+      )
+      return fields.length ? e('updatedFields', { fields: fields.join(', ') }) : e('updated')
+    }
+    case 'artifact_added': {
+      const title = text(payload?.title)
+      return title ? e('artifactAdded', { title }) : e('artifactAddedPlain')
+    }
+    case 'artifact_deleted': {
+      const title = text(payload?.title)
+      return title ? e('artifactDeleted', { title }) : e('artifactDeletedPlain')
+    }
     case 'linked':
     case 'unlinked': {
-      const verb = event.type === 'linked' ? 'linked' : 'unlinked'
-      if (!payload?.from_task_id || !payload.to_task_id) return verb
+      const key = event.type
+      if (!payload?.from_task_id || !payload.to_task_id) return e(`${key}Plain`)
       const raw = String(payload.kind ?? 'related')
-      const kind = raw === 'related' ? 'related to' : humanize(raw).toLowerCase()
-      return `${verb} #${String(payload.from_task_id)} ${kind} #${String(payload.to_task_id)}`
+      return e(key, {
+        from: String(payload.from_task_id),
+        to: String(payload.to_task_id),
+        kind: t(`activity.event.linkKind.${raw}`, { defaultValue: humanize(raw).toLowerCase() }),
+      })
     }
-    case 'shared':
-      return `shared with${quoted(payload?.email)}`
-    case 'unshared':
-      return `stopped sharing with${quoted(payload?.email)}`
-    case 'claimed':
-      return `claimed this task${leaseSeconds(payload)}`
-    case 'claim_renewed':
-      return `renewed the claim${leaseSeconds(payload)}`
+    case 'shared': {
+      const email = text(payload?.email)
+      return email ? e('shared', { email }) : e('sharedPlain')
+    }
+    case 'unshared': {
+      const email = text(payload?.email)
+      return email ? e('unshared', { email }) : e('unsharedPlain')
+    }
+    case 'claimed': {
+      const seconds = leaseSeconds(payload)
+      return seconds != null ? e('claimedLease', { seconds }) : e('claimed')
+    }
+    case 'claim_renewed': {
+      const seconds = leaseSeconds(payload)
+      return seconds != null ? e('claimRenewedLease', { seconds }) : e('claimRenewed')
+    }
     case 'released':
-      return 'released the claim'
+      return e('released')
     case 'claim_failed':
     case 'release_failed':
     case 'heartbeat_failed':
       return payload?.error
-        ? `failed to ${String(payload.operation ?? 'operate')}: ${String(payload.error)}`
+        ? e('failed', {
+            operation: String(payload.operation ?? humanize(event.type.replace(/_failed$/, ''))),
+            error: String(payload.error),
+          })
         : humanize(event.type).toLowerCase()
-    case 'commented':
-      return payload?.body ? `commented: ${String(payload.body)}` : 'commented'
+    case 'commented': {
+      const body = text(payload?.body)
+      return body ? e('commented', { body }) : e('commentedPlain')
+    }
     default:
       return humanize(event.type).toLowerCase()
   }
 }
 
 function ActorDrillDown({ event, actorLabel }: { event: TaskEvent; actorLabel: string }) {
-  const rows: Array<[string, string]> = [['User', actorLabel]]
+  const { t } = useTranslation('detail')
+  const rows: Array<[string, string]> = [[t('activity.row.user'), actorLabel]]
   if (event.actor_token_id != null) {
-    rows.push(['Token', event.actor_token_name ? `token:${event.actor_token_name}` : `#${event.actor_token_id}`])
-    rows.push(['Token id', String(event.actor_token_id)])
+    rows.push([
+      t('activity.row.token'),
+      event.actor_token_name ? `token:${event.actor_token_name}` : `#${event.actor_token_id}`,
+    ])
+    rows.push([t('activity.row.tokenId'), String(event.actor_token_id)])
   }
   if (event.actor_role_name) {
-    rows.push(['Role', event.actor_role_name])
+    rows.push([t('activity.row.role'), event.actor_role_name])
   } else if (event.actor_token_id != null) {
-    rows.push(['Role', 'full user permissions'])
+    rows.push([t('activity.row.role'), t('activity.roleFull')])
   } else {
-    rows.push(['Role', 'session'])
+    rows.push([t('activity.row.role'), t('activity.roleSession')])
   }
 
   return (
     <details className="actor-drilldown">
-      <summary>Actor</summary>
+      <summary>{t('activity.actor')}</summary>
       <dl className="actor-meta">
         {rows.map(([label, value]) => (
           <div key={label}>
@@ -112,12 +139,13 @@ type Props = {
 }
 
 export function ActivitySection({ events, actorName, actorUserLabel }: Props) {
+  const { t } = useTranslation('detail')
   const ordered = [...events].sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id)
 
   return (
-    <Section icon="activity" title="Activity" count={events.length}>
+    <Section icon="activity" title={t('activity.title')} count={events.length}>
       {ordered.length === 0 ? (
-        <p className="muted small">No activity yet.</p>
+        <p className="muted small">{t('activity.empty')}</p>
       ) : (
         <ol className="timeline">
           {ordered.map((ev) => {
@@ -127,19 +155,21 @@ export function ActivitySection({ events, actorName, actorUserLabel }: Props) {
                 <span className="event-dot" aria-hidden="true" />
                 <div className="event-body">
                   <p>
-                    <strong>{actorName(ev)}</strong> {describe(ev, payload)}
+                    <strong>{actorName(ev)}</strong> {describe(t, ev, payload)}
                     <span className="muted small" title={formatDateTime(ev.created_at)}>
                       {' · '}
                       {formatRelative(ev.created_at)}
                     </span>
                   </p>
-                  <ActorDrillDown event={ev} actorLabel={actorUserLabel(ev)} />
-                  {ev.payload_json && (
-                    <details>
-                      <summary>Details</summary>
-                      <pre>{payload ? JSON.stringify(payload, null, 2) : ev.payload_json}</pre>
-                    </details>
-                  )}
+                  <div className="event-details">
+                    <ActorDrillDown event={ev} actorLabel={actorUserLabel(ev)} />
+                    {ev.payload_json && (
+                      <details>
+                        <summary>{t('activity.payload')}</summary>
+                        <pre>{payload ? JSON.stringify(payload, null, 2) : ev.payload_json}</pre>
+                      </details>
+                    )}
+                  </div>
                 </div>
               </li>
             )

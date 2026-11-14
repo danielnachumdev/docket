@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Dialog } from '../../components/Dialog'
 
 type Props = {
   requireArtifact: boolean
@@ -17,6 +19,7 @@ export function CompleteDoneDialog({
   onCancel,
   onConfirm,
 }: Props) {
+  const { t } = useTranslation(['detail', 'common'])
   const needsOutcome = Boolean(schemaText && schemaText.trim())
   const missingArtifact = requireArtifact && artifactCount < 1
   const [outcomeText, setOutcomeText] = useState('{\n  \n}')
@@ -25,7 +28,7 @@ export function CompleteDoneDialog({
   function submit() {
     setLocalError(null)
     if (missingArtifact) {
-      setLocalError('Attach at least one artifact before marking done.')
+      setLocalError(t('complete.needArtifact'))
       return
     }
     if (!needsOutcome) {
@@ -35,36 +38,46 @@ export function CompleteDoneDialog({
     try {
       const parsed = JSON.parse(outcomeText) as unknown
       if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        setLocalError('Outcome must be a JSON object.')
+        setLocalError(t('complete.outcomeObject'))
         return
       }
       onConfirm(parsed as Record<string, unknown>)
     } catch {
-      setLocalError('Outcome must be valid JSON.')
+      setLocalError(t('complete.outcomeJson'))
     }
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onCancel}>
-      <div
-        className="modal card stack"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="complete-done-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id="complete-done-title">Mark task done</h2>
-        <p className="muted small">
-          This task requires structured completion details before status can become done.
-        </p>
+    <Dialog
+      title={t('complete.title')}
+      description={t('complete.intro')}
+      size="md"
+      onClose={onCancel}
+      footer={
+        <>
+          <button type="button" className="btn ghost" disabled={busy} onClick={onCancel}>
+            {t('common:cancel')}
+          </button>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy || missingArtifact}
+            onClick={submit}
+          >
+            {busy ? t('common:saving') : t('complete.submit')}
+          </button>
+        </>
+      }
+    >
+      <div className="stack">
         {requireArtifact && (
           <p className={missingArtifact ? 'danger-text' : 'muted small'}>
-            Artifact required · currently {artifactCount}
+            {t('complete.artifactRequired', { count: artifactCount })}
           </p>
         )}
         {needsOutcome && (
           <label className="field">
-            <span>Outcome JSON</span>
+            <span>{t('complete.outcome')}</span>
             <textarea
               className="mono"
               rows={8}
@@ -74,21 +87,12 @@ export function CompleteDoneDialog({
             />
           </label>
         )}
-        {localError && <p className="danger-text">{localError}</p>}
-        <div className="actions">
-          <button type="button" className="btn ghost" disabled={busy} onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn primary"
-            disabled={busy || missingArtifact}
-            onClick={submit}
-          >
-            {busy ? 'Saving…' : 'Mark done'}
-          </button>
-        </div>
+        {localError && (
+          <p className="danger-text" role="alert">
+            {localError}
+          </p>
+        )}
       </div>
-    </div>
+    </Dialog>
   )
 }
