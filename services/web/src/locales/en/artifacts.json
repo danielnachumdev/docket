@@ -16,9 +16,13 @@
   "sort": {
     "newest": "Newest",
     "oldest": "Oldest",
+    "largest": "Largest",
+    "smallest": "Smallest",
     "name": "Name",
     "task": "Task #"
   },
+  "sizeBytes_one": "{{count}} byte",
+  "sizeBytes_other": "{{count}} bytes",
   "groupCount_one": "{{count}} artifact",
   "groupCount_other": "{{count}} artifacts",
   "expandGroup": "Expand {{title}}",

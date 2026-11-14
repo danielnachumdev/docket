@@ -16,9 +16,14 @@
   "sort": {
     "newest": "החדשים ביותר",
     "oldest": "הישנים ביותר",
+    "largest": "הגדולים ביותר",
+    "smallest": "הקטנים ביותר",
     "name": "שם",
     "task": "מספר משימה"
   },
+  "sizeBytes_one": "בית אחד",
+  "sizeBytes_two": "שני בתים",
+  "sizeBytes_other": "{{count}} בתים",
   "groupCount_one": "קובץ מצורף אחד",
   "groupCount_two": "שני קבצים מצורפים",
   "groupCount_other": "{{count}} קבצים מצורפים",

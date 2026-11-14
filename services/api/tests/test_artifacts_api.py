@@ -41,10 +41,12 @@ def test_artifact_crud_text_and_file(tmp_path: Path, monkeypatch) -> None:
     assert created.status_code == 201
     text_id = created.json()["id"]
     assert created.json()["storage_key"] is None
+    assert created.json()["byte_size"] == 0
 
     listed = client.get(f"/api/tasks/{task_id}/artifacts")
     assert listed.status_code == 200
     assert len(listed.json()) == 1
+    assert listed.json()[0]["byte_size"] == 0
 
     got = client.get(f"/api/tasks/{task_id}/artifacts/{text_id}")
     assert got.status_code == 200
@@ -60,6 +62,7 @@ def test_artifact_crud_text_and_file(tmp_path: Path, monkeypatch) -> None:
     )
     assert patched.status_code == 200
     assert patched.json()["title"] == "Updated note"
+    assert patched.json()["byte_size"] == 0
 
     payload = base64.b64encode(b"file-bytes").decode("ascii")
     file_created = client.post(
@@ -75,7 +78,14 @@ def test_artifact_crud_text_and_file(tmp_path: Path, monkeypatch) -> None:
     file_body = file_created.json()
     assert file_body["storage_key"]
     assert file_body["content_type"] == "text/plain"
+    assert file_body["byte_size"] == len(b"file-bytes")
     file_id = file_body["id"]
+
+    library = client.get("/api/artifacts")
+    assert library.status_code == 200
+    by_id = {row["id"]: row for row in library.json()}
+    assert by_id[text_id]["byte_size"] == 0
+    assert by_id[file_id]["byte_size"] == len(b"file-bytes")
 
     stored = artifact_root / file_body["storage_key"]
     assert stored.is_file()
@@ -92,6 +102,7 @@ def test_artifact_crud_text_and_file(tmp_path: Path, monkeypatch) -> None:
         json={"content_base64": replaced, "content_type": "text/plain"},
     )
     assert file_patched.status_code == 200
+    assert file_patched.json()["byte_size"] == len(b"new-bytes")
     assert client.get(f"/api/tasks/{task_id}/artifacts/{file_id}/content").content == b"new-bytes"
 
     deleted = client.delete(f"/api/tasks/{task_id}/artifacts/{file_id}")

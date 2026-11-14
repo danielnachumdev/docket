@@ -4,7 +4,8 @@ import { api, type Artifact } from '../../api'
 import { Icon } from '../../components/Icon'
 import { artifactKindIcon } from '../../lib/artifactMedia'
 import { useConfirm } from '../../lib/dialogs'
-import { formatDateTime, formatRelative, humanize } from '../../lib/format'
+import { artifactDisplayBytes } from '../../lib/artifactsLibrary'
+import { formatBytes, formatDateTime, formatRelative, humanize } from '../../lib/format'
 import { ArtifactFilePreview } from './ArtifactFilePreview'
 
 function isUrl(value: string | null) {
@@ -24,6 +25,7 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
   const confirm = useConfirm()
   const kindKey = `kind.${a.kind}`
   const kindLabel = t(kindKey, { defaultValue: humanize(a.kind) })
+  const sizeBytes = artifactDisplayBytes(a)
 
   async function onDelete() {
     const ok = await confirm({
@@ -51,6 +53,7 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
             {context}
             <span>{kindLabel}</span>
             {a.content_type && <span className="hide-mobile">{a.content_type}</span>}
+            <span title={t('sizeBytes', { count: sizeBytes })}>{formatBytes(sizeBytes)}</span>
             <span title={formatDateTime(a.created_at)}>{formatRelative(a.created_at)}</span>
           </span>
         </span>
