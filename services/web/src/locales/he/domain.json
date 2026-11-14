@@ -22,7 +22,9 @@
     "my_open": "הפתוחות שלי",
     "due_soon": "מועד קרוב",
     "on_hold_stale": "בהמתנה > 7 ימים",
-    "claimed": "שסוכנים תפסו"
+    "claimed": "שסוכנים תפסו",
+    "unread": "לא נקרא",
+    "read": "נקרא"
   },
   "relative": {
     "justNow": "עכשיו"

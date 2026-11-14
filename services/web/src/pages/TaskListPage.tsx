@@ -464,6 +464,33 @@ export function TaskListPage() {
     }, t('tasks:bulkUpdateFailed'))
   }
 
+  function applyBulkUnread(unread: boolean) {
+    const taskIds = [...selected]
+    if (taskIds.length === 0) return
+    setTasks(
+      (prev) =>
+        prev?.map((t) => (selected.has(t.id) ? { ...t, unread } : t)) ?? null,
+    )
+    setPinned((prev) => {
+      const next = new Set(prev)
+      for (const id of taskIds) next.add(id)
+      return next
+    })
+    void run(async () => {
+      try {
+        const updated = await Promise.all(
+          taskIds.map((id) => (unread ? api.markTaskUnread(id) : api.markTaskRead(id))),
+        )
+        const byId = new Map(updated.map((t) => [t.id, t]))
+        setTasks((prev) => prev?.map((t) => byId.get(t.id) ?? t) ?? null)
+        clearSelection()
+      } catch (err) {
+        await load()
+        throw err
+      }
+    }, t('tasks:bulkUpdateFailed'))
+  }
+
   const statusChips: StatusChip[] = ['active', 'all', ...STATUSES]
 
   return (
@@ -737,6 +764,24 @@ export function TaskListPage() {
             onClick={() => applyBulk({ priority: bulkPriority })}
           >
             {t('tasks:setPriority')}
+          </button>
+          <button
+            type="button"
+            className="btn small"
+            disabled={busy}
+            onClick={() => applyBulkUnread(false)}
+          >
+            <Icon name="mailOpen" size={14} />
+            {t('tasks:markRead')}
+          </button>
+          <button
+            type="button"
+            className="btn small"
+            disabled={busy}
+            onClick={() => applyBulkUnread(true)}
+          >
+            <Icon name="mail" size={14} />
+            {t('tasks:markUnread')}
           </button>
           <button type="button" className="btn ghost small" onClick={clearSelection}>
             {t('common:clear')}
