@@ -70,6 +70,14 @@ Create file artifacts via JSON with `content_base64`. Content streams through `G
 - **Agent writes:** Bearer API tokens must hold an active claim/lease on a task to mutate it (`claim` → work → `heartbeat` → `release`). Enforced centrally in `TaskAccessService` via `TaskClaimService.require_agent_lease` (409 if missing). Session users are exempt and may write while an agent holds a lease. Create-task and reads do not require a lease; claim/renew/release stay on `tasks:claim`.
 - **Invites:** after bootstrap, registration is invite-only (`users:admin` mints links)
 
+## Rate limiting
+
+- **Per-token (agents):** `RateLimitMiddleware` (after Authn) keys on resolved `token_id` — default **120 requests / 60s** sliding window. Session/cookie humans are **not** under this ceiling (nginx IP safety net covers floods).
+- **Exempt:** `/api/health`.
+- **Env:** `RATE_LIMIT_TOKEN_ENABLED` (default true), `RATE_LIMIT_TOKEN_REQUESTS` (120), `RATE_LIMIT_TOKEN_WINDOW_SECONDS` (60).
+- **Caveat:** in-memory counters are per process; multi-worker uvicorn roughly multiplies effective capacity.
+- **Nginx safety net:** Compose/local `services/web/nginx.conf.template` (and docket-deploy) apply a very high per-IP `limit_req` (~100 r/s, burst 200) on `/api/` so only pathological floods trip at the edge.
+
 ## User preferences
 
 Per-user UI prefs sync via `GET`/`PATCH /api/me/preferences` (authenticated). Stored as JSON text on `users.preferences_json` with an allowlist schema (`theme`, `locale`, …).

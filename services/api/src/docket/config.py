@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     version_check_cache_ttl_seconds: float = 900.0
     # Baked at image build (CD). Empty → package __version__ for local dev.
     docket_version: str = ""
+    # Per-API-token rate limit (Bearer agents only; session users exempt).
+    # In-memory sliding window — single-process; multi-worker multiplies capacity.
+    rate_limit_token_enabled: bool = True
+    rate_limit_token_requests: int = 120
+    rate_limit_token_window_seconds: int = 60
 
     @property
     def cors_origin_list(self) -> list[str]:
