@@ -89,7 +89,8 @@
     "roleLabel": "Share role",
     "share": "Share",
     "shareFailed": "Could not share task",
-    "unshareFailed": "Could not stop sharing"
+    "unshareFailed": "Could not stop sharing",
+    "contactsHint": "Suggestions from your people"
   },
   "claim": {
     "title": "Claim / lease",
