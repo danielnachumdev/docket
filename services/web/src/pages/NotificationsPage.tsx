@@ -11,7 +11,7 @@ import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
 
 function notifyChanged() {
-  window.dispatchEvent(new Event('docket:notifications'))
+  window.dispatchEvent(new Event('waymark:notifications'))
 }
 
 export function NotificationsPage() {

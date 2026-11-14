@@ -2,8 +2,8 @@ name: CD
 
 # After successful CI on main (or manual dispatch):
 #   1) Semver → bump / GitHub Release / optional floating retags (latest)
-#   2) Build/push GHCR images for docket-deploy / Raft to pull
-# No raft apply here — that lives in docket-deploy.
+#   2) Build/push GHCR images for waymark-deploy / Raft to pull
+# No raft apply here — that lives in waymark-deploy.
 
 on:
   workflow_run:
@@ -32,8 +32,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  API_IMAGE: ghcr.io/danielnachumdev/docket-api
-  WEB_IMAGE: ghcr.io/danielnachumdev/docket-web
+  API_IMAGE: ghcr.io/danielnachumdev/waymark-api
+  WEB_IMAGE: ghcr.io/danielnachumdev/waymark-web
 
 jobs:
   changes:
@@ -108,7 +108,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Bake rule (API DOCKET_VERSION):
+      # Bake rule (API WAYMARK_VERSION):
       #   1) semver-cd `version` when a release/bump resolved a semver
       #   2) else semver-cd `tag` (strip leading v)
       #   3) else vX.Y.Z tag already pointing at this SHA
@@ -134,7 +134,7 @@ jobs:
             fi
           fi
           echo "version=${VER}" >> "$GITHUB_OUTPUT"
-          echo "Baking DOCKET_VERSION=${VER}"
+          echo "Baking WAYMARK_VERSION=${VER}"
 
       - name: Push API image
         uses: docker/build-push-action@v7
@@ -143,13 +143,13 @@ jobs:
           file: services/api/Dockerfile
           push: true
           build-args: |
-            DOCKET_VERSION=${{ steps.ver.outputs.version }}
+            WAYMARK_VERSION=${{ steps.ver.outputs.version }}
           tags: |
             ${{ env.API_IMAGE }}:${{ needs.changes.outputs.sha }}
             ${{ env.API_IMAGE }}:main
             ${{ env.API_IMAGE }}:latest
-          cache-from: type=gha,scope=docket-api
-          cache-to: type=gha,mode=max,scope=docket-api
+          cache-from: type=gha,scope=waymark-api
+          cache-to: type=gha,mode=max,scope=waymark-api
 
       - name: Push web image
         uses: docker/build-push-action@v7
@@ -161,5 +161,5 @@ jobs:
             ${{ env.WEB_IMAGE }}:${{ needs.changes.outputs.sha }}
             ${{ env.WEB_IMAGE }}:main
             ${{ env.WEB_IMAGE }}:latest
-          cache-from: type=gha,scope=docket-web
-          cache-to: type=gha,mode=max,scope=docket-web
+          cache-from: type=gha,scope=waymark-web
+          cache-to: type=gha,mode=max,scope=waymark-web

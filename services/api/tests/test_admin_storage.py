@@ -3,10 +3,10 @@ import base64
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from docket.db import database
-from docket.main import create_app
-from docket.models import Membership, Role, User
-from docket.security import password_hasher
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import Membership, Role, User
+from waymark.security import password_hasher
 from tests.helpers import bootstrap_owner
 
 

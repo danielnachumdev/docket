@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 
-from docket.db import database
-from docket.main import create_app
-from docket.models import Task
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import Task
 from sqlalchemy import select
 from tests.helpers import bootstrap_owner, mint_api_token, bearer
 

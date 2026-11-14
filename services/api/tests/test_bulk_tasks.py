@@ -1,9 +1,9 @@
 from fastapi.testclient import TestClient
 
-from docket.db import database
-from docket.main import create_app
-from docket.models import User
-from docket.security import password_hasher
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import User
+from waymark.security import password_hasher
 from tests.helpers import bootstrap_owner
 
 

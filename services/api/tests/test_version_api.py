@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 
-from docket.api.version.version_api import version_api
-from docket.main import create_app
-from docket.version_check import VersionStatus
+from waymark.api.version.version_api import version_api
+from waymark.main import create_app
+from waymark.version_check import VersionStatus
 
 
 class _StubService:
@@ -27,7 +27,7 @@ def test_version_endpoint_returns_status() -> None:
         version="0.1.0",
         latest_version="0.2.0",
         update_available=True,
-        release_url="https://github.com/demo/docket/releases/tag/v0.2.0",
+        release_url="https://github.com/demo/waymark/releases/tag/v0.2.0",
     )
     gen = _with_stub(status)
     client = next(gen)
@@ -38,7 +38,7 @@ def test_version_endpoint_returns_status() -> None:
             "version": "0.1.0",
             "latest_version": "0.2.0",
             "update_available": True,
-            "release_url": "https://github.com/demo/docket/releases/tag/v0.2.0",
+            "release_url": "https://github.com/demo/waymark/releases/tag/v0.2.0",
         }
     finally:
         gen.close()

@@ -29,11 +29,11 @@
     "title": "Webhooks",
     "subtitle": "Push status, claim, comment, and share events to chat or automation bridges. AI stays external.",
     "revealTitle": "Copy your webhook secret",
-    "revealHint": "Shown once. Bridges verify deliveries with the X-Docket-Signature header.",
+    "revealHint": "Shown once. Bridges verify deliveries with the X-Waymark-Signature header.",
     "name": "Name",
     "namePlaceholder": "e.g. demo-slack",
     "url": "Endpoint URL",
-    "urlPlaceholder": "https://hooks.example.com/docket",
+    "urlPlaceholder": "https://hooks.example.com/waymark",
     "events": "Events",
     "event": {
       "status_changed": "Status changes",

@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from docket.config import get_settings
-from docket.main import create_app
+from waymark.config import get_settings
+from waymark.main import create_app
 
 
 def _bootstrap(client: TestClient):
@@ -19,9 +19,9 @@ def _set_cookie_header(response) -> str:
     # Starlette may expose multiple Set-Cookie values; pick the session one.
     raw = response.headers.get_list("set-cookie")
     for item in raw:
-        if item.startswith("docket_session="):
+        if item.startswith("waymark_session="):
             return item
-    raise AssertionError(f"no docket_session Set-Cookie in {raw!r}")
+    raise AssertionError(f"no waymark_session Set-Cookie in {raw!r}")
 
 
 def test_session_cookie_defaults_httponly_lax_not_secure() -> None:

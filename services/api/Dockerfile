@@ -21,23 +21,23 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.12.10-slim-bookworm AS runtime
 WORKDIR /app
 
-ARG DOCKET_VERSION=
+ARG WAYMARK_VERSION=
 
-RUN groupadd --system --gid 1000 docket \
-    && useradd --system --uid 1000 --gid docket --home /app --shell /usr/sbin/nologin docket \
+RUN groupadd --system --gid 1000 waymark \
+    && useradd --system --uid 1000 --gid waymark --home /app --shell /usr/sbin/nologin waymark \
     && mkdir -p /data \
-    && chown docket:docket /data
+    && chown waymark:waymark /data
 
-COPY --from=build --chown=docket:docket /app /app
-COPY --chown=docket:docket entrypoint.sh /app/entrypoint.sh
+COPY --from=build --chown=waymark:waymark /app /app
+COPY --chown=waymark:waymark entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 ENV PATH="/app/.venv/bin:$PATH" \
-    DATABASE_URL=sqlite:////data/docket.db \
+    DATABASE_URL=sqlite:////data/waymark.db \
     PYTHONUNBUFFERED=1 \
-    DOCKET_VERSION=${DOCKET_VERSION}
+    WAYMARK_VERSION=${WAYMARK_VERSION}
 
-USER docket
+USER waymark
 EXPOSE 8000
 VOLUME ["/data"]
 ENTRYPOINT ["/app/entrypoint.sh"]

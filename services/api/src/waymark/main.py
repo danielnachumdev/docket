@@ -1,0 +1,103 @@
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from waymark.api import (
+    admin_storage_api,
+    artifacts_api,
+    auth_api,
+    contacts_api,
+    invites_api,
+    notifications_api,
+    preferences_api,
+    saved_views_api,
+    task_comments_api,
+    task_shares_api,
+    task_watches_api,
+    tasks_api,
+    tokens_api,
+    version_api,
+    webhooks_api,
+)
+from waymark.auth import AuthnMiddleware
+from waymark.config import ROOT, get_settings
+from waymark.db import database
+from waymark.rate_limit import RateLimitMiddleware
+from waymark.seed import rbac_seeder
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    settings = get_settings()
+    if settings.database_url.startswith("sqlite"):
+        Path(settings.database_url.removeprefix("sqlite:///")).parent.mkdir(
+            parents=True, exist_ok=True
+        )
+    db = database.session()
+    try:
+        rbac_seeder.seed(db)
+    finally:
+        db.close()
+    yield
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.running_version,
+        lifespan=lifespan,
+    )
+    # add_middleware wraps outward: last added runs first on the request.
+    # Request order: CORS → Authn → RateLimit → routes (principal set before limit).
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(AuthnMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.get("/api/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok", "version": get_settings().running_version}
+
+    app.include_router(auth_api.router)
+    app.include_router(admin_storage_api.router)
+    app.include_router(invites_api.router)
+    app.include_router(preferences_api.router)
+    app.include_router(contacts_api.router)
+    app.include_router(tasks_api.router)
+    app.include_router(task_comments_api.router)
+    app.include_router(artifacts_api.router)
+    app.include_router(task_shares_api.router)
+    app.include_router(task_watches_api.router)
+    app.include_router(notifications_api.router)
+    app.include_router(saved_views_api.router)
+    app.include_router(tokens_api.router)
+    app.include_router(webhooks_api.router)
+    app.include_router(version_api.router)
+    return app
+
+
+app = create_app()
+
+
+def main() -> None:
+    import os
+
+    import uvicorn
+
+    host = os.getenv("HOST", "127.0.0.1")
+    reload = os.getenv("RELOAD", "1") not in {"0", "false", "False"}
+    uvicorn.run(
+        "waymark.main:app",
+        host=host,
+        port=int(os.getenv("PORT", "8000")),
+        reload=reload,
+        reload_dirs=[str(ROOT / "src")] if reload else None,
+    )

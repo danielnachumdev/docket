@@ -6,11 +6,11 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from docket.config import get_settings
-from docket.db import database
-from docket.main import create_app
-from docket.models import User
-from docket.security import password_hasher
+from waymark.config import get_settings
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import User
+from waymark.security import password_hasher
 from helpers import bootstrap_owner
 
 
@@ -49,7 +49,7 @@ def _open_export(client: TestClient, task_id: int) -> zipfile.ZipFile:
     res = client.get(f"/api/tasks/{task_id}/export")
     assert res.status_code == 200
     assert res.headers["content-type"].startswith("application/zip")
-    assert "docket-task-" in res.headers.get("content-disposition", "")
+    assert "waymark-task-" in res.headers.get("content-disposition", "")
     return zipfile.ZipFile(io.BytesIO(res.content))
 
 
@@ -101,7 +101,7 @@ def test_export_includes_task_events_artifacts(tmp_path: Path, monkeypatch) -> N
 
         manifest = json.loads(zf.read("manifest.json"))
         assert manifest["schema_version"] == 1
-        assert manifest["format"] == "docket.task_export.zip"
+        assert manifest["format"] == "waymark.task_export.zip"
         assert manifest["task_id"] == task_id
         assert manifest["bundle_sha256"]
 

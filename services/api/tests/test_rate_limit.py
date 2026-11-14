@@ -1,9 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from docket.config import get_settings
-from docket.main import create_app
-from docket.rate_limit import TokenRateLimiter
+from waymark.config import get_settings
+from waymark.main import create_app
+from waymark.rate_limit import TokenRateLimiter
 from tests.helpers import bearer, bootstrap_owner, mint_api_token
 
 

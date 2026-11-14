@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Orientation for coding agents and contributors working in **docket**.
+Orientation for coding agents and contributors working in **waymark**.
 
 Product pitch for humans: [`README.md`](README.md). Keep marketing and “why try this” there — this file is the map.
 
@@ -12,7 +12,7 @@ Product pitch for humans: [`README.md`](README.md). Keep marketing and “why tr
 | -------- | ------ |
 | What is this? | Agent-native task management: FastAPI + SQLite API, Vite/React/TS SPA; humans + agents share one ledger via API tokens + RBAC |
 | Services | `services/api` (FastAPI), `services/web` (SPA + nginx) |
-| API entry | `services/api` — `uv run docket` / image entrypoint runs Alembic then uvicorn |
+| API entry | `services/api` — `uv run waymark` / image entrypoint runs Alembic then uvicorn |
 | Migrations | `cd services/api && uv run alembic upgrade head` |
 | SPA | `services/web` — Vite React TS PWA (`vite-plugin-pwa`); Compose nginx proxies `/api` → `api:8000` |
 | Compose | Root [`compose.yml`](compose.yml) for local multi-service run |
@@ -20,8 +20,8 @@ Product pitch for humans: [`README.md`](README.md). Keep marketing and “why tr
 | Thin orchestrator | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | CAPA | [`capabilities.yaml`](capabilities.yaml) — run `capa install` (do not hand-edit generated `.cursor/` / `.claude/`) |
 | Semver | PR labels `bumpPatch` / `bumpMinor` / `bumpMajor` / `noBump`; CD creates GitHub Releases + retags `latest` |
-| Images | CD on `main` pushes `ghcr.io/danielnachumdev/docket-api` + `docket-web` (`:latest`, `:main`, `:<sha>`) |
-| VPS deploy | [`danielnachumdev/docket-deploy`](https://github.com/danielnachumdev/docket-deploy) — Raft manifests only (not this repo) |
+| Images | CD on `main` pushes `ghcr.io/danielnachumdev/waymark-api` + `waymark-web` (`:latest`, `:main`, `:<sha>`) |
+| VPS deploy | [`danielnachumdev/waymark-deploy`](https://github.com/danielnachumdev/waymark-deploy) — Raft manifests only (not this repo) |
 | Secrets | Never commit tokens, keys, live DB, or operator inventory; use dummy data in fixtures/PRs |
 
 ## Local development (without Docker)
@@ -31,7 +31,7 @@ Product pitch for humans: [`README.md`](README.md). Keep marketing and “why tr
 cd services/api
 uv sync --group dev
 uv run alembic upgrade head
-uv run docket
+uv run waymark
 # → http://127.0.0.1:8000/api/health
 
 # UI (separate terminal)
@@ -40,7 +40,7 @@ npm install && npm run dev
 # → http://127.0.0.1:5173/  (proxies /api → :8000)
 ```
 
-Compose: `docker compose up --build` → UI `http://127.0.0.1:8088/`. SQLite persists in the `docket-data` volume. Override `TOKEN_PEPPER` / `SESSION_SECRET` for non-dev use.
+Compose: `docker compose up --build` → UI `http://127.0.0.1:8088/`. SQLite persists in the `waymark-data` volume. Override `TOKEN_PEPPER` / `SESSION_SECRET` for non-dev use.
 
 ## Artifact storage
 
@@ -76,13 +76,13 @@ Create file artifacts via JSON with `content_base64`. Content streams through `G
 - **Exempt:** `/api/health`.
 - **Env:** `RATE_LIMIT_TOKEN_ENABLED` (default true), `RATE_LIMIT_TOKEN_REQUESTS` (120), `RATE_LIMIT_TOKEN_WINDOW_SECONDS` (60).
 - **Caveat:** in-memory counters are per process; multi-worker uvicorn roughly multiplies effective capacity.
-- **Nginx safety net:** Compose/local `services/web/nginx.conf.template` (and docket-deploy) apply a very high per-IP `limit_req` (~100 r/s, burst 200) on `/api/` so only pathological floods trip at the edge.
+- **Nginx safety net:** Compose/local `services/web/nginx.conf.template` (and waymark-deploy) apply a very high per-IP `limit_req` (~100 r/s, burst 200) on `/api/` so only pathological floods trip at the edge.
 
 ## User preferences
 
 Per-user UI prefs sync via `GET`/`PATCH /api/me/preferences` (authenticated). Stored as JSON text on `users.preferences_json` with an allowlist schema (`theme`, `locale`, …).
 
-- **Server wins** when authenticated and a key is set; if the server key is empty, the SPA seeds once from `localStorage` (`docket.theme` / `docket.locale`).
+- **Server wins** when authenticated and a key is set; if the server key is empty, the SPA seeds once from `localStorage` (`waymark.theme` / `waymark.locale`).
 - Guests stay local-only; `localStorage` is a first-paint / pre-auth cache only.
 - **Add a key:** extend `schemas/preferences.py` allowlist + `PreferencesCodec`, add a client apply handler in `services/web/src/preferences.tsx`, mirror cache key if needed for FOUC.
 
@@ -102,7 +102,7 @@ UI copy lives under `services/web/src/locales/{en,he}/` (JSON namespaces registe
 - **Work queue order** is sibling-scoped `rank` (lower = do first). List, children, and inbox sort by `rank`. Agents should reorder with `POST /api/tasks/{id}/reorder` (`before_task_id` / `after_task_id`, or neither for end) instead of inventing ranks. `priority` (1–4) remains an urgency badge/filter only.
 - Authorization is RBAC (`permissions` / `roles` / `memberships`); API tokens may downscope via `role_id`.
 - Each service owns its Dockerfile and runtime files under `services/<name>/`.
-- Raft / host / TLS / live env live in **docket-deploy**; this repo ships product + GHCR images.
+- Raft / host / TLS / live env live in **waymark-deploy**; this repo ships product + GHCR images.
 
 ## After template bootstrap
 

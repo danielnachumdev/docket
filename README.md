@@ -1,12 +1,12 @@
-# Docket
+# Waymark
 
 **Agent-native task management** — for humans, agents, and both working the same queue.
 
-Docket is the system of record for work you and your agents share: create tasks, claim them, update status, leave artifacts, comment, and invite collaborators. The AI stays outside. Docket owns the state.
+Waymark is the system of record for work you and your agents share: create tasks, claim them, update status, leave artifacts, comment, and invite collaborators. The AI stays outside. Waymark owns the state.
 
 ## Why builders care
 
-Most “AI task” tools either bury agents in a chat UI or bolt a bot onto a human tracker. Docket flips that: the **API is first-class**, the **web UI is the human control plane**, and every change lands in one durable ledger.
+Most “AI task” tools either bury agents in a chat UI or bolt a bot onto a human tracker. Waymark flips that: the **API is first-class**, the **web UI is the human control plane**, and every change lands in one durable ledger.
 
 You get:
 
@@ -19,13 +19,13 @@ You get:
 
 ```text
 Human  →  Web UI  ─┐
-                   ├─→  Docket (tasks, events, artifacts, shares)
+                   ├─→  Waymark (tasks, events, artifacts, shares)
 Agent  →  API token─┘
 ```
 
 - **Humans** run the board: prioritize, share, review outcomes, invite teammates.
 - **Agents** claim work, push status / outcomes / artifacts, and move on — without owning the database.
-- **External assistants** (chat, WhatsApp, custom runners) stay replaceable; Docket does not embed a model.
+- **External assistants** (chat, WhatsApp, custom runners) stay replaceable; Waymark does not embed a model.
 
 ## What’s in
 
@@ -50,8 +50,8 @@ docker compose up --build
 
 Bootstrap the first owner in the UI, mint an API token, then point an agent at the same tasks.
 
-**Images:** `ghcr.io/danielnachumdev/docket-api:latest` and `docket-web:latest`  
-**Production manifests:** [`docket-deploy`](https://github.com/danielnachumdev/docket-deploy)
+**Images:** `ghcr.io/danielnachumdev/waymark-api:latest` and `waymark-web:latest`  
+**Production manifests:** [`waymark-deploy`](https://github.com/danielnachumdev/waymark-deploy)
 
 Local API/UI without Docker, migrations, artifact backends, and contributor conventions live in [`AGENTS.md`](AGENTS.md).
 

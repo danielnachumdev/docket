@@ -272,7 +272,7 @@ export function CommentsSection({
       setTrigger(null)
       await reload()
       await onChanged()
-      window.dispatchEvent(new Event('docket:notifications'))
+      window.dispatchEvent(new Event('waymark:notifications'))
     }, editingId != null ? t('commentUpdateFailed') : t('commentAddFailed'))
   }
 

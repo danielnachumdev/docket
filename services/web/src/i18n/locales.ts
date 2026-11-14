@@ -19,7 +19,7 @@ export const LOCALES: readonly LocaleMeta[] = [
 ] as const
 
 export const DEFAULT_LOCALE = 'en'
-export const LOCALE_STORAGE_KEY = 'docket.locale'
+export const LOCALE_STORAGE_KEY = 'waymark.locale'
 
 const byCode = new Map(LOCALES.map((locale) => [locale.code, locale]))
 

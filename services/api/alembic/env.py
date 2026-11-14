@@ -3,9 +3,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from docket.config import get_settings
-from docket.db import Base
-import docket.models  # noqa: F401 — register metadata
+from waymark.config import get_settings
+from waymark.db import Base
+import waymark.models  # noqa: F401 — register metadata
 
 config = context.config
 if config.config_file_name is not None:

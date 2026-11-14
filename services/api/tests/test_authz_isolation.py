@@ -8,10 +8,10 @@ viewer/editor shares, and owner-scoped token/webhook management.
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from docket.db import database
-from docket.main import create_app
-from docket.models import Membership, Notification, Role, User
-from docket.security import password_hasher
+from waymark.db import database
+from waymark.main import create_app
+from waymark.models import Membership, Notification, Role, User
+from waymark.security import password_hasher
 from tests.helpers import bearer, bootstrap_owner, internal_task_id, mint_api_token
 
 OPS = "ops@example.com"

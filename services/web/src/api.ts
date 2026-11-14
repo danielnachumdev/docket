@@ -481,7 +481,7 @@ export const api = {
     return blob
   },
   downloadTaskExport: async (id: string) => {
-    await downloadBlob(`/api/tasks/${id}/export`, `docket-task-${id}-export.zip`)
+    await downloadBlob(`/api/tasks/${id}/export`, `waymark-task-${id}-export.zip`)
   },
   createLink: (id: string, body: { to_task_id: string; kind: string }) =>
     request<TaskLink>(`/api/tasks/${id}/links`, {

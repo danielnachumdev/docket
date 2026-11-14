@@ -3,7 +3,7 @@
 #
 # Usage: build_release_wheel.sh <vX.Y.Z> [out-dir]
 #
-# Monorepo layout: publishable package lives under services/api (src/docket).
+# Monorepo layout: publishable package lives under services/api (src/waymark).
 # The actions hub default wheel script only globs */__init__.py, so we stamp
 # and build from services/api explicitly.
 set -euo pipefail
@@ -45,7 +45,7 @@ def replace_once(path: pathlib.Path, pattern: str, replacement: str) -> None:
 
 replace_once(pathlib.Path("pyproject.toml"), r'^version = "[^"]+"', f'version = "{version}"')
 replace_once(
-    pathlib.Path("src/docket/__init__.py"),
+    pathlib.Path("src/waymark/__init__.py"),
     r'^__version__ = "[^"]+"',
     f'__version__ = "{version}"',
 )
@@ -72,12 +72,12 @@ PY
 fi
 
 mkdir -p "${OUT_DIR}"
-rm -f "${OUT_DIR}"/docket-"${VERSION}"-*.whl
+rm -f "${OUT_DIR}"/waymark-"${VERSION}"-*.whl
 
-echo "Building wheel for docket==${VERSION}…"
+echo "Building wheel for waymark==${VERSION}…"
 uv build --wheel --out-dir "${OUT_DIR}"
 
-WHEEL="$(ls -1 "${OUT_DIR}"/docket-"${VERSION}"-*.whl 2>/dev/null | head -1 || true)"
+WHEEL="$(ls -1 "${OUT_DIR}"/waymark-"${VERSION}"-*.whl 2>/dev/null | head -1 || true)"
 [[ -n "${WHEEL}" && -f "${WHEEL}" ]] || {
   echo "build_release_wheel.sh: no wheel for version ${VERSION} in ${OUT_DIR}" >&2
   ls -la "${OUT_DIR}" >&2 || true
