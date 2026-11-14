@@ -108,6 +108,172 @@
   --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.5);
 }
 
+/* Soft builtins — cool mists, not cream/terracotta. */
+:root[data-theme='lilac'] {
+  color-scheme: light;
+  --bg: #f3eef7;
+  --surface: #fffbfe;
+  --surface-2: #efe8f4;
+  --surface-hover: #f7f2fa;
+  --border: #e2d8eb;
+  --border-strong: #cfc0dc;
+  --text: #2c2436;
+  --text-2: #5e546c;
+  --muted: #90869e;
+  --accent: #c47a9e;
+  --accent-hover: #a96386;
+  --accent-soft: #f6e7ef;
+  --accent-text: #fff9fc;
+  --danger: #d67a8c;
+  --danger-soft: #f8e6ea;
+  --warning: #c4a06e;
+  --warning-soft: #f6eedf;
+  --success: #6fa894;
+  --success-soft: #e5f3ec;
+
+  --st-backlog: #9b91ab;
+  --st-in_progress: #6fa894;
+  --st-blocked: #d67a8c;
+  --st-on_hold: #c4a06e;
+  --st-failed: #5e546c;
+  --st-done: #7f94c2;
+  --st-cancelled: #a78cbc;
+
+  --p1: #d67a8c;
+  --p2: #d4a07c;
+  --p3: #7f94c2;
+  --p4: #b3a9c0;
+
+  --shadow-sm: 0 1px 2px rgb(90 60 110 / 0.06);
+  --shadow: 0 1px 3px rgb(90 60 110 / 0.07), 0 4px 14px rgb(90 60 110 / 0.05);
+  --shadow-md: 0 8px 22px rgb(90 60 110 / 0.1);
+  --shadow-lg: 0 14px 36px rgb(90 60 110 / 0.14);
+}
+
+:root[data-theme='sage'] {
+  color-scheme: light;
+  --bg: #eef4f0;
+  --surface: #fbfefc;
+  --surface-2: #e5eee8;
+  --surface-hover: #f3f8f5;
+  --border: #d5e2da;
+  --border-strong: #b7cbc0;
+  --text: #24302a;
+  --text-2: #4d5e55;
+  --muted: #7d8f85;
+  --accent: #6f9e86;
+  --accent-hover: #588570;
+  --accent-soft: #e4f0e9;
+  --accent-text: #f7fcf9;
+  --danger: #c97b7b;
+  --danger-soft: #f6e8e8;
+  --warning: #b9975c;
+  --warning-soft: #f4ecdf;
+  --success: #5d9a78;
+  --success-soft: #e1f0e7;
+
+  --st-backlog: #8a9a91;
+  --st-in_progress: #5d9a78;
+  --st-blocked: #c97b7b;
+  --st-on_hold: #b9975c;
+  --st-failed: #4d5e55;
+  --st-done: #6a92b0;
+  --st-cancelled: #8f9cba;
+
+  --p1: #c97b7b;
+  --p2: #c49a6c;
+  --p3: #6a92b0;
+  --p4: #9aada3;
+
+  --shadow-sm: 0 1px 2px rgb(40 70 55 / 0.06);
+  --shadow: 0 1px 3px rgb(40 70 55 / 0.07), 0 4px 14px rgb(40 70 55 / 0.05);
+  --shadow-md: 0 8px 22px rgb(40 70 55 / 0.1);
+  --shadow-lg: 0 14px 36px rgb(40 70 55 / 0.13);
+}
+
+:root[data-theme='sky'] {
+  color-scheme: light;
+  --bg: #eef3f8;
+  --surface: #fbfdff;
+  --surface-2: #e5edf5;
+  --surface-hover: #f3f7fb;
+  --border: #d5e0ec;
+  --border-strong: #b7c8da;
+  --text: #222a36;
+  --text-2: #4d596a;
+  --muted: #7d8a9a;
+  --accent: #6e93c4;
+  --accent-hover: #5879a8;
+  --accent-soft: #e4edf7;
+  --accent-text: #f7fbff;
+  --danger: #d07f8e;
+  --danger-soft: #f7e8ec;
+  --warning: #c09a62;
+  --warning-soft: #f5eddf;
+  --success: #5f9a86;
+  --success-soft: #e2f1eb;
+
+  --st-backlog: #8a95a5;
+  --st-in_progress: #5f9a86;
+  --st-blocked: #d07f8e;
+  --st-on_hold: #c09a62;
+  --st-failed: #4d596a;
+  --st-done: #6e93c4;
+  --st-cancelled: #8f8cba;
+
+  --p1: #d07f8e;
+  --p2: #c49a6c;
+  --p3: #6e93c4;
+  --p4: #9aa8b8;
+
+  --shadow-sm: 0 1px 2px rgb(50 70 100 / 0.06);
+  --shadow: 0 1px 3px rgb(50 70 100 / 0.07), 0 4px 14px rgb(50 70 100 / 0.05);
+  --shadow-md: 0 8px 22px rgb(50 70 100 / 0.1);
+  --shadow-lg: 0 14px 36px rgb(50 70 100 / 0.13);
+}
+
+/* Coolors: edede9 d6ccc2 f5ebe0 e3d5ca d5bdaf */
+:root[data-theme='sand'] {
+  color-scheme: light;
+  --bg: #f5ebe0;
+  --surface: #edede9;
+  --surface-2: #e3d5ca;
+  --surface-hover: #ebe4dc;
+  --border: #d6ccc2;
+  --border-strong: #d5bdaf;
+  --text: #3a322c;
+  --text-2: #5c534c;
+  --muted: #8f857c;
+  --accent: #d5bdaf;
+  --accent-hover: #c4a898;
+  --accent-soft: #efe6dc;
+  --accent-text: #2f2924;
+  --danger: #c47d74;
+  --danger-soft: #f3e4e0;
+  --warning: #b8956a;
+  --warning-soft: #f3eadc;
+  --success: #7a9a7e;
+  --success-soft: #e5eee6;
+
+  --st-backlog: #a3988e;
+  --st-in_progress: #7a9a7e;
+  --st-blocked: #c47d74;
+  --st-on_hold: #b8956a;
+  --st-failed: #5c534c;
+  --st-done: #8a9aab;
+  --st-cancelled: #a392a8;
+
+  --p1: #c47d74;
+  --p2: #c49a6c;
+  --p3: #8a9aab;
+  --p4: #b0a59c;
+
+  --shadow-sm: 0 1px 2px rgb(90 70 55 / 0.07);
+  --shadow: 0 1px 3px rgb(90 70 55 / 0.08), 0 4px 14px rgb(90 70 55 / 0.06);
+  --shadow-md: 0 8px 22px rgb(90 70 55 / 0.11);
+  --shadow-lg: 0 14px 36px rgb(90 70 55 / 0.14);
+}
+
 /* Touch devices: bigger hit areas for icon buttons and controls. */
 @media (pointer: coarse) {
   :root {

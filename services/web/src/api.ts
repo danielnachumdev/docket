@@ -282,9 +282,17 @@ export type VersionStatus = {
   release_url: string | null
 }
 
+export type CustomThemePreference = {
+  id: string
+  name: string
+  base: 'light' | 'dark'
+  tokens: Record<string, string>
+}
+
 export type UserPreferences = {
-  theme: 'light' | 'dark' | null
+  theme: string | null
   locale: 'en' | 'he' | null
+  custom_themes: CustomThemePreference[] | null
 }
 
 async function requestError(res: Response): Promise<never> {
