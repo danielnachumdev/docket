@@ -3106,3 +3106,17 @@ a.notification-link:hover {
     display: none;
   }
 }
+
+.contact-row {
+  align-items: flex-start;
+}
+
+.contact-nick-form {
+  margin-top: 0.35rem;
+  max-width: 100%;
+}
+
+.contact-nick-form > input {
+  min-width: 0;
+  max-width: 12rem;
+}

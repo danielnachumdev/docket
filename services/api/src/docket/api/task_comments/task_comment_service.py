@@ -48,14 +48,19 @@ class TaskCommentService:
         self, principal: Principal, task_ref: str
     ) -> list[MentionableUserOut]:
         task = self._access.get_task(principal, task_ref, "tasks:read")
+        people = self._refs.mentionable_users(task)
+        nicknames = self._refs.nicknames_for_viewer(
+            principal.user_id, {user.id for user in people}
+        )
         return [
             MentionableUserOut(
                 user_id=user.id,
                 email=user.email,
                 display_name=user.display_name,
-                handle=self._mention_handle(user),
+                handle=self._mention_handle(user, nicknames.get(user.id)),
+                nickname=nicknames.get(user.id),
             )
-            for user in self._refs.mentionable_users(task)
+            for user in people
         ]
 
     def create(
@@ -258,7 +263,9 @@ class TaskCommentService:
         return raw if isinstance(raw, list) else []
 
     @staticmethod
-    def _mention_handle(user: User) -> str:
+    def _mention_handle(user: User, nickname: str | None) -> str:
+        if nickname:
+            return nickname
         if user.email:
             return user.email
         cleaned = "".join(

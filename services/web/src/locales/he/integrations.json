@@ -84,11 +84,19 @@
     "title": "אנשים",
     "subtitle": "אנשים שכבר שיתפתם איתם משימות או שהזמנתם — לגילוי ושיתוף. אין מדריך משתמשים גלובלי.",
     "searchLabel": "חיפוש אנשים",
-    "searchPlaceholder": "חיפוש לפי שם או אימייל…",
+    "searchPlaceholder": "חיפוש לפי שם, אימייל או כינוי…",
     "emptyTitle": "עדיין אין אנשים",
     "emptyHint": "שתפו משימה או הזמינו מישהו כדי לבנות את אנשי הקשר.",
     "emptySearchHint": "אין התאמות באנשי הקשר שלכם.",
     "fromGraph": "מגרף השיתוף שלכם",
-    "loadFailed": "לא ניתן לטעון אנשים"
+    "loadFailed": "לא ניתן לטעון אנשים",
+    "nicknameLabel": "כינוי",
+    "nicknamePlaceholder": "כינוי פרטי (למשל dana)",
+    "nicknameUnset": "אין כינוי",
+    "nicknameValue": "@{{nickname}}",
+    "setNickname": "הגדרת כינוי",
+    "editNickname": "עריכת כינוי",
+    "clearNickname": "נקה",
+    "nicknameSaveFailed": "לא ניתן לשמור כינוי"
   }
 }

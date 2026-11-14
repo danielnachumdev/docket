@@ -32,6 +32,7 @@ class MentionableUserOut(BaseModel):
     email: str | None
     display_name: str
     handle: str
+    nickname: str | None = None
 
 
 class NotificationOut(BaseModel):

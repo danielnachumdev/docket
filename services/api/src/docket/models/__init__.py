@@ -1,5 +1,6 @@
 from docket.models.api_token import ApiToken
 from docket.models.artifact import Artifact
+from docket.models.contact_nickname import ContactNickname
 from docket.models.membership import Membership
 from docket.models.notification import Notification
 from docket.models.permission import Permission
@@ -18,6 +19,7 @@ from docket.models.webhook_subscription import WebhookSubscription
 __all__ = [
     "ApiToken",
     "Artifact",
+    "ContactNickname",
     "Membership",
     "Notification",
     "Permission",

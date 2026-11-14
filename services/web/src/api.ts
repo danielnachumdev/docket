@@ -169,12 +169,14 @@ export type MentionableUser = {
   email: string | null
   display_name: string
   handle: string
+  nickname: string | null
 }
 
 export type Contact = {
   id: number
   email: string | null
   display_name: string
+  nickname: string | null
 }
 
 export type TaskShare = {
@@ -301,6 +303,11 @@ export const api = {
     const qs = params.toString()
     return request<Contact[]>(`/api/me/contacts${qs ? `?${qs}` : ''}`)
   },
+  patchContactNickname: (userId: number, nickname: string | null) =>
+    request<Contact>(`/api/me/contacts/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ nickname }),
+    }),
   bootstrap: (body: { email: string; display_name: string; password: string }) =>
     request<User>('/api/auth/bootstrap', { method: 'POST', body: JSON.stringify(body) }),
   login: (body: { email: string; password: string }) =>
