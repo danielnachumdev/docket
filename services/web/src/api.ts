@@ -90,11 +90,44 @@ export type Artifact = {
   content_text: string | null
   storage_key: string | null
   content_type: string | null
+  /** Stored blob bytes for kind=file; 0 for inline kinds. */
+  byte_size?: number
   created_by_user_id: number
   created_at: string
   can_modify?: boolean
   task_title?: string | null
   task_number?: number | null
+}
+
+export type StorageKindTotal = {
+  kind: string
+  artifact_count: number
+  stored_bytes: number
+}
+
+export type StorageUploader = {
+  user_id: number
+  email: string | null
+  display_name: string
+  artifact_count: number
+  stored_bytes: number
+}
+
+export type StorageTask = {
+  task_id: string
+  task_number: number
+  title: string
+  artifact_count: number
+  stored_bytes: number
+}
+
+export type StorageOverview = {
+  size_note: string
+  artifact_count: number
+  stored_bytes: number
+  by_kind: StorageKindTotal[]
+  by_uploader: StorageUploader[]
+  top_tasks: StorageTask[]
 }
 
 export type TaskLink = {
@@ -332,6 +365,7 @@ export const api = {
     }),
   revokeInvite: (id: number) =>
     request<void>(`/api/invites/${id}`, { method: 'DELETE' }),
+  getAdminStorage: () => request<StorageOverview>('/api/admin/storage'),
   listTasks: (opts?: {
     archived?: boolean
     rootsOnly?: boolean

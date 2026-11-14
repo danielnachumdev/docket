@@ -102,3 +102,18 @@ export function initials(name: string) {
 export function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error ? err.message : fallback
 }
+
+export function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return i18n.t('bytes.zero', { ns: 'common' })
+  }
+  const units = ['B', 'KB', 'MB', 'GB'] as const
+  let value = bytes
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit += 1
+  }
+  const digits = unit === 0 || value >= 10 ? 0 : 1
+  return `${value.toFixed(digits)} ${units[unit]}`
+}

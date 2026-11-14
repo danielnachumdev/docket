@@ -102,8 +102,8 @@ class ArtifactService:
         self, principal: Principal, task_ref: str, body: ArtifactCreate
     ) -> Artifact:
         task = self._access.get_task(principal, task_ref, "artifacts:write")
-        storage_key, content_type, content_text = self._prepare_create_payload(
-            task.id, body
+        storage_key, content_type, content_text, byte_size = (
+            self._prepare_create_payload(task.id, body)
         )
         artifact = Artifact(
             task_id=task.id,
@@ -112,6 +112,7 @@ class ArtifactService:
             content_text=content_text,
             storage_key=storage_key,
             content_type=content_type,
+            byte_size=byte_size,
             created_by_user_id=principal.user_id,
             created_by_token_id=principal.token_id,
         )
@@ -191,23 +192,23 @@ class ArtifactService:
 
     def _prepare_create_payload(
         self, task_id: int, body: ArtifactCreate
-    ) -> tuple[str | None, str | None, str | None]:
+    ) -> tuple[str | None, str | None, str | None, int]:
         if body.kind == "file":
             return self._store_file_payload(task_id, body)
         if body.kind == "link" and not (body.content_text or "").strip():
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "link artifacts require content_text URL"
             )
-        return None, body.content_type, body.content_text
+        return None, body.content_type, body.content_text, 0
 
     def _store_file_payload(
         self, task_id: int, body: ArtifactCreate
-    ) -> tuple[str, str | None, str | None]:
+    ) -> tuple[str, str | None, str | None, int]:
         data = self._decode_base64(body.content_base64, required=True)
         key = self._new_storage_key(task_id)
         content_type = body.content_type or "application/octet-stream"
         self._storage.put(key, data, content_type=content_type)
-        return key, content_type, body.content_text
+        return key, content_type, body.content_text, len(data)
 
     def _apply_update(self, artifact: Artifact, body: ArtifactUpdate) -> dict:
         changes: dict = {}
@@ -232,6 +233,7 @@ class ArtifactService:
         self._storage.put(key, data, content_type=content_type)
         artifact.storage_key = key
         artifact.content_type = content_type
+        artifact.byte_size = len(data)
         if artifact.kind != "file" and artifact.kind in {"text", "json"}:
             artifact.content_text = None
 

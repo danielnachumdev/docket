@@ -156,6 +156,8 @@ class ArtifactOut(BaseModel):
     content_text: str | None
     storage_key: str | None
     content_type: str | None
+    # Stored blob bytes for kind=file; 0 for inline kinds.
+    byte_size: int = 0
     created_by_user_id: int
     created_at: datetime
     can_modify: bool = False

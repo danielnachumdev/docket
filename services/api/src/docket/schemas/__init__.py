@@ -1,3 +1,9 @@
+from docket.schemas.admin_storage import (
+    StorageKindTotalOut,
+    StorageOverviewOut,
+    StorageTaskOut,
+    StorageUploaderOut,
+)
 from docket.schemas.auth import (
     AuthStatusOut,
     BootstrapIn,
@@ -85,6 +91,10 @@ __all__ = [
     "SavedViewCreate",
     "SavedViewOut",
     "SavedViewUpdate",
+    "StorageKindTotalOut",
+    "StorageOverviewOut",
+    "StorageTaskOut",
+    "StorageUploaderOut",
     "TaskBulkUpdate",
     "TaskClaimIn",
     "TaskCommentIn",

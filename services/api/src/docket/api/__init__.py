@@ -1,5 +1,6 @@
 """HTTP routers."""
 
+from docket.api.admin import admin_storage_api
 from docket.api.artifacts import artifacts_api
 from docket.api.auth import auth_api
 from docket.api.contacts import contacts_api
@@ -16,6 +17,7 @@ from docket.api.version import version_api
 from docket.api.webhooks import webhooks_api
 
 __all__ = [
+    "admin_storage_api",
     "artifacts_api",
     "auth_api",
     "contacts_api",
