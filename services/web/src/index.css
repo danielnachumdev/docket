@@ -54,6 +54,13 @@
   text-rendering: optimizeLegibility;
 }
 
+/* Desktop monitors: slightly larger base type so 100% zoom feels usable. */
+@media (min-width: 1100px) {
+  :root {
+    font-size: 16px;
+  }
+}
+
 :root[data-theme='dark'] {
   color-scheme: dark;
   --bg: #0c0e12;
