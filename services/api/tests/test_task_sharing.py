@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from docket.db import database
 from docket.main import create_app
-from docket.models import Membership, Role, User
+from docket.models import Membership, Notification, Role, User
 from docket.security import password_hasher
 
 
@@ -148,6 +148,49 @@ def test_share_requires_existing_user_and_owner() -> None:
         json={"email": "ops@example.com", "role": "viewer"},
     )
     assert forbidden.status_code == 403
+
+
+def test_share_notifies_sharee_not_actor() -> None:
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = client.post("/api/tasks", json={"title": "Notify board"}).json()["id"]
+    alex = _create_user("alex@example.com", "Alex", "password123")
+
+    share = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "alex@example.com", "role": "viewer"},
+    )
+    assert share.status_code == 201
+    membership_id = share.json()["id"]
+
+    assert client.get("/api/notifications/unread-count").json()["count"] == 0
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    feed = client.get("/api/notifications").json()
+    assert len(feed) == 1
+    note = feed[0]
+    assert note["kind"] == "shared"
+    assert note["task_id"] == task_id
+    assert note["user_id"] == alex.id
+    assert note["read_at"] is None
+    assert "Notify board" in note["title"]
+
+    client.post("/api/auth/logout")
+    _login(client, "ops@example.com", "password1234")
+    unshare = client.delete(f"/api/tasks/{task_id}/shares/{membership_id}")
+    assert unshare.status_code == 204
+
+    session = database.session()
+    try:
+        kinds = list(
+            session.scalars(
+                select(Notification.kind).where(Notification.user_id == alex.id)
+            ).all()
+        )
+    finally:
+        session.close()
+    assert kinds == ["shared"]
 
 
 def test_share_upserts_role() -> None:

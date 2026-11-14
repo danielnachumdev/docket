@@ -11,6 +11,7 @@
     "status_changed": "Status",
     "commented": "Comment",
     "mentioned": "Mention",
+    "shared": "Shared",
     "invite_accepted": "Invite"
   }
 }

@@ -4,6 +4,8 @@ WEBHOOK_EVENT_TYPES = frozenset(
         "claimed",
         "released",
         "commented",
+        "shared",
+        "unshared",
     }
 )
 

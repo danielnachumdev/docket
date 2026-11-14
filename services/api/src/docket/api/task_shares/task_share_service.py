@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -6,8 +8,10 @@ from docket.auth.principal import Principal
 from docket.auth.rbac import RbacService
 from docket.auth.task_access_service import TaskAccessService
 from docket.events import task_event_recorder
-from docket.models import Membership, Role, User
+from docket.models import Membership, Role, Task, TaskEvent, User
+from docket.notifications import notification_dispatcher
 from docket.schemas import TaskShareCreate, TaskShareOut
+from docket.webhooks import WebhookDeliveryService
 
 
 class TaskShareService:
@@ -51,19 +55,21 @@ class TaskShareService:
             )
 
         membership = self._upsert_membership(user.id, task.id, role.id)
-        task_event_recorder.record(
+        payload = {
+            "membership_id": membership.id,
+            "user_id": user.id,
+            "email": user.email,
+            "role": role.name,
+        }
+        event = task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="shared",
             actor=principal,
-            payload={
-                "membership_id": membership.id,
-                "user_id": user.id,
-                "email": user.email,
-                "role": role.name,
-            },
+            payload=payload,
         )
-        self._db.commit()
+        self._notify_sharee(task, principal, user, role.name)
+        self._commit_and_dispatch(task, event, payload)
         self._db.refresh(membership)
         return self._share_out(membership, user, role)
 
@@ -79,18 +85,52 @@ class TaskShareService:
         ):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Share not found")
 
-        task_event_recorder.record(
+        payload = self._unshare_payload(membership)
+        event = task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="unshared",
             actor=principal,
-            payload={
-                "membership_id": membership.id,
-                "user_id": membership.user_id,
-            },
+            payload=payload,
         )
         self._db.delete(membership)
+        self._commit_and_dispatch(task, event, payload)
+
+    def _notify_sharee(
+        self, task: Task, principal: Principal, user: User, role_name: str
+    ) -> None:
+        notification_dispatcher(self._db).notify_user(
+            user_id=user.id,
+            actor_user_id=principal.user_id,
+            kind="shared",
+            title=f"Shared “{task.title}” with you",
+            body=f"You were granted {role_name} access.",
+            payload={"role": role_name, "email": user.email},
+            task_id=task.id,
+        )
+
+    def _unshare_payload(self, membership: Membership) -> dict[str, Any]:
+        user = self._db.get(User, membership.user_id)
+        role = self._db.get(Role, membership.role_id)
+        payload: dict[str, Any] = {
+            "membership_id": membership.id,
+            "user_id": membership.user_id,
+        }
+        if user is not None:
+            payload["email"] = user.email
+        if role is not None:
+            payload["role"] = role.name
+        return payload
+
+    def _commit_and_dispatch(
+        self, task: Task, event: TaskEvent, data: dict[str, Any]
+    ) -> None:
         self._db.commit()
+        self._db.refresh(task)
+        self._db.refresh(event)
+        WebhookDeliveryService(self._db).deliver_for_event(
+            task=task, event=event, data=data
+        )
 
     def _upsert_membership(
         self, user_id: int, task_id: int, role_id: int
