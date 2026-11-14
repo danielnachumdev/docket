@@ -1,38 +1,16 @@
 import { useEffect, useState } from 'react'
-import { api } from '../../api'
+import { useArtifactObjectUrl } from '../../lib/useArtifactObjectUrl'
 
 type Props = {
   taskId: string
   artifactId: number
   title: string
+  contentType: string | null
 }
 
-export function ArtifactImagePreview({ taskId, artifactId, title }: Props) {
-  const [src, setSrc] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+export function ArtifactImagePreview({ taskId, artifactId, title, contentType }: Props) {
+  const { src, error } = useArtifactObjectUrl({ taskId, artifactId, title, contentType })
   const [lightbox, setLightbox] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    let objectUrl: string | null = null
-    setSrc(null)
-    setError(null)
-    void (async () => {
-      try {
-        const blob = await api.fetchArtifactContentBlob(taskId, artifactId, title)
-        if (cancelled) return
-        objectUrl = URL.createObjectURL(blob)
-        setSrc(objectUrl)
-      } catch (err) {
-        if (cancelled) return
-        setError(err instanceof Error ? err.message : 'Preview failed')
-      }
-    })()
-    return () => {
-      cancelled = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [taskId, artifactId, title])
 
   useEffect(() => {
     if (!lightbox) return
