@@ -2100,6 +2100,44 @@ a.list-row:hover {
   margin: 0;
 }
 
+.artifacts-library {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.toolbar-sort {
+  flex: none;
+}
+
+.artifact-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+  min-width: 0;
+}
+
+.artifact-group-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artifact-group-title:hover {
+  color: var(--accent);
+}
+
+.artifact-group-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
 .artifacts-library .task-chip-link {
   color: inherit;
   text-decoration: underline;
