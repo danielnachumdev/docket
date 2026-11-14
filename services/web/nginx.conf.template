@@ -14,8 +14,9 @@ server {
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     # Practical CSP for the Vite SPA: same-origin assets + /api; inline theme
     # boot script and React style={{}} need 'unsafe-inline'; blob:/data: for
-    # artifact previews. frame-ancestors backs X-Frame-Options.
-    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'" always;
+    # artifact image/PDF/audio/video previews (img-src / frame-src / media-src).
+    # frame-ancestors backs X-Frame-Options.
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; frame-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self'" always;
 
     # API_UPSTREAM is substituted at container start (e.g. api:8000 or docket-api:8000).
     # Match API artifact_max_bytes default (10 MiB) for content_base64 uploads.
