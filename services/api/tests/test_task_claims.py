@@ -256,3 +256,164 @@ def test_session_cannot_claim_but_can_override_release() -> None:
     claimed_events = [e for e in detail.json()["events"] if e["type"] == "claimed"]
     assert claimed_events
     assert claimed_events[0]["actor_token_id"] == token_id
+
+
+def test_agent_without_claim_cannot_patch_or_set_status() -> None:
+    client = TestClient(create_app())
+    user = bootstrap_owner(client)
+    task_id = _create_task(client)
+    raw, _ = mint_api_token(user_id=user["id"], name="demo-api")
+    headers = bearer(raw)
+
+    patched = client.patch(
+        f"/api/tasks/{task_id}",
+        json={"title": "Should fail"},
+        headers=headers,
+    )
+    assert patched.status_code == 409, patched.text
+    assert patched.json()["detail"] == "Active claim required"
+
+    status_res = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "in_progress"},
+        headers=headers,
+    )
+    assert status_res.status_code == 409, status_res.text
+    assert status_res.json()["detail"] == "Active claim required"
+
+    # Reads and create remain allowed without a lease.
+    assert client.get(f"/api/tasks/{task_id}", headers=headers).status_code == 200
+    created = client.post(
+        "/api/tasks",
+        json={"title": "No lease needed"},
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+
+
+def test_agent_with_claim_can_patch_and_set_status() -> None:
+    client = TestClient(create_app())
+    user = bootstrap_owner(client)
+    task_id = _create_task(client)
+    raw, token_id = mint_api_token(user_id=user["id"], name="demo-api")
+    headers = bearer(raw)
+
+    claimed = client.post(
+        f"/api/tasks/{task_id}/claim",
+        json={"lease_seconds": 120},
+        headers=headers,
+    )
+    assert claimed.status_code == 200, claimed.text
+    assert claimed.json()["claimed_by_token_id"] == token_id
+
+    patched = client.patch(
+        f"/api/tasks/{task_id}",
+        json={"title": "Agent updated"},
+        headers=headers,
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["title"] == "Agent updated"
+
+    status_res = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "in_progress"},
+        headers=headers,
+    )
+    assert status_res.status_code == 200, status_res.text
+    assert status_res.json()["status"] == "in_progress"
+
+
+def test_second_agent_blocked_from_writes_while_lease_held() -> None:
+    client = TestClient(create_app())
+    user = bootstrap_owner(client)
+    task_id = _create_task(client)
+    raw_a, _ = mint_api_token(user_id=user["id"], name="agent-a")
+    raw_b, _ = mint_api_token(user_id=user["id"], name="agent-b")
+
+    assert (
+        client.post(f"/api/tasks/{task_id}/claim", headers=bearer(raw_a)).status_code
+        == 200
+    )
+
+    denied = client.patch(
+        f"/api/tasks/{task_id}",
+        json={"title": "Hijack"},
+        headers=bearer(raw_b),
+    )
+    assert denied.status_code == 409
+    assert denied.json()["detail"] == "Active claim required"
+
+    denied_status = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "blocked"},
+        headers=bearer(raw_b),
+    )
+    assert denied_status.status_code == 409
+    assert denied_status.json()["detail"] == "Active claim required"
+
+
+def test_session_user_can_write_while_agent_holds_lease() -> None:
+    client = TestClient(create_app())
+    user = bootstrap_owner(client)
+    task_id = _create_task(client)
+    raw, _ = mint_api_token(user_id=user["id"], name="demo-api")
+
+    assert (
+        client.post(f"/api/tasks/{task_id}/claim", headers=bearer(raw)).status_code
+        == 200
+    )
+
+    patched = client.patch(f"/api/tasks/{task_id}", json={"title": "Human override"})
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["title"] == "Human override"
+
+    status_res = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "on_hold"},
+    )
+    assert status_res.status_code == 200, status_res.text
+    assert status_res.json()["status"] == "on_hold"
+    assert status_res.json()["claimed_by_token_id"] is not None
+
+
+def test_expired_lease_blocks_agent_write_until_reclaim() -> None:
+    client = TestClient(create_app())
+    user = bootstrap_owner(client)
+    task_id = _create_task(client)
+    raw, token_id = mint_api_token(user_id=user["id"], name="demo-api")
+    headers = bearer(raw)
+
+    assert client.post(f"/api/tasks/{task_id}/claim", headers=headers).status_code == 200
+
+    db = database.SessionLocal()
+    try:
+        task = db.get(Task, internal_task_id(task_id))
+        assert task is not None
+        task.claimed_by_token_id = token_id
+        task.claim_expires_at = datetime.now(UTC) - timedelta(seconds=5)
+        db.commit()
+    finally:
+        db.close()
+
+    blocked = client.patch(
+        f"/api/tasks/{task_id}",
+        json={"title": "Stale lease"},
+        headers=headers,
+    )
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"] == "Active claim required"
+
+    reclaimed = client.post(
+        f"/api/tasks/{task_id}/claim",
+        json={"lease_seconds": 120},
+        headers=headers,
+    )
+    assert reclaimed.status_code == 200, reclaimed.text
+
+    ok = client.patch(
+        f"/api/tasks/{task_id}",
+        json={"title": "After reclaim"},
+        headers=headers,
+    )
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["title"] == "After reclaim"
