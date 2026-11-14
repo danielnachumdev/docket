@@ -78,6 +78,14 @@ Per-user UI prefs sync via `GET`/`PATCH /api/me/preferences` (authenticated). St
 - Guests stay local-only; `localStorage` is a first-paint / pre-auth cache only.
 - **Add a key:** extend `schemas/preferences.py` allowlist + `PreferencesCodec`, add a client apply handler in `services/web/src/preferences.tsx`, mirror cache key if needed for FOUC.
 
+## SPA i18n
+
+UI copy lives under `services/web/src/locales/{en,he}/` (JSON namespaces registered in `services/web/src/i18n/index.ts`). Hebrew mirrors English keys; the shell flips RTL when `locale=he`.
+
+- **Add or rename a string:** update **both** `en` and `he` for that namespace. Hebrew plurals use `_one` / `_two` / `_other`.
+- **Check:** `cd services/web && npm run check:locales` (also runs as part of `npm run build`).
+- Do not hard-code user-visible English in components when a locale key already exists (or should).
+
 ## Conventions
 
 - Prefer SQLite-lean schema; avoid heavyweight deps without need.
