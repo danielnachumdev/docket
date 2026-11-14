@@ -113,6 +113,8 @@
   },
   "activity": {
     "title": "Activity",
+    "expand": "Expand activity",
+    "collapse": "Collapse activity",
     "empty": "No activity yet.",
     "actor": "Actor",
     "payload": "Details",
