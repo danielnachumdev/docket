@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom'
 import { api, type Artifact } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon, type IconName } from '../components/Icon'
-import { isImageArtifact } from '../lib/artifactMedia'
 import { formatDateTime, formatRelative } from '../lib/format'
 import { useAction } from '../lib/useAction'
-import { ArtifactImagePreview } from './task-detail/ArtifactImagePreview'
+import { ArtifactFilePreview } from './task-detail/ArtifactFilePreview'
 
 const KIND_ICONS: Record<string, IconName> = {
   text: 'text',
@@ -154,11 +153,7 @@ export function ArtifactsPage() {
               {a.kind === 'link' && a.content_text && !isUrl(a.content_text) && (
                 <p className="muted small break">{a.content_text}</p>
               )}
-              {isImageArtifact(a) && (a.storage_key || a.content_text) && (
-                <div className="artifact-body">
-                  <ArtifactImagePreview taskId={a.task_id} artifactId={a.id} title={a.title} />
-                </div>
-              )}
+              <ArtifactFilePreview taskId={a.task_id} artifact={a} />
             </li>
           ))}
         </ul>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api, type SavedView, type Task } from '../api'
 import { useAuth } from '../auth'
@@ -99,6 +100,7 @@ function TaskRow({
   onToggleUnread,
   onReorderSiblings,
 }: RowProps) {
+  const { t } = useTranslation('tasks')
   const closed = isClosed(task.status)
   const done = task.status === 'done'
   const unread = Boolean(task.unread)
@@ -124,13 +126,13 @@ function TaskRow({
               className="task-select"
               checked={isSelected}
               onChange={() => onToggleSelect(task.id)}
-              aria-label={`Select “${task.title}”`}
+              aria-label={t('selectTask', { title: task.title })}
             />
             {task.children.length > 0 ? (
               <button
                 type="button"
                 className="icon-btn ghost expand"
-                aria-label={isCollapsed ? 'Expand subtasks' : 'Collapse subtasks'}
+                aria-label={isCollapsed ? t('expandSubtasks') : t('collapseSubtasks')}
                 aria-expanded={!isCollapsed}
                 onClick={() => onToggleCollapse(task.id)}
               >
@@ -142,8 +144,8 @@ function TaskRow({
             <button
               type="button"
               className={`check status-${task.status}`}
-              aria-label={done ? `Reopen “${task.title}”` : `Mark “${task.title}” done`}
-              title={done ? 'Reopen' : 'Mark done'}
+              aria-label={done ? t('reopenTask', { title: task.title }) : t('markDone', { title: task.title })}
+              title={done ? t('reopenShort') : t('markDoneShort')}
               onClick={() => onToggleDone(task)}
             >
               <Icon name="check" size={12} />
@@ -152,7 +154,7 @@ function TaskRow({
               <span className="task-title-row">
                 {unread && <span className="unread-dot" aria-hidden="true" />}
                 {shared && (
-                  <span className="shared-mark" title="Shared" aria-label="Shared">
+                  <span className="shared-mark" title={t('shared')} aria-label={t('shared')}>
                     <Icon name="users" size={12} />
                   </span>
                 )}
@@ -162,7 +164,7 @@ function TaskRow({
                 <PriorityBadge priority={task.priority} />
                 <DueBadge due={task.due_at} closed={closed} />
                 {kids.length > 0 && (
-                  <span className="meta-item" title="Subtasks done">
+                  <span className="meta-item" title={t('subtasksDone')}>
                     <Icon name="subtasks" size={13} />
                     {kidsDone}/{kids.length}
                   </span>
@@ -175,9 +177,13 @@ function TaskRow({
               className={
                 unread ? 'icon-btn ghost unread-toggle active' : 'icon-btn ghost unread-toggle'
               }
-              aria-label={unread ? `Mark “${task.title}” read` : `Mark “${task.title}” unread`}
+              aria-label={
+                unread
+                  ? t('markReadNamed', { title: task.title })
+                  : t('markUnreadNamed', { title: task.title })
+              }
               aria-pressed={unread}
-              title={unread ? 'Mark read' : 'Mark unread'}
+              title={unread ? t('markRead') : t('markUnread')}
               onClick={() => onToggleUnread(task)}
             >
               <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
@@ -215,6 +221,7 @@ function TaskRow({
 }
 
 export function TaskListPage() {
+  const { t } = useTranslation(['tasks', 'common', 'domain'])
   const [searchParams, setSearchParams] = useSearchParams()
   const archived = searchParams.get('view') === 'archived'
   const layout = searchParams.get('layout') === 'kanban' ? 'kanban' : 'list'
@@ -339,11 +346,11 @@ export function TaskListPage() {
       await api.createTask({ title: title.trim(), priority })
       setTitle('')
       await load()
-    }, 'Could not create task')
+    }, t('tasks:createFailed'))
   }
 
   function onSaveView() {
-    const name = window.prompt('Name for this saved view')
+    const name = window.prompt(t('tasks:saveViewPrompt'))
     if (!name?.trim()) return
     void run(async () => {
       const created = await api.createSavedView({
@@ -354,16 +361,16 @@ export function TaskListPage() {
       })
       setSavedViews((prev) => [...prev, created])
       setActiveSavedId(created.id)
-    }, 'Could not save view')
+    }, t('tasks:saveViewFailed'))
   }
 
   function onDeleteSavedView(view: SavedView) {
-    if (!window.confirm(`Delete saved view “${view.name}”?`)) return
+    if (!window.confirm(t('tasks:deleteSavedViewConfirm', { name: view.name }))) return
     void run(async () => {
       await api.deleteSavedView(view.id)
       setSavedViews((prev) => prev.filter((v) => v.id !== view.id))
       if (activeSavedId === view.id) setActiveSavedId(null)
-    }, 'Could not delete view')
+    }, t('tasks:deleteViewFailed'))
   }
 
   function toggleDone(task: Task) {
@@ -454,7 +461,7 @@ export function TaskListPage() {
         return next
       })
       clearSelection()
-    }, 'Could not update selected tasks')
+    }, t('tasks:bulkUpdateFailed'))
   }
 
   const statusChips: StatusChip[] = ['active', 'all', ...STATUSES]
@@ -471,16 +478,19 @@ export function TaskListPage() {
     >
       <header className="page-header">
         <div>
-          <h1>{archived ? 'Archived' : 'Tasks'}</h1>
+          <h1>{archived ? t('tasks:archivedTitle') : t('tasks:title')}</h1>
           <p className="muted">
             {tasks == null
-              ? 'Loading…'
+              ? t('common:loadingEllipsis')
               : archived
-                ? `${counts.all} archived task${counts.all === 1 ? '' : 's'}`
-                : `${counts.active} active · ${counts.done ?? 0} done`}
+                ? t('tasks:archivedCount', { count: counts.all })
+                : t('tasks:activeDoneSummary', {
+                    active: counts.active,
+                    done: counts.done ?? 0,
+                  })}
           </p>
         </div>
-        <div className="layout-toggle" role="group" aria-label="Layout">
+        <div className="layout-toggle" role="group" aria-label={t('tasks:layout')}>
           <button
             type="button"
             className={layout === 'list' ? 'btn small active' : 'btn ghost small'}
@@ -488,7 +498,7 @@ export function TaskListPage() {
             onClick={() => setLayout('list')}
           >
             <Icon name="list" size={14} />
-            List
+            {t('tasks:list')}
           </button>
           <button
             type="button"
@@ -497,7 +507,7 @@ export function TaskListPage() {
             onClick={() => setLayout('kanban')}
           >
             <Icon name="columns" size={14} />
-            Board
+            {t('tasks:board')}
           </button>
         </div>
       </header>
@@ -509,8 +519,8 @@ export function TaskListPage() {
           <Icon name="plus" size={18} className="composer-icon" />
           <input
             type="text"
-            placeholder="Add a task…"
-            aria-label="New task title"
+            placeholder={t('tasks:addPlaceholder')}
+            aria-label={t('tasks:newTaskTitle')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
@@ -519,7 +529,7 @@ export function TaskListPage() {
             className="compact-select"
             value={priority}
             onChange={(e) => setPriority(Number(e.target.value))}
-            aria-label="Priority"
+            aria-label={t('tasks:priority')}
           >
             {PRIORITIES.map((p) => (
               <option key={p} value={p}>
@@ -528,7 +538,7 @@ export function TaskListPage() {
             ))}
           </select>
           <button type="submit" className="btn primary" disabled={busy || !title.trim()}>
-            Add
+            {t('common:add')}
           </button>
         </form>
       )}
@@ -538,8 +548,8 @@ export function TaskListPage() {
           <Icon name="search" />
           <input
             type="search"
-            placeholder="Search tasks"
-            aria-label="Search tasks"
+            placeholder={t('tasks:searchPlaceholder')}
+            aria-label={t('tasks:searchPlaceholder')}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
@@ -547,7 +557,7 @@ export function TaskListPage() {
             }}
           />
         </label>
-        <div className="chips" role="tablist" aria-label="Filter by status">
+        <div className="chips" role="tablist" aria-label={t('tasks:filterByStatus')}>
           {statusChips.map((f) => (
             <button
               key={f}
@@ -557,7 +567,7 @@ export function TaskListPage() {
               className={activeSavedId == null && filter === f ? 'chip active' : 'chip'}
               onClick={() => selectFilter(f)}
             >
-              {f === 'active' ? 'Active' : f === 'all' ? 'All' : statusLabel(f)}
+              {filterLabel(f)}
               <span className="chip-count">{counts[f] ?? 0}</span>
             </button>
           ))}
@@ -565,8 +575,8 @@ export function TaskListPage() {
       </div>
 
       {!archived && (
-        <div className="views-bar" aria-label="Smart and saved views">
-          <div className="chips views-chips" role="tablist" aria-label="Smart filters">
+        <div className="views-bar" aria-label={t('tasks:smartAndSavedViews')}>
+          <div className="chips views-chips" role="tablist" aria-label={t('tasks:smartFilters')}>
             {SMART_FILTERS.map((f) => (
               <button
                 key={f}
@@ -596,8 +606,8 @@ export function TaskListPage() {
                 <button
                   type="button"
                   className="icon-btn ghost chip-remove"
-                  aria-label={`Delete saved view ${view.name}`}
-                  title="Delete saved view"
+                  aria-label={t('tasks:deleteSavedViewNamed', { name: view.name })}
+                  title={t('tasks:deleteSavedView')}
                   onClick={() => onDeleteSavedView(view)}
                 >
                   <Icon name="x" size={12} />
@@ -611,7 +621,7 @@ export function TaskListPage() {
             disabled={busy}
             onClick={onSaveView}
           >
-            Save view
+            {t('tasks:saveView')}
           </button>
         </div>
       )}
@@ -624,16 +634,16 @@ export function TaskListPage() {
           title={
             tasks.length === 0
               ? archived
-                ? 'Nothing archived'
-                : 'No tasks yet'
-              : 'No matching tasks'
+                ? t('tasks:emptyNoneArchived')
+                : t('tasks:emptyNoneYet')
+              : t('tasks:emptyNoMatch')
           }
         >
           {tasks.length === 0
             ? archived
-              ? 'Archived tasks will show up here.'
-              : 'Add your first task above, or let an agent create one via the API.'
-            : 'Try a different filter or search term.'}
+              ? t('tasks:emptyNoneArchivedHint')
+              : t('tasks:emptyNoneYetHint')
+            : t('tasks:emptyNoMatchHint')}
         </EmptyState>
       ) : layout === 'kanban' ? (
         <TaskKanbanBoard tasks={boardTasks} onStatusChange={applyStatus} />
@@ -645,12 +655,12 @@ export function TaskListPage() {
                 type="checkbox"
                 checked={allVisibleSelected}
                 onChange={toggleSelectAllVisible}
-                aria-label="Select all visible tasks"
+                aria-label={t('tasks:selectAllVisible')}
               />
               <span>
                 {selectedCount > 0
-                  ? `${selectedCount} selected`
-                  : 'Select tasks'}
+                  ? t('tasks:selectedCount', { count: selectedCount })
+                  : t('tasks:selectTasks')}
               </span>
             </label>
           </div>
@@ -678,17 +688,17 @@ export function TaskListPage() {
       )}
 
       {selectedCount > 0 && (
-        <div className="bulkbar" role="toolbar" aria-label="Bulk actions">
+        <div className="bulkbar" role="toolbar" aria-label={t('tasks:bulkActions')}>
           <span className="bulkbar-count">
-            {selectedCount} selected
+            {t('tasks:selectedCount', { count: selectedCount })}
           </span>
           <label className="bulk-field">
-            <span className="sr-only">Bulk status</span>
+            <span className="sr-only">{t('tasks:bulkStatus')}</span>
             <select
               className="compact-select"
               value={bulkStatus}
               onChange={(e) => setBulkStatus(e.target.value as (typeof STATUSES)[number])}
-              aria-label="Bulk status"
+              aria-label={t('tasks:bulkStatus')}
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -703,15 +713,15 @@ export function TaskListPage() {
             disabled={busy}
             onClick={() => applyBulk({ status: bulkStatus })}
           >
-            Set status
+            {t('tasks:setStatus')}
           </button>
           <label className="bulk-field">
-            <span className="sr-only">Bulk priority</span>
+            <span className="sr-only">{t('tasks:bulkPriority')}</span>
             <select
               className="compact-select"
               value={bulkPriority}
               onChange={(e) => setBulkPriority(Number(e.target.value))}
-              aria-label="Bulk priority"
+              aria-label={t('tasks:bulkPriority')}
             >
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
@@ -726,10 +736,10 @@ export function TaskListPage() {
             disabled={busy}
             onClick={() => applyBulk({ priority: bulkPriority })}
           >
-            Set priority
+            {t('tasks:setPriority')}
           </button>
           <button type="button" className="btn ghost small" onClick={clearSelection}>
-            Clear
+            {t('common:clear')}
           </button>
         </div>
       )}

@@ -1,0 +1,21 @@
+{
+  "appName": "Docket",
+  "loading": "Loading",
+  "loadingEllipsis": "Loading…",
+  "working": "Working…",
+  "dismiss": "Dismiss",
+  "clear": "Clear",
+  "add": "Add",
+  "save": "Save",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "language": "Language",
+  "themeToLight": "Switch to light theme",
+  "themeToDark": "Switch to dark theme",
+  "logOut": "Log out",
+  "releaseNotes": "Release notes",
+  "updateAvailable": "Update available",
+  "updateAvailableVersion": "Update available: v{{version}}",
+  "versionAvailable": "v{{version}} available",
+  "emDash": "—"
+}

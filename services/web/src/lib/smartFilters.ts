@@ -1,4 +1,5 @@
 import type { Task } from '../api'
+import i18n from '../i18n'
 import { isClosed, parseDate, statusLabel, type Status } from './format'
 
 export const SMART_FILTERS = [
@@ -14,21 +15,15 @@ export type StatusFilter = 'active' | 'all' | Status
 
 export type FilterKey = StatusFilter | SmartFilter
 
-export const SMART_FILTER_LABELS: Record<SmartFilter, string> = {
-  my_open: 'My open',
-  due_soon: 'Due soon',
-  on_hold_stale: 'On hold > 7d',
-  claimed: 'Claimed by agents',
-}
-
 const DAY_MS = 24 * 3600 * 1000
 export const DUE_SOON_DAYS = 7
 export const ON_HOLD_STALE_DAYS = 7
 
 export function filterLabel(key: FilterKey): string {
-  if (key === 'active') return 'Active'
-  if (key === 'all') return 'All'
-  if (key in SMART_FILTER_LABELS) return SMART_FILTER_LABELS[key as SmartFilter]
+  const domainKey = `filter.${key}`
+  if (i18n.exists(domainKey, { ns: 'domain' })) {
+    return i18n.t(domainKey, { ns: 'domain' })
+  }
   return statusLabel(key)
 }
 

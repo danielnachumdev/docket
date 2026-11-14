@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -22,6 +22,15 @@
             : matchMedia('(prefers-color-scheme: dark)').matches
               ? 'dark'
               : 'light'
+        // Locale registry dirs live in src/i18n; only `en` (ltr) ships today.
+        // When adding RTL locales, map code → dir here to avoid a flash.
+        const locale = localStorage.getItem('docket.locale')
+        const code = (locale || navigator.language || 'en').toLowerCase().split('-')[0]
+        const dirs = { en: 'ltr' }
+        if (dirs[code]) {
+          document.documentElement.lang = code
+          document.documentElement.dir = dirs[code]
+        }
       } catch {}
     </script>
   </head>

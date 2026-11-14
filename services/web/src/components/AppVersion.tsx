@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api, type VersionStatus } from '../api'
 import { Icon } from './Icon'
 
@@ -61,21 +62,23 @@ export function AppVersion({
   info: VersionStatus | null
   compact?: boolean
 }) {
+  const { t } = useTranslation('common')
   if (!info?.version) return null
 
   const label = `v${info.version}`
   const update = info.update_available
   const href = info.release_url
   const updateTitle = info.latest_version
-    ? `Update available: v${info.latest_version}`
-    : 'Update available'
+    ? t('updateAvailableVersion', { version: info.latest_version })
+    : t('updateAvailable')
+  const notesTitle = href ? t('releaseNotes') : undefined
 
   if (compact) {
     return (
       <ReleaseNotesLink
         href={href}
         className={`app-version app-version-compact${update ? ' update' : ' muted'}`}
-        title={update ? updateTitle : href ? 'Release notes' : undefined}
+        title={update ? updateTitle : notesTitle}
       >
         {label}
         {update ? <span className="update-dot" aria-hidden="true" /> : null}
@@ -88,7 +91,7 @@ export function AppVersion({
       <ReleaseNotesLink
         href={href}
         className={`mono version-link${href ? '' : ' muted'}`}
-        title={href ? 'Release notes' : undefined}
+        title={notesTitle}
       >
         {label}
       </ReleaseNotesLink>
@@ -96,10 +99,14 @@ export function AppVersion({
         <ReleaseNotesLink
           href={href}
           className="update-link"
-          title={info.latest_version ? `v${info.latest_version} available` : 'Update available'}
+          title={
+            info.latest_version
+              ? t('versionAvailable', { version: info.latest_version })
+              : t('updateAvailable')
+          }
         >
           <Icon name="external" size={12} />
-          Update available
+          {t('updateAvailable')}
         </ReleaseNotesLink>
       ) : null}
     </div>

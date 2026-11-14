@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth'
 import { Logo } from '../components/AppLayout'
 import { Alert } from '../components/Feedback'
+import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { useAction } from '../lib/useAction'
 
 export function LoginPage() {
+  const { t } = useTranslation(['auth', 'common'])
   const { status, bootstrap, login, error: authError } = useAuth()
   const needsBootstrap = status !== null && !status.bootstrapped
   const [email, setEmail] = useState('')
@@ -19,11 +22,11 @@ export function LoginPage() {
         needsBootstrap
           ? bootstrap({
               email,
-              display_name: displayName || email.split('@')[0] || 'Owner',
+              display_name: displayName || email.split('@')[0] || t('auth:defaultOwnerName'),
               password,
             })
           : login({ email, password }),
-      needsBootstrap ? 'Could not create account' : 'Sign in failed',
+      needsBootstrap ? t('auth:bootstrapFailed') : t('auth:signInFailed'),
     )
   }
 
@@ -32,11 +35,9 @@ export function LoginPage() {
       <div className="auth-card">
         <div className="auth-header">
           <Logo />
-          <h1>{needsBootstrap ? 'Welcome to Docket' : 'Sign in to Docket'}</h1>
+          <h1>{needsBootstrap ? t('auth:welcomeTitle') : t('auth:signInTitle')}</h1>
           <p className="muted">
-            {needsBootstrap
-              ? 'Create the first owner account to get started.'
-              : 'Your task system of record — for you and your agents.'}
+            {needsBootstrap ? t('auth:welcomeSubtitle') : t('auth:signInSubtitle')}
           </p>
         </div>
 
@@ -44,7 +45,7 @@ export function LoginPage() {
 
         <form className="stack" onSubmit={onSubmit}>
           <label className="field">
-            <span>Email</span>
+            <span>{t('auth:email')}</span>
             <input
               type="email"
               autoComplete="username"
@@ -52,22 +53,22 @@ export function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t('auth:emailPlaceholder')}
             />
           </label>
           {needsBootstrap && (
             <label className="field">
-              <span>Display name</span>
+              <span>{t('auth:displayName')}</span>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="How should we call you?"
+                placeholder={t('auth:displayNamePlaceholder')}
               />
             </label>
           )}
           <label className="field">
-            <span>Password</span>
+            <span>{t('auth:password')}</span>
             <input
               type="password"
               autoComplete={needsBootstrap ? 'new-password' : 'current-password'}
@@ -76,16 +77,22 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={
-                needsBootstrap
-                  ? 'At least 12 characters, letter + digit'
-                  : 'Your password'
+                needsBootstrap ? t('auth:passwordPlaceholderNew') : t('auth:passwordPlaceholderSignIn')
               }
             />
           </label>
           <button type="submit" className="btn primary block" disabled={busy}>
-            {busy ? 'Working…' : needsBootstrap ? 'Create owner account' : 'Sign in'}
+            {busy
+              ? t('common:working')
+              : needsBootstrap
+                ? t('auth:createOwnerAccount')
+                : t('auth:signIn')}
           </button>
         </form>
+
+        <div className="auth-lang">
+          <LanguageSwitcher />
+        </div>
       </div>
     </main>
   )

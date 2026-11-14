@@ -1,3 +1,5 @@
+import i18n from '../i18n'
+
 export const STATUSES = [
   'backlog',
   'in_progress',
@@ -11,31 +13,20 @@ export type Status = (typeof STATUSES)[number]
 
 export const PRIORITIES = [1, 2, 3, 4] as const
 
-const STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
-  // Legacy event payloads may still say "open".
-  open: 'Backlog',
-  in_progress: 'In progress',
-  blocked: 'Blocked',
-  on_hold: 'On hold',
-  failed: 'Failed',
-  done: 'Done',
-  cancelled: 'Cancelled',
-}
-
-const PRIORITY_LABELS: Record<number, string> = {
-  1: 'Urgent',
-  2: 'High',
-  3: 'Normal',
-  4: 'Low',
-}
-
 export function statusLabel(status: string) {
-  return STATUS_LABELS[status] ?? humanize(status)
+  const key = `status.${status}`
+  if (i18n.exists(key, { ns: 'domain' })) {
+    return i18n.t(key, { ns: 'domain' })
+  }
+  return humanize(status)
 }
 
 export function priorityLabel(priority: number) {
-  return PRIORITY_LABELS[priority] ?? `P${priority}`
+  const key = `priority.${priority}`
+  if (i18n.exists(key, { ns: 'domain' })) {
+    return i18n.t(key, { ns: 'domain' })
+  }
+  return i18n.t('priority.fallback', { ns: 'domain', priority })
 }
 
 export function isClosed(status: string) {
@@ -58,14 +49,16 @@ export function parseDate(value: string | null | undefined) {
 
 export function formatDateTime(value: string | null | undefined) {
   const d = parseDate(value)
-  if (!d) return '—'
-  return d.toLocaleString(undefined, {
+  if (!d) return i18n.t('emDash', { ns: 'common' })
+  return d.toLocaleString(i18n.language, {
     dateStyle: 'medium',
     timeStyle: 'short',
   })
 }
 
-const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+function relativeFormatter() {
+  return new Intl.RelativeTimeFormat(i18n.language, { numeric: 'auto' })
+}
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 24 * 3600],
@@ -78,14 +71,15 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 
 export function formatRelative(value: string | null | undefined, now = Date.now()) {
   const d = parseDate(value)
-  if (!d) return '—'
+  if (!d) return i18n.t('emDash', { ns: 'common' })
   const seconds = Math.round((d.getTime() - now) / 1000)
+  const relative = relativeFormatter()
   for (const [unit, size] of UNITS) {
     if (Math.abs(seconds) >= size) {
       return relative.format(Math.round(seconds / size), unit)
     }
   }
-  return 'just now'
+  return i18n.t('relative.justNow', { ns: 'domain' })
 }
 
 export type DueState = 'overdue' | 'soon' | 'later'

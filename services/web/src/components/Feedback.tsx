@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Icon, type IconName } from './Icon'
 
 export function Alert({ children, onDismiss }: { children: ReactNode; onDismiss?: () => void }) {
+  const { t } = useTranslation('common')
   return (
     <div className="alert" role="alert">
       <Icon name="alert" />
       <span>{children}</span>
       {onDismiss && (
-        <button type="button" className="icon-btn" aria-label="Dismiss" onClick={onDismiss}>
+        <button type="button" className="icon-btn" aria-label={t('dismiss')} onClick={onDismiss}>
           <Icon name="x" size={14} />
         </button>
       )}
@@ -36,8 +38,9 @@ export function EmptyState({
 }
 
 export function Skeleton({ rows = 4 }: { rows?: number }) {
+  const { t } = useTranslation('common')
   return (
-    <div className="skeleton-list" aria-busy="true" aria-label="Loading">
+    <div className="skeleton-list" aria-busy="true" aria-label={t('loading')}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="skeleton-row" />
       ))}
@@ -46,5 +49,6 @@ export function Skeleton({ rows = 4 }: { rows?: number }) {
 }
 
 export function Spinner() {
-  return <span className="spinner" aria-label="Loading" />
+  const { t } = useTranslation('common')
+  return <span className="spinner" aria-label={t('loading')} />
 }

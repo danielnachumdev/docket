@@ -313,7 +313,7 @@
   content: '';
   position: absolute;
   top: 2px;
-  left: 2px;
+  inset-inline-start: 2px;
   width: calc(1.15rem - 4px);
   height: calc(1.15rem - 4px);
   border-radius: 50%;
@@ -328,6 +328,10 @@
 
 .switch input:checked + .switch-track::after {
   transform: translateX(0.85rem);
+}
+
+[dir='rtl'] .switch input:checked + .switch-track::after {
+  transform: translateX(-0.85rem);
 }
 
 .switch input:focus-visible + .switch-track {
@@ -649,7 +653,7 @@
 }
 
 .sidebar {
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   background: var(--surface);
 }
 
@@ -732,10 +736,40 @@ a.app-version-compact:hover {
 }
 
 .app-version-compact {
-  margin-left: 0.15rem;
+  margin-inline-start: 0.15rem;
   font-family: var(--mono);
   font-size: 0.72rem;
   font-weight: 500;
+}
+
+.lang-switcher {
+  display: block;
+}
+
+.lang-switcher .lang-select {
+  width: 100%;
+}
+
+.auth-lang {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-lang .lang-select {
+  width: auto;
+  min-width: 8rem;
+}
+
+.mobile-lang .lang-select {
+  width: auto;
+  max-width: 6.5rem;
+  font-size: 0.75rem;
+  padding-inline: 0.4rem;
+}
+
+[dir='rtl'] .expand .icon {
+  transform: scaleX(-1);
 }
 
 .app-version-compact.update {
@@ -1144,13 +1178,13 @@ a.list-row:hover {
 
 .search .icon {
   position: absolute;
-  left: 0.65rem;
+  inset-inline-start: 0.65rem;
   color: var(--muted);
   pointer-events: none;
 }
 
 .search input {
-  padding-left: 2.1rem;
+  padding-inline-start: 2.1rem;
   background: var(--surface);
 }
 
@@ -1267,7 +1301,7 @@ a.list-row:hover {
 
 .task-children {
   position: relative;
-  margin-left: 2.6rem;
+  margin-inline-start: 2.6rem;
 }
 
 .task-children::before {
@@ -1275,19 +1309,20 @@ a.list-row:hover {
   position: absolute;
   top: 0;
   bottom: 0.9rem;
-  left: 0.15rem;
-  border-left: 1.5px solid var(--border);
+  inset-inline-start: 0.15rem;
+  border-inline-start: 1.5px solid var(--border);
 }
 
 .task-children .task-row {
-  padding-left: 0.6rem;
+  padding-inline-start: 0.6rem;
 }
 
 .task-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.55rem 0.9rem 0.55rem 0.45rem;
+  padding-block: 0.55rem;
+  padding-inline: 0.45rem 0.9rem;
   transition: background 0.12s;
 }
 
@@ -1570,7 +1605,7 @@ a.list-row:hover {
 .detail-actions {
   display: flex;
   gap: 0.25rem;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .detail-grid {
@@ -1637,7 +1672,7 @@ a.list-row:hover {
   background: transparent;
   color: var(--text-2);
   font-size: 0.9rem;
-  text-align: left;
+  text-align: start;
   transition:
     background 0.15s,
     border-color 0.15s;
@@ -1679,7 +1714,7 @@ a.list-row:hover {
 }
 
 .artifact-body {
-  margin-left: 2.7rem;
+  margin-inline-start: 2.7rem;
 }
 
 .artifact-preview-btn {
@@ -1871,8 +1906,8 @@ details pre {
   position: absolute;
   top: 0.6rem;
   bottom: 0.6rem;
-  left: 0.3rem;
-  border-left: 1.5px solid var(--border);
+  inset-inline-start: 0.3rem;
+  border-inline-start: 1.5px solid var(--border);
 }
 
 .event {
@@ -2025,13 +2060,19 @@ textarea.mono {
   align-items: center;
   gap: 0.55rem;
   width: min(42rem, calc(100% - 17rem));
-  padding: 0.6rem 0.6rem 0.6rem 1rem;
+  padding-block: 0.6rem;
+  padding-inline: 1rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-lg);
   transform: translateX(-50%);
   animation: rise 0.2s ease-out;
+}
+
+[dir='rtl'] .savebar,
+[dir='rtl'] .bulkbar {
+  left: calc(50% - 7.5rem);
 }
 
 .savebar {
@@ -2044,7 +2085,7 @@ textarea.mono {
 }
 
 .bulkbar-count {
-  margin-right: 0.25rem;
+  margin-inline-end: 0.25rem;
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 550;
@@ -2287,7 +2328,7 @@ textarea.mono {
   }
 
   .mobile-actions .avatar {
-    margin-left: 0.35rem;
+    margin-inline-start: 0.35rem;
   }
 
   .tabbar {
@@ -2357,11 +2398,11 @@ textarea.mono {
   }
 
   .task-row {
-    padding-right: 0.6rem;
+    padding-inline-end: 0.6rem;
   }
 
   .task-children {
-    margin-left: 1.6rem;
+    margin-inline-start: 1.6rem;
   }
 
   .detail-side {
@@ -2369,7 +2410,7 @@ textarea.mono {
   }
 
   .detail-actions {
-    margin-left: 0;
+    margin-inline-start: 0;
   }
 
   .token-form .field,
@@ -2402,7 +2443,7 @@ textarea.mono {
 .nav-badge {
   position: absolute;
   top: -0.35rem;
-  right: -0.55rem;
+  inset-inline-end: -0.55rem;
   min-width: 1rem;
   height: 1rem;
   padding: 0 0.25rem;
