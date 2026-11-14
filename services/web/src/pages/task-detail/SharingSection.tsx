@@ -15,10 +15,16 @@ type Props = {
 }
 
 export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
-  const { t } = useTranslation('tasks')
+  const { t } = useTranslation(['detail', 'tasks'])
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'viewer' | 'commentor' | 'editor'>('viewer')
   const { busy, error, setError, run } = useAction()
+
+  function roleLabel(role: string) {
+    if (role === 'editor') return t('tasks:shareRoleEditor')
+    if (role === 'commentor') return t('tasks:shareRoleCommentor')
+    return t('tasks:shareRoleViewer')
+  }
 
   function onShare(e: FormEvent) {
     e.preventDefault()
@@ -27,14 +33,14 @@ export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
       await api.shareTask(taskId, { email: email.trim().toLowerCase(), role })
       setEmail('')
       await onChanged()
-    }, 'Could not share task')
+    }, t('sharing.shareFailed'))
   }
 
   return (
-    <Section icon="users" title="Sharing" count={shares.length}>
+    <Section icon="users" title={t('sharing.title')} count={shares.length}>
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {shares.length === 0 ? (
-        <p className="muted small">Only you can see this task.</p>
+        <p className="muted small">{t('sharing.onlyYou')}</p>
       ) : (
         <ul className="list">
           {shares.map((s) => (
@@ -44,19 +50,19 @@ export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
                 <span className="block truncate">{s.display_name}</span>
                 {s.email && <span className="muted small block truncate">{s.email}</span>}
               </span>
-              <span className={`role-tag role-${s.role}`}>{s.role}</span>
+              <span className={`role-tag role-${s.role}`}>{roleLabel(s.role)}</span>
               {isOwner && (
                 <button
                   type="button"
                   className="icon-btn"
                   disabled={busy}
-                  aria-label={`Stop sharing with ${s.display_name}`}
-                  title="Stop sharing"
+                  aria-label={t('sharing.stopNamed', { name: s.display_name })}
+                  title={t('sharing.stop')}
                   onClick={() =>
                     void run(async () => {
                       await api.unshareTask(taskId, s.id)
                       await onChanged()
-                    }, 'Could not unshare')
+                    }, t('sharing.unshareFailed'))
                   }
                 >
                   <Icon name="x" />
@@ -72,8 +78,8 @@ export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="teammate@example.com"
-            aria-label="Email to share with"
+            placeholder={t('sharing.emailPlaceholder')}
+            aria-label={t('sharing.emailLabel')}
             required
           />
           <div className="inline-form">
@@ -83,15 +89,15 @@ export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
               onChange={(e) =>
                 setRole(e.target.value as 'viewer' | 'commentor' | 'editor')
               }
-              aria-label="Share role"
+              aria-label={t('sharing.roleLabel')}
             >
-              <option value="viewer">{t('shareRoleViewer')}</option>
-              <option value="commentor">{t('shareRoleCommentor')}</option>
-              <option value="editor">{t('shareRoleEditor')}</option>
+              <option value="viewer">{t('tasks:shareRoleViewer')}</option>
+              <option value="commentor">{t('tasks:shareRoleCommentor')}</option>
+              <option value="editor">{t('tasks:shareRoleEditor')}</option>
             </select>
             <button type="submit" className="btn" disabled={busy || !email.trim()}>
               <Icon name="users" />
-              Share
+              {t('sharing.share')}
             </button>
           </div>
         </form>

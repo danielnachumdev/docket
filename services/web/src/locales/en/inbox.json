@@ -1,0 +1,16 @@
+{
+  "title": "Inbox",
+  "caughtUp": "You're all caught up.",
+  "unreadCount_one": "{{count}} unread notification",
+  "unreadCount_other": "{{count}} unread notifications",
+  "markAllRead": "Mark all read",
+  "markAllFailed": "Could not mark all read",
+  "emptyTitle": "No notifications yet",
+  "emptyHint": "Watch a task to get updates when its status changes or someone mentions you.",
+  "kind": {
+    "status_changed": "Status",
+    "commented": "Comment",
+    "mentioned": "Mention",
+    "invite_accepted": "Invite"
+  }
+}

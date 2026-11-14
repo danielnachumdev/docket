@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api, type SavedView, type Task } from '../api'
@@ -6,7 +6,9 @@ import { useAuth } from '../auth'
 import { DueBadge, PriorityBadge, StatusBadge } from '../components/Badges'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
+import { PageHeader } from '../components/PageHeader'
 import { SortableSiblingItem, SortableSiblingList } from '../components/SortableSiblingList'
+import { useConfirm, usePrompt } from '../lib/dialogs'
 import {
   PRIORITIES,
   STATUSES,
@@ -24,6 +26,7 @@ import {
 } from '../lib/smartFilters'
 import { ranksForOrder, reorderBodyAfterMove } from '../lib/taskReorder'
 import { useAction } from '../lib/useAction'
+import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
 import { TaskKanbanBoard } from './TaskKanbanBoard'
 
 type TaskNode = Task & { children: TaskNode[] }
@@ -236,11 +239,16 @@ export function TaskListPage() {
   // Tasks toggled in this view stay visible so a mis-click can be undone.
   const [pinned, setPinned] = useState<Set<string>>(() => new Set())
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
-  const [bulkStatus, setBulkStatus] = useState<(typeof STATUSES)[number]>('on_hold')
-  const [bulkPriority, setBulkPriority] = useState(3)
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState(3)
   const { busy, error, setError, run } = useAction()
+  const confirm = useConfirm()
+  const prompt = usePrompt()
+  const searchRef = useRef<HTMLInputElement>(null)
+  const composerRef = useRef<HTMLInputElement>(null)
+
+  useKeyboardShortcut('/', () => searchRef.current?.focus())
+  useKeyboardShortcut('n', () => composerRef.current?.focus(), !archived)
 
   function setLayout(next: 'list' | 'kanban') {
     setSearchParams(
@@ -336,6 +344,7 @@ export function TaskListPage() {
   }
 
   const selectedCount = selected.size
+  useKeyboardShortcut('Escape', () => setSelected(new Set()), selectedCount > 0)
   const allVisibleSelected =
     visibleIds.length > 0 && visibleIds.every((id) => selected.has(id))
 
@@ -349,12 +358,19 @@ export function TaskListPage() {
     }, t('tasks:createFailed'))
   }
 
-  function onSaveView() {
-    const name = window.prompt(t('tasks:saveViewPrompt'))
-    if (!name?.trim()) return
+  async function onSaveView() {
+    const name = await prompt({
+      title: t('tasks:saveView'),
+      description: t('tasks:saveViewHint'),
+      label: t('tasks:saveViewPrompt'),
+      placeholder: t('tasks:saveViewPlaceholder'),
+      confirmLabel: t('common:save'),
+      maxLength: 80,
+    })
+    if (!name) return
     void run(async () => {
       const created = await api.createSavedView({
-        name: name.trim(),
+        name,
         filter_key: filter,
         query: query.trim(),
         position: savedViews.length,
@@ -364,8 +380,14 @@ export function TaskListPage() {
     }, t('tasks:saveViewFailed'))
   }
 
-  function onDeleteSavedView(view: SavedView) {
-    if (!window.confirm(t('tasks:deleteSavedViewConfirm', { name: view.name }))) return
+  async function onDeleteSavedView(view: SavedView) {
+    const ok = await confirm({
+      title: t('tasks:deleteSavedViewTitle'),
+      description: t('tasks:deleteSavedViewConfirm', { name: view.name }),
+      confirmLabel: t('common:delete'),
+      danger: true,
+    })
+    if (!ok) return
     void run(async () => {
       await api.deleteSavedView(view.id)
       setSavedViews((prev) => prev.filter((v) => v.id !== view.id))
@@ -503,41 +525,36 @@ export function TaskListPage() {
         .filter(Boolean)
         .join(' ')}
     >
-      <header className="page-header">
-        <div>
-          <h1>{archived ? t('tasks:archivedTitle') : t('tasks:title')}</h1>
-          <p className="muted">
-            {tasks == null
-              ? t('common:loadingEllipsis')
-              : archived
-                ? t('tasks:archivedCount', { count: counts.all })
-                : t('tasks:activeDoneSummary', {
-                    active: counts.active,
-                    done: counts.done ?? 0,
-                  })}
-          </p>
-        </div>
-        <div className="layout-toggle" role="group" aria-label={t('tasks:layout')}>
-          <button
-            type="button"
-            className={layout === 'list' ? 'btn small active' : 'btn ghost small'}
-            aria-pressed={layout === 'list'}
-            onClick={() => setLayout('list')}
-          >
-            <Icon name="list" size={14} />
-            {t('tasks:list')}
-          </button>
-          <button
-            type="button"
-            className={layout === 'kanban' ? 'btn small active' : 'btn ghost small'}
-            aria-pressed={layout === 'kanban'}
-            onClick={() => setLayout('kanban')}
-          >
-            <Icon name="columns" size={14} />
-            {t('tasks:board')}
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title={archived ? t('tasks:archivedTitle') : t('tasks:title')}
+        subtitle={
+          tasks == null
+            ? t('common:loadingEllipsis')
+            : archived
+              ? t('tasks:archivedCount', { count: counts.all })
+              : t('tasks:activeDoneSummary', {
+                  active: counts.active,
+                  done: counts.done ?? 0,
+                })
+        }
+        actions={
+          <div className="segmented" role="radiogroup" aria-label={t('tasks:layout')}>
+            {(['list', 'kanban'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                role="radio"
+                aria-checked={layout === mode}
+                className={layout === mode ? 'active' : ''}
+                onClick={() => setLayout(mode)}
+              >
+                <Icon name={mode === 'list' ? 'list' : 'columns'} size={14} />
+                {mode === 'list' ? t('tasks:list') : t('tasks:board')}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
@@ -545,11 +562,17 @@ export function TaskListPage() {
         <form className="composer" onSubmit={onCreate}>
           <Icon name="plus" size={18} className="composer-icon" />
           <input
+            ref={composerRef}
             type="text"
             placeholder={t('tasks:addPlaceholder')}
             aria-label={t('tasks:newTaskTitle')}
+            aria-keyshortcuts="N"
+            title={t('tasks:composerShortcut')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') e.currentTarget.blur()
+            }}
             required
           />
           <select
@@ -574,15 +597,29 @@ export function TaskListPage() {
         <label className="search">
           <Icon name="search" />
           <input
+            ref={searchRef}
             type="search"
             placeholder={t('tasks:searchPlaceholder')}
             aria-label={t('tasks:searchPlaceholder')}
+            aria-keyshortcuts="/"
+            title={t('tasks:searchShortcut')}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
               setActiveSavedId(null)
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setQuery('')
+                e.currentTarget.blur()
+              }
+            }}
           />
+          {!query && (
+            <kbd className="kbd-hint" aria-hidden="true">
+              /
+            </kbd>
+          )}
         </label>
         <div className="chips" role="tablist" aria-label={t('tasks:filterByStatus')}>
           {statusChips.map((f) => (
@@ -635,7 +672,7 @@ export function TaskListPage() {
                   className="icon-btn ghost chip-remove"
                   aria-label={t('tasks:deleteSavedViewNamed', { name: view.name })}
                   title={t('tasks:deleteSavedView')}
-                  onClick={() => onDeleteSavedView(view)}
+                  onClick={() => void onDeleteSavedView(view)}
                 >
                   <Icon name="x" size={12} />
                 </button>
@@ -644,10 +681,11 @@ export function TaskListPage() {
           </div>
           <button
             type="button"
-            className="btn ghost save-view-btn"
+            className="btn ghost small save-view-btn"
             disabled={busy}
-            onClick={onSaveView}
+            onClick={() => void onSaveView()}
           >
+            <Icon name="plus" size={14} />
             {t('tasks:saveView')}
           </button>
         </div>
@@ -719,72 +757,68 @@ export function TaskListPage() {
           <span className="bulkbar-count">
             {t('tasks:selectedCount', { count: selectedCount })}
           </span>
-          <label className="bulk-field">
-            <span className="sr-only">{t('tasks:bulkStatus')}</span>
+          <div className="bulkbar-actions">
             <select
               className="compact-select"
-              value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value as (typeof STATUSES)[number])}
+              value=""
+              disabled={busy}
+              onChange={(e) => e.target.value && applyBulk({ status: e.target.value })}
               aria-label={t('tasks:bulkStatus')}
             >
+              <option value="" disabled>
+                {t('tasks:setStatusPlaceholder')}
+              </option>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {statusLabel(s)}
                 </option>
               ))}
             </select>
-          </label>
-          <button
-            type="button"
-            className="btn small"
-            disabled={busy}
-            onClick={() => applyBulk({ status: bulkStatus })}
-          >
-            {t('tasks:setStatus')}
-          </button>
-          <label className="bulk-field">
-            <span className="sr-only">{t('tasks:bulkPriority')}</span>
             <select
               className="compact-select"
-              value={bulkPriority}
-              onChange={(e) => setBulkPriority(Number(e.target.value))}
+              value=""
+              disabled={busy}
+              onChange={(e) => e.target.value && applyBulk({ priority: Number(e.target.value) })}
               aria-label={t('tasks:bulkPriority')}
             >
+              <option value="" disabled>
+                {t('tasks:setPriorityPlaceholder')}
+              </option>
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
                   {priorityLabel(p)}
                 </option>
               ))}
             </select>
-          </label>
+            <button
+              type="button"
+              className="icon-btn"
+              disabled={busy}
+              aria-label={t('tasks:markRead')}
+              title={t('tasks:markRead')}
+              onClick={() => applyBulkUnread(false)}
+            >
+              <Icon name="mailOpen" />
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              disabled={busy}
+              aria-label={t('tasks:markUnread')}
+              title={t('tasks:markUnread')}
+              onClick={() => applyBulkUnread(true)}
+            >
+              <Icon name="mail" />
+            </button>
+          </div>
           <button
             type="button"
-            className="btn small"
-            disabled={busy}
-            onClick={() => applyBulk({ priority: bulkPriority })}
+            className="icon-btn"
+            aria-label={t('common:clear')}
+            title={t('common:clear')}
+            onClick={clearSelection}
           >
-            {t('tasks:setPriority')}
-          </button>
-          <button
-            type="button"
-            className="btn small"
-            disabled={busy}
-            onClick={() => applyBulkUnread(false)}
-          >
-            <Icon name="mailOpen" size={14} />
-            {t('tasks:markRead')}
-          </button>
-          <button
-            type="button"
-            className="btn small"
-            disabled={busy}
-            onClick={() => applyBulkUnread(true)}
-          >
-            <Icon name="mail" size={14} />
-            {t('tasks:markUnread')}
-          </button>
-          <button type="button" className="btn ghost small" onClick={clearSelection}>
-            {t('common:clear')}
+            <Icon name="x" />
           </button>
         </div>
       )}

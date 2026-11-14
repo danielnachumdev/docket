@@ -1,4 +1,17 @@
+import type { IconName } from '../components/Icon'
+
 export type ArtifactPreviewKind = 'image' | 'pdf' | 'audio' | 'video' | 'markdown'
+
+const KIND_ICONS: Record<string, IconName> = {
+  text: 'text',
+  link: 'link',
+  file: 'file',
+  json: 'text',
+}
+
+export function artifactKindIcon(kind: string): IconName {
+  return KIND_ICONS[kind] ?? 'file'
+}
 
 type ArtifactRef = {
   content_type: string | null

@@ -22,7 +22,8 @@ import { useAuth } from '../../auth'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
-import { formatRelative } from '../../lib/format'
+import { useConfirm } from '../../lib/dialogs'
+import { formatDateTime, formatRelative } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 
 type TriggerKind = '@' | '#' | '&' | '~'
@@ -104,7 +105,8 @@ export function CommentsSection({
   canComment,
   onChanged,
 }: Props) {
-  const { t } = useTranslation('tasks')
+  const { t } = useTranslation(['tasks', 'common'])
+  const confirm = useConfirm()
   const { status } = useAuth()
   const navigate = useNavigate()
   const meId = status?.user?.id
@@ -282,9 +284,9 @@ export function CommentsSection({
             <li key={c.id} id={`comment-${c.id}`} className="comment-item">
               <div className="comment-meta">
                 <strong>{c.author_display_name}</strong>
-                <span className="muted small" title={c.created_at}>
+                <span className="muted small" title={formatDateTime(c.created_at)}>
                   {formatRelative(c.created_at)}
-                  {c.updated_at !== c.created_at ? ' · edited' : ''}
+                  {c.updated_at !== c.created_at ? ` · ${t('commentEdited')}` : ''}
                 </span>
               </div>
               <div className="comment-body">{renderBody(c.body, c.refs ?? [], onRefClick)}</div>
@@ -302,8 +304,14 @@ export function CommentsSection({
                     type="button"
                     className="btn ghost small danger"
                     disabled={busy}
-                    onClick={() => {
-                      if (!window.confirm(t('commentDeleteConfirm'))) return
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: t('commentDeleteTitle'),
+                        description: t('commentDeleteConfirm'),
+                        confirmLabel: t('common:delete'),
+                        danger: true,
+                      })
+                      if (!ok) return
                       void run(async () => {
                         await api.deleteComment(taskId, c.id)
                         if (editingId === c.id) {
@@ -346,7 +354,7 @@ export function CommentsSection({
             />
           </label>
           {trigger && pickerItems.length > 0 && (
-            <ul className="comment-picker" role="listbox" aria-label="Insert reference">
+            <ul className="comment-picker" role="listbox" aria-label={t('commentPicker')}>
               {pickerItems.map((item) => (
                 <li key={item.key}>
                   <button

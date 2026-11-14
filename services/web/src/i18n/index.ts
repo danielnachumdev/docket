@@ -1,13 +1,21 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import artifactsEn from '../locales/en/artifacts.json'
 import authEn from '../locales/en/auth.json'
 import commonEn from '../locales/en/common.json'
+import detailEn from '../locales/en/detail.json'
 import domainEn from '../locales/en/domain.json'
+import inboxEn from '../locales/en/inbox.json'
+import integrationsEn from '../locales/en/integrations.json'
 import navEn from '../locales/en/nav.json'
 import tasksEn from '../locales/en/tasks.json'
+import artifactsHe from '../locales/he/artifacts.json'
 import authHe from '../locales/he/auth.json'
 import commonHe from '../locales/he/common.json'
+import detailHe from '../locales/he/detail.json'
 import domainHe from '../locales/he/domain.json'
+import inboxHe from '../locales/he/inbox.json'
+import integrationsHe from '../locales/he/integrations.json'
 import navHe from '../locales/he/nav.json'
 import tasksHe from '../locales/he/tasks.json'
 import { applyDocumentLocale } from './applyDocumentLocale'
@@ -35,6 +43,10 @@ const en = {
   auth: authEn,
   tasks: tasksEn,
   domain: domainEn,
+  detail: detailEn,
+  artifacts: artifactsEn,
+  inbox: inboxEn,
+  integrations: integrationsEn,
 }
 
 const he = {
@@ -43,6 +55,10 @@ const he = {
   auth: authHe,
   tasks: tasksHe,
   domain: domainHe,
+  detail: detailHe,
+  artifacts: artifactsHe,
+  inbox: inboxHe,
+  integrations: integrationsHe,
 }
 
 function detectInitialLocale(): string {
@@ -63,7 +79,7 @@ void i18n.use(initReactI18next).init({
   lng: detectInitialLocale(),
   fallbackLng: DEFAULT_LOCALE,
   defaultNS: 'common',
-  ns: ['common', 'nav', 'auth', 'tasks', 'domain'],
+  ns: Object.keys(en),
   interpolation: { escapeValue: false },
   returnNull: false,
 })

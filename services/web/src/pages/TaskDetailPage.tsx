@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type Task, type TaskDetail, type TaskEvent, type TaskShare } from '../api'
 import { useAuth } from '../auth'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { Alert, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
+import { Menu, type MenuItem } from '../components/Menu'
+import { useConfirm } from '../lib/dialogs'
+import { usePageTitle } from '../lib/usePageTitle'
 import {
   PRIORITIES,
   STATUSES,
@@ -84,8 +88,10 @@ function descendantIds(taskId: string, all: Task[]): Set<string> {
 }
 
 export function TaskDetailPage() {
+  const { t } = useTranslation(['detail', 'tasks', 'common'])
   const { id } = useParams()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const { status } = useAuth()
   const taskId = id ?? ''
   const [detail, setDetail] = useState<TaskDetail | null>(null)
@@ -112,7 +118,7 @@ export function TaskDetailPage() {
     if (parentId == null) {
       setParentTask(null)
     } else {
-      const fromList = all.find((t) => t.id === parentId)
+      const fromList = all.find((row) => row.id === parentId)
       if (fromList) {
         setParentTask({ id: fromList.id, number: fromList.number, title: fromList.title })
       } else {
@@ -120,7 +126,7 @@ export function TaskDetailPage() {
         setParentTask({
           id: parentId,
           number: parent?.task.number ?? 0,
-          title: parent?.task.title ?? `Task #${parent?.task.number ?? '?'}`,
+          title: parent?.task.title ?? '',
         })
       }
     }
@@ -130,7 +136,7 @@ export function TaskDetailPage() {
     setDetail(null)
     setLoadError(null)
     if (!taskId) {
-      setLoadError('Invalid task id')
+      setLoadError(t('invalidId'))
       return
     }
     let cancelled = false
@@ -144,23 +150,25 @@ export function TaskDetailPage() {
           prev ? { ...prev, task: { ...prev.task, unread: task.unread } } : prev,
         )
       } catch (err) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load')
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : t('loadFailed'))
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [load, taskId])
+  }, [load, taskId, t])
 
-  const tasksById = useMemo(() => new Map(allTasks.map((t) => [t.id, t])), [allTasks])
+  const tasksById = useMemo(() => new Map(allTasks.map((row) => [row.id, row])), [allTasks])
 
   const parentChoices = useMemo(() => {
     const blocked = descendantIds(taskId, allTasks)
     blocked.add(taskId)
     return allTasks
-      .filter((t) => !blocked.has(t.id))
+      .filter((row) => !blocked.has(row.id))
       .sort((a, b) => a.title.localeCompare(b.title) || a.number - b.number)
   }, [allTasks, taskId])
+
+  usePageTitle(detail?.task.title)
 
   const original = detail ? draftFrom(detail.task) : null
   const dirty =
@@ -195,7 +203,7 @@ export function TaskDetailPage() {
         try {
           patch.outcome_schema = JSON.parse(trimmed) as Record<string, unknown>
         } catch {
-          setError('Outcome schema must be valid JSON')
+          setError(t('errors.outcomeSchemaInvalid'))
           return
         }
       }
@@ -203,8 +211,8 @@ export function TaskDetailPage() {
     void run(async () => {
       await api.updateTask(taskId, patch)
       await load()
-    }, 'Could not save changes')
-  }, [detail, draft, load, run, setError, taskId])
+    }, t('errors.save'))
+  }, [detail, draft, load, run, setError, taskId, t])
 
   useEffect(() => {
     if (!dirty) return
@@ -214,8 +222,13 @@ export function TaskDetailPage() {
         save()
       }
     }
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
   }, [dirty, save])
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -235,7 +248,7 @@ export function TaskDetailPage() {
     void run(async () => {
       await api.setStatus(taskId, next)
       await load()
-    }, 'Could not change status')
+    }, t('errors.status'))
   }
 
   function confirmDone(outcome?: Record<string, unknown>) {
@@ -243,7 +256,7 @@ export function TaskDetailPage() {
       await api.setStatus(taskId, 'done', outcome)
       setCompleteOpen(false)
       await load()
-    }, 'Could not change status')
+    }, t('errors.status'))
   }
 
   function toggleArchive() {
@@ -252,13 +265,13 @@ export function TaskDetailPage() {
       if (detail.task.archived_at) await api.unarchive(taskId)
       else await api.archive(taskId)
       await load()
-    }, 'Could not update archive state')
+    }, t('errors.archive'))
   }
 
   function exportCasePack() {
     void run(async () => {
       await api.downloadTaskExport(taskId)
-    }, 'Could not download export')
+    }, t('errors.export'))
   }
 
   function toggleWatch() {
@@ -267,7 +280,7 @@ export function TaskDetailPage() {
       if (detail.watching) await api.unwatchTask(taskId)
       else await api.watchTask(taskId)
       await load()
-    }, 'Could not update watch')
+    }, t('errors.watch'))
   }
 
   function toggleUnread() {
@@ -281,16 +294,23 @@ export function TaskDetailPage() {
         ? await api.markTaskUnread(taskId)
         : await api.markTaskRead(taskId)
       setDetail((prev) => (prev ? { ...prev, task: { ...prev.task, unread: task.unread } } : prev))
-    }, 'Could not update read state')
+    }, t('errors.read'))
   }
 
-  function remove() {
-    if (!detail || !window.confirm(`Delete “${detail.task.title}” permanently? This cannot be undone.`)) return
+  async function remove() {
+    if (!detail) return
+    const ok = await confirm({
+      title: t('deleteTitle'),
+      description: t('deleteBody', { title: detail.task.title }),
+      confirmLabel: t('common:delete'),
+      danger: true,
+    })
+    if (!ok) return
     const parentId = detail.task.parent_task_id
     void run(async () => {
       await api.deleteTask(taskId)
       navigate(parentId ? `/tasks/${parentId}` : '/')
-    }, 'Could not delete task')
+    }, t('errors.delete'))
   }
 
   if (loadError) {
@@ -298,8 +318,8 @@ export function TaskDetailPage() {
       <main className="page">
         <Alert>{loadError}</Alert>
         <Link to="/" className="btn">
-          <Icon name="arrowLeft" />
-          Back to tasks
+          <Icon name="arrowLeft" className="flip-rtl" />
+          {t('backToTasks')}
         </Link>
       </main>
     )
@@ -325,32 +345,48 @@ export function TaskDetailPage() {
   const names = new Map<number, string>(shares.map((s) => [s.user_id, s.display_name]))
 
   const actorUserLabel = (ev: TaskEvent) =>
-    ev.actor_user_id === me?.id ? 'You' : (names.get(ev.actor_user_id) ?? `User #${ev.actor_user_id}`)
+    ev.actor_user_id === me?.id
+      ? t('actor.you')
+      : (names.get(ev.actor_user_id) ?? t('actor.user', { id: ev.actor_user_id }))
 
   const actorName = (ev: TaskEvent) => {
     const who = actorUserLabel(ev)
     if (ev.actor_token_id == null) return who
-    const tokenLabel = ev.actor_token_name ? `token:${ev.actor_token_name}` : 'API token'
+    const tokenLabel = ev.actor_token_name ? `token:${ev.actor_token_name}` : t('actor.apiToken')
     const role = ev.actor_role_name ? ` · ${ev.actor_role_name}` : ''
     return `${who} (${tokenLabel}${role})`
   }
 
+  const menuItems: MenuItem[] = [
+    { label: t('export'), icon: 'download', onSelect: exportCasePack, disabled: busy },
+    ...(task.archived_at
+      ? []
+      : [{ label: t('archive'), icon: 'archive' as const, onSelect: toggleArchive, disabled: busy }]),
+    {
+      label: t('delete'),
+      icon: 'trash',
+      onSelect: () => void remove(),
+      danger: true,
+      disabled: busy,
+    },
+  ]
+
   return (
     <main className={dirty ? 'page has-savebar' : 'page'}>
-      <nav className="breadcrumb" aria-label="Breadcrumb">
+      <nav className="breadcrumb" aria-label={t('breadcrumb')}>
         <Link to={task.archived_at ? '/?view=archived' : '/'}>
-          <Icon name="arrowLeft" size={14} />
-          {task.archived_at ? 'Archived' : 'Tasks'}
+          <Icon name="arrowLeft" size={14} className="flip-rtl" />
+          {task.archived_at ? t('tasks:archivedTitle') : t('tasks:title')}
         </Link>
         {parentTask && (
           <>
-            <Icon name="chevronRight" size={12} />
+            <Icon name="chevronRight" size={12} className="flip-rtl" />
             <Link to={`/tasks/${parentTask.id}`} className="truncate">
-              {parentTask.title}
+              {parentTask.title || t('parentFallback', { number: parentTask.number })}
             </Link>
           </>
         )}
-        <Icon name="chevronRight" size={12} />
+        <Icon name="chevronRight" size={12} className="flip-rtl" />
         <span className="mono">#{task.number}</span>
       </nav>
 
@@ -359,7 +395,7 @@ export function TaskDetailPage() {
         <div className="notice notice-error" role="status">
           <Icon name="alert" />
           <span>
-            <strong>Last error</strong>
+            <strong>{t('lastError')}</strong>
             {': '}
             {task.last_error}
           </span>
@@ -368,84 +404,71 @@ export function TaskDetailPage() {
       {task.archived_at && (
         <div className="notice">
           <Icon name="archive" />
-          <span>This task was archived {formatRelative(task.archived_at)}.</span>
+          <span>{t('archivedNotice', { when: formatRelative(task.archived_at) })}</span>
           <button type="button" className="btn small" disabled={busy} onClick={toggleArchive}>
-            Restore
+            {t('restore')}
           </button>
         </div>
       )}
 
       <header className="detail-header">
-        <textarea
-          className="title-input"
-          value={draft.title}
-          rows={1}
-          aria-label="Task title"
-          placeholder="Task title"
-          onChange={(e) => update('title', e.target.value.replace(/\n/g, ''))}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              save()
-            }
-          }}
-        />
+        <div className="detail-title-row">
+          <textarea
+            className="title-input"
+            value={draft.title}
+            rows={1}
+            aria-label={t('titleLabel')}
+            placeholder={t('titleLabel')}
+            onChange={(e) => update('title', e.target.value.replace(/\n/g, ''))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                save()
+              }
+            }}
+          />
+          <div className="detail-actions">
+            <button
+              type="button"
+              className={task.unread ? 'icon-btn unread-active' : 'icon-btn'}
+              disabled={busy}
+              aria-pressed={task.unread}
+              aria-label={task.unread ? t('tasks:markRead') : t('tasks:markUnread')}
+              title={task.unread ? t('tasks:markRead') : t('tasks:markUnread')}
+              onClick={toggleUnread}
+            >
+              <Icon name={task.unread ? 'mail' : 'mailOpen'} />
+            </button>
+            <button
+              type="button"
+              className={detail.watching ? 'btn small watching' : 'btn small'}
+              disabled={busy}
+              aria-pressed={detail.watching}
+              title={t('watchHint')}
+              onClick={toggleWatch}
+            >
+              <Icon name={detail.watching ? 'eye' : 'eyeOff'} />
+              {detail.watching ? t('watching') : t('watch')}
+            </button>
+            <Menu label={t('common:moreActions')} items={menuItems} />
+          </div>
+        </div>
         <div className="detail-meta">
           <StatusBadge status={task.status} />
           <PriorityBadge priority={task.priority} />
           {task.shared && (
-            <span className="tag shared-tag" title="Shared with other people">
+            <span className="tag shared-tag" title={t('sharedHint')}>
               <Icon name="users" size={12} />
-              Shared
+              {t('tasks:shared')}
             </span>
           )}
+          {task.unread && <span className="tag unread-tag">{t('unread')}</span>}
           <span className="muted small" title={formatDateTime(task.created_at)}>
-            Created {formatRelative(task.created_at)}
+            {t('created', { when: formatRelative(task.created_at) })}
           </span>
-          {task.source && task.source !== 'ui' && <span className="tag">via {task.source}</span>}
-          <span className="detail-actions">
-            <button
-              type="button"
-              className={`btn ghost small${task.unread ? ' unread-active' : ''}`}
-              disabled={busy}
-              aria-pressed={task.unread}
-              onClick={toggleUnread}
-              title={task.unread ? 'Mark read' : 'Mark unread'}
-            >
-              <Icon name={task.unread ? 'mail' : 'mailOpen'} />
-              {task.unread ? 'Unread' : 'Read'}
-            </button>
-            <button
-              type="button"
-              className="btn ghost small"
-              disabled={busy}
-              onClick={exportCasePack}
-              title="Download immutable audit pack (zip)"
-            >
-              <Icon name="download" />
-              Export
-            </button>
-            <button
-              type="button"
-              className={`btn ghost small${detail.watching ? ' watching' : ''}`}
-              disabled={busy}
-              aria-pressed={detail.watching}
-              onClick={toggleWatch}
-            >
-              <Icon name={detail.watching ? 'eye' : 'eyeOff'} />
-              {detail.watching ? 'Watching' : 'Watch'}
-            </button>
-            {!task.archived_at && (
-              <button type="button" className="btn ghost small" disabled={busy} onClick={toggleArchive}>
-                <Icon name="archive" />
-                Archive
-              </button>
-            )}
-            <button type="button" className="btn ghost small danger" disabled={busy} onClick={remove}>
-              <Icon name="trash" />
-              Delete
-            </button>
-          </span>
+          {task.source && task.source !== 'ui' && (
+            <span className="tag">{t('via', { source: task.source })}</span>
+          )}
         </div>
       </header>
 
@@ -453,12 +476,12 @@ export function TaskDetailPage() {
         <div className="detail-main">
           <section className="card">
             <label className="notes">
-              <span className="card-label">Notes</span>
+              <span className="card-label">{t('notes')}</span>
               <textarea
                 rows={Math.min(16, Math.max(4, draft.body.split('\n').length + 1))}
                 value={draft.body}
                 onChange={(e) => update('body', e.target.value)}
-                placeholder="Add context, acceptance criteria, or anything an agent should know…"
+                placeholder={t('notesPlaceholder')}
               />
             </label>
           </section>
@@ -482,8 +505,10 @@ export function TaskDetailPage() {
 
         <aside className="detail-side detail-props">
           <section className="card">
-            <span className="card-label">Status</span>
-            <div className="status-picker" role="radiogroup" aria-label="Status">
+            <span className="card-label" id="status-label">
+              {t('status')}
+            </span>
+            <div className="status-picker" role="radiogroup" aria-labelledby="status-label">
               {STATUSES.map((s) => (
                 <button
                   key={s}
@@ -502,18 +527,19 @@ export function TaskDetailPage() {
           </section>
 
           <section className="card stack">
+            <span className="card-label">{t('details')}</span>
             <label className="field">
-              <span>Priority</span>
+              <span>{t('priority')}</span>
               <select value={draft.priority} onChange={(e) => update('priority', Number(e.target.value))}>
                 {PRIORITIES.map((p) => (
                   <option key={p} value={p}>
-                    P{p} · {priorityLabel(p)}
+                    {t('priorityOption', { priority: p, label: priorityLabel(p) })}
                   </option>
                 ))}
               </select>
             </label>
             <label className="field">
-              <span>Deadline</span>
+              <span>{t('deadline')}</span>
               <span className="input-with-action">
                 <input
                   type="datetime-local"
@@ -524,8 +550,8 @@ export function TaskDetailPage() {
                   <button
                     type="button"
                     className="icon-btn"
-                    aria-label="Clear deadline"
-                    title="Clear deadline"
+                    aria-label={t('clearDeadline')}
+                    title={t('clearDeadline')}
                     onClick={() => update('due', '')}
                   >
                     <Icon name="x" />
@@ -534,9 +560,9 @@ export function TaskDetailPage() {
               </span>
             </label>
             <label className="field">
-              <span>Parent task</span>
+              <span>{t('parentTask')}</span>
               <select value={draft.parent} onChange={(e) => update('parent', e.target.value)}>
-                <option value="">None (top level)</option>
+                <option value="">{t('parentNone')}</option>
                 {parentChoices.map((p) => (
                   <option key={p.id} value={p.id}>
                     #{p.number} · {p.title}
@@ -544,13 +570,18 @@ export function TaskDetailPage() {
                 ))}
                 {parentTask && !parentChoices.some((p) => p.id === parentTask.id) && (
                   <option value={parentTask.id}>
-                    #{parentTask.number} · {parentTask.title}
+                    #{parentTask.number} ·{' '}
+                    {parentTask.title || t('parentFallback', { number: parentTask.number })}
                   </option>
                 )}
               </select>
             </label>
           </section>
+        </aside>
 
+        <aside className="detail-side detail-related">
+          <LinksSection taskId={taskId} links={detail.links ?? []} tasksById={tasksById} onChanged={load} />
+          <SharingSection taskId={taskId} shares={shares} isOwner={isOwner} onChanged={load} />
           <CompletionSection
             requireArtifact={draft.requireArtifact}
             schemaText={draft.outcomeSchema}
@@ -558,11 +589,6 @@ export function TaskDetailPage() {
             onSchemaText={(value) => update('outcomeSchema', value)}
             recordedOutcome={task.outcome_json}
           />
-        </aside>
-
-        <aside className="detail-side detail-related">
-          <LinksSection taskId={taskId} links={detail.links ?? []} tasksById={tasksById} onChanged={load} />
-          <SharingSection taskId={taskId} shares={shares} isOwner={isOwner} onChanged={load} />
         </aside>
       </div>
 
@@ -578,17 +604,17 @@ export function TaskDetailPage() {
       )}
 
       {dirty && (
-        <div className="savebar" role="region" aria-label="Unsaved changes">
+        <div className="savebar" role="region" aria-label={t('unsavedChanges')}>
           <span>
-            <strong>Unsaved changes</strong>
-            <span className="muted small hide-mobile"> · Ctrl/⌘ + S to save</span>
+            <strong>{t('unsavedChanges')}</strong>
+            <span className="muted small hide-mobile"> · {t('saveShortcut')}</span>
           </span>
           <span className="actions">
             <button type="button" className="btn ghost" disabled={busy} onClick={() => setDraft(draftFrom(task))}>
-              Discard
+              {t('discard')}
             </button>
             <button type="button" className="btn primary" disabled={busy || !draft.title.trim()} onClick={save}>
-              {busy ? 'Saving…' : 'Save'}
+              {busy ? t('common:saving') : t('common:save')}
             </button>
           </span>
         </div>
@@ -596,3 +622,4 @@ export function TaskDetailPage() {
     </main>
   )
 }
+

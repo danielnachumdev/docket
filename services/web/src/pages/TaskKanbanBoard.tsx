@@ -13,6 +13,7 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMemo, useState, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { Task } from '../api'
 import { DueBadge, PriorityBadge } from '../components/Badges'
@@ -79,6 +80,7 @@ function SortableKanbanCard({ task }: { task: Task }) {
 }
 
 function KanbanColumn({ status, tasks }: { status: Status; tasks: Task[] }) {
+  const { t } = useTranslation('tasks')
   const { setNodeRef, isOver } = useDroppable({
     id: status,
     data: { type: 'column', status },
@@ -87,7 +89,7 @@ function KanbanColumn({ status, tasks }: { status: Status; tasks: Task[] }) {
   return (
     <section
       className={isOver ? `kanban-column status-${status} over` : `kanban-column status-${status}`}
-      aria-label={`${statusLabel(status)} column`}
+      aria-label={t('kanbanColumn', { status: statusLabel(status) })}
     >
       <header className="kanban-column-header">
         <span className={`status-badge status-${status}`}>
@@ -102,13 +104,14 @@ function KanbanColumn({ status, tasks }: { status: Status; tasks: Task[] }) {
             <SortableKanbanCard key={task.id} task={task} />
           ))}
         </SortableContext>
-        {tasks.length === 0 && <p className="kanban-empty muted">Drop tasks here</p>}
+        {tasks.length === 0 && <p className="kanban-empty muted">{t('kanbanDropHere')}</p>}
       </div>
     </section>
   )
 }
 
 export function TaskKanbanBoard({ tasks, onStatusChange }: Props) {
+  const { t } = useTranslation('tasks')
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overStatus, setOverStatus] = useState<Status | null>(null)
@@ -163,7 +166,7 @@ export function TaskKanbanBoard({ tasks, onStatusChange }: Props) {
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
     >
-      <div className="kanban-board" role="region" aria-label="Kanban board">
+      <div className="kanban-board" role="region" aria-label={t('kanbanBoard')}>
         {STATUSES.map((status) => (
           <KanbanColumn key={status} status={status} tasks={byStatus[status]} />
         ))}

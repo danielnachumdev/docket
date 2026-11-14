@@ -1,0 +1,43 @@
+{
+  "title": "Artifacts",
+  "subtitle": "Notes, links, and files from tasks you can access. You can change or delete only what you uploaded.",
+  "emptyTitle": "No artifacts yet",
+  "emptyHint": "Attach notes, links, or files on a task — they will show up here.",
+  "sectionEmpty": "No artifacts yet. Attach notes, links, or files produced for this task.",
+  "taskFallback": "Task",
+  "attach": "Attach",
+  "kindLabel": "Artifact kind",
+  "kind": {
+    "text": "Note",
+    "link": "Link",
+    "file": "File",
+    "json": "JSON"
+  },
+  "titleField": "Title",
+  "titleFileHint": "Title (defaults to file name)",
+  "titlePlaceholder": "Title",
+  "linkTitlePlaceholder": "Pull request, doc, dashboard…",
+  "chooseFile": "Choose a file to upload",
+  "url": "URL",
+  "urlPlaceholder": "https://example.com/…",
+  "content": "Content",
+  "contentPlaceholder": "Notes, logs, summaries…",
+  "showContent": "Show content",
+  "openNamed": "Open {{title}}",
+  "openLink": "Open link",
+  "downloadNamed": "Download {{title}}",
+  "deleteNamed": "Delete {{title}}",
+  "deleteTitle": "Delete artifact?",
+  "deleteBody": "“{{title}}” will be permanently removed.",
+  "loadingPreview": "Loading preview…",
+  "previewFailed": "Preview failed",
+  "enlargeNamed": "Enlarge {{title}}",
+  "enlarge": "Enlarge preview",
+  "errors": {
+    "chooseFile": "Choose a file to attach",
+    "needTitle": "Give the artifact a title",
+    "attach": "Could not attach artifact",
+    "delete": "Could not delete artifact",
+    "download": "Download failed"
+  }
+}

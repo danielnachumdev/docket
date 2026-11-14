@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { api, type Task } from '../../api'
 import { DueBadge, PriorityBadge, StatusBadge } from '../../components/Badges'
@@ -17,13 +18,14 @@ type Props = {
 }
 
 export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
+  const { t } = useTranslation(['detail', 'common'])
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState(3)
   const [localSubs, setLocalSubs] = useState<Task[] | null>(null)
   const { busy, error, setError, run } = useAction()
   const rows = localSubs ?? subtasks
-  const done = rows.filter((t) => t.status === 'done').length
-  const ids = rows.map((t) => t.id)
+  const done = rows.filter((row) => row.status === 'done').length
+  const ids = rows.map((row) => row.id)
 
   useEffect(() => {
     setLocalSubs(null)
@@ -37,12 +39,12 @@ export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
       setTitle('')
       setLocalSubs(null)
       await onChanged()
-    }, 'Could not add subtask')
+    }, t('subtasks.addFailed'))
   }
 
   function onReorder(activeId: string, orderedIds: string[]) {
     const ranks = ranksForOrder(orderedIds)
-    const byId = new Map(rows.map((t) => [t.id, t]))
+    const byId = new Map(rows.map((row) => [row.id, row]))
     setLocalSubs(
       orderedIds
         .map((id) => {
@@ -66,10 +68,10 @@ export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
   return (
     <Section
       icon="subtasks"
-      title="Subtasks"
+      title={t('subtasks.title')}
       action={
         rows.length > 0 && (
-          <span className="progress" title={`${done} of ${rows.length} done`}>
+          <span className="progress" title={t('subtasks.progress', { done, total: rows.length })}>
             <span className="progress-track">
               <span style={{ width: `${(done / rows.length) * 100}%` }} />
             </span>
@@ -107,8 +109,8 @@ export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
       <form className="inline-form" onSubmit={onAdd}>
         <input
           type="text"
-          placeholder="Add a subtask…"
-          aria-label="New subtask title"
+          placeholder={t('subtasks.addPlaceholder')}
+          aria-label={t('subtasks.newTitle')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -117,7 +119,7 @@ export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
           className="compact-select"
           value={priority}
           onChange={(e) => setPriority(Number(e.target.value))}
-          aria-label="Subtask priority"
+          aria-label={t('subtasks.priority')}
         >
           {PRIORITIES.map((p) => (
             <option key={p} value={p}>
@@ -127,7 +129,7 @@ export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
         </select>
         <button type="submit" className="btn" disabled={busy || !title.trim()}>
           <Icon name="plus" />
-          Add
+          {t('common:add')}
         </button>
       </form>
     </Section>

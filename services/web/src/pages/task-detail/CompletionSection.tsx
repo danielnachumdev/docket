@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 type Props = {
   requireArtifact: boolean
   schemaText: string
@@ -13,9 +15,10 @@ export function CompletionSection({
   onSchemaText,
   recordedOutcome,
 }: Props) {
+  const { t } = useTranslation('detail')
   return (
     <section className="card stack">
-      <span className="card-label">Completion</span>
+      <span className="card-label">{t('completion.title')}</span>
       <label className="switch">
         <input
           type="checkbox"
@@ -23,10 +26,10 @@ export function CompletionSection({
           onChange={(e) => onRequireArtifact(e.target.checked)}
         />
         <span className="switch-track" aria-hidden="true" />
-        <span>Require artifact to mark done</span>
+        <span>{t('completion.requireArtifact')}</span>
       </label>
       <label className="field">
-        <span>Outcome JSON Schema (optional)</span>
+        <span>{t('completion.schema')}</span>
         <textarea
           className="mono"
           rows={6}
@@ -36,12 +39,10 @@ export function CompletionSection({
           onChange={(e) => onSchemaText(e.target.value)}
         />
       </label>
-      <p className="muted small">
-        When a schema is set, completing the task requires a matching JSON outcome.
-      </p>
+      <p className="muted small">{t('completion.schemaHint')}</p>
       {recordedOutcome && (
         <label className="field">
-          <span>Recorded outcome</span>
+          <span>{t('completion.recordedOutcome')}</span>
           <pre className="outcome-preview mono">{pretty(recordedOutcome)}</pre>
         </label>
       )}

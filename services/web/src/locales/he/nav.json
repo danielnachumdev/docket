@@ -1,5 +1,7 @@
 {
   "main": "ראשי",
+  "workspace": "סביבת עבודה",
+  "integrations": "אינטגרציות",
   "tasks": "משימות",
   "archived": "ארכיון",
   "inbox": "דואר נכנס",
@@ -7,5 +9,6 @@
   "apiTokens": "אסימוני API",
   "webhooks": "Webhooks",
   "invites": "הזמנות",
+  "more": "עוד",
   "unreadCount": "{{count}} שלא נקראו"
 }
