@@ -101,7 +101,7 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
       {artifacts.length > 0 && (
         <ul className="list">
           {artifacts.map((a) => (
-            <li key={a.id} className="artifact">
+            <li key={a.id} id={`artifact-${a.id}`} className="artifact">
               <div className="list-row">
                 <span className="artifact-icon">
                   <Icon name={KIND_ICONS[a.kind] ?? 'file'} />

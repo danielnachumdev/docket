@@ -8,6 +8,7 @@ from docket.models.role import Role
 from docket.models.role_permission import RolePermission
 from docket.models.saved_view import SavedView
 from docket.models.task import Task
+from docket.models.task_comment import TaskComment
 from docket.models.task_event import TaskEvent
 from docket.models.task_link import TaskLink
 from docket.models.task_watch import TaskWatch
@@ -25,6 +26,7 @@ __all__ = [
     "RolePermission",
     "SavedView",
     "Task",
+    "TaskComment",
     "TaskEvent",
     "TaskLink",
     "TaskWatch",

@@ -50,5 +50,22 @@
   "markRead": "Mark read",
   "markUnread": "Mark unread",
   "markReadNamed": "Mark “{{title}}” read",
-  "markUnreadNamed": "Mark “{{title}}” unread"
+  "markUnreadNamed": "Mark “{{title}}” unread",
+  "comments": "Comments",
+  "commentsEmpty": "No comments yet.",
+  "commentPlaceholder": "Add a comment… Use @ # & ~ for people, tasks, artifacts, comments",
+  "commentSubmit": "Comment",
+  "commentSave": "Save",
+  "commentCancel": "Cancel",
+  "commentEdit": "Edit",
+  "commentDelete": "Delete",
+  "commentDeleteConfirm": "Delete this comment?",
+  "commentReadOnly": "You can read this thread, but commenting needs the commentor role or higher.",
+  "commentShorthandHint": "Shorthand: @people #task &artifact ~comment.",
+  "commentAddFailed": "Could not add comment",
+  "commentUpdateFailed": "Could not update comment",
+  "commentDeleteFailed": "Could not delete comment",
+  "shareRoleViewer": "Can view",
+  "shareRoleCommentor": "Can comment",
+  "shareRoleEditor": "Can edit"
 }

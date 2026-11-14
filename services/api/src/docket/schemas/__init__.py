@@ -12,6 +12,7 @@ from docket.schemas.invites import (
     RegisterIn,
 )
 from docket.schemas.notifications import (
+    MentionableUserOut,
     NotificationOut,
     TaskCommentIn,
     TaskCommentOut,
@@ -69,6 +70,7 @@ __all__ = [
     "InviteOut",
     "InvitePreviewOut",
     "LoginIn",
+    "MentionableUserOut",
     "NotificationOut",
     "RegisterIn",
     "RoleOut",

@@ -12,6 +12,8 @@ _UNREAD_EVENT_TYPES = frozenset(
         "updated",
         "status_changed",
         "commented",
+        "comment_updated",
+        "comment_deleted",
         "artifact_added",
         "artifact_updated",
         "artifact_deleted",
