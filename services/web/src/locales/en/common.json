@@ -39,5 +39,6 @@
   "emDash": "—",
   "bytes": {
     "zero": "0 B"
-  }
+  },
+  "open": "Open"
 }

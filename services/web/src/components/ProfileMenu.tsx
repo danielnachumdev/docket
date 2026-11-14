@@ -14,6 +14,7 @@ type Props = {
   onToggleTheme: () => void
   onLogout: () => void
   align?: 'start' | 'end'
+  showIdentity?: boolean
   className?: string
 }
 
@@ -23,6 +24,7 @@ export function ProfileMenu({
   onToggleTheme,
   onLogout,
   align = 'start',
+  showIdentity = false,
   className,
 }: Props) {
   const { t } = useTranslation('common')
@@ -62,7 +64,12 @@ export function ProfileMenu({
     triggerRef.current?.focus()
   }
 
-  const rootClass = ['profile-menu', align === 'end' ? 'align-end' : '', className]
+  const rootClass = [
+    'profile-menu',
+    align === 'end' ? 'align-end' : '',
+    showIdentity ? 'with-identity' : '',
+    className,
+  ]
     .filter(Boolean)
     .join(' ')
 
@@ -71,7 +78,7 @@ export function ProfileMenu({
       <button
         ref={triggerRef}
         type="button"
-        className="avatar-btn"
+        className={showIdentity ? 'avatar-btn profile-trigger' : 'avatar-btn'}
         aria-label={t('accountMenu')}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -81,6 +88,15 @@ export function ProfileMenu({
         <span className="avatar" aria-hidden="true">
           {initials(user.display_name)}
         </span>
+        {showIdentity && (
+          <>
+            <span className="user-meta" aria-hidden="true">
+              <strong>{user.display_name}</strong>
+              {user.email && <span>{user.email}</span>}
+            </span>
+            <Icon name="more" className="profile-trigger-more" />
+          </>
+        )}
       </button>
       {open && (
         <div

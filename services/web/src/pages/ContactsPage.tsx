@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { api, type Contact } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
+import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
 import { initials } from '../lib/format'
 
@@ -66,8 +68,8 @@ export function ContactsPage() {
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
-      <label className="field">
-        <span className="sr-only">{t('contacts.searchLabel')}</span>
+      <label className="search wide">
+        <Icon name="search" />
         <input
           type="search"
           value={query}
@@ -81,72 +83,41 @@ export function ContactsPage() {
       {contacts == null ? (
         <Skeleton rows={3} />
       ) : contacts.length === 0 ? (
-        <EmptyState icon="users" title={t('contacts.emptyTitle')}>
+        <EmptyState
+          icon={query.trim() ? 'search' : 'users'}
+          title={t('contacts.emptyTitle')}
+          action={
+            !query.trim() && (
+              <Link to="/invites" className="btn">
+                <Icon name="userPlus" />
+                {t('contacts.inviteAction')}
+              </Link>
+            )
+          }
+        >
           {query.trim() ? t('contacts.emptySearchHint') : t('contacts.emptyHint')}
         </EmptyState>
       ) : (
         <ul className="card list">
           {contacts.map((contact) => (
-            <li key={contact.id} className="list-row contact-row">
-              <span className="avatar small" aria-hidden="true">
-                {initials(contact.display_name)}
-              </span>
-              <span className="grow min-0">
-                <strong className="block truncate">{contact.display_name}</strong>
-                {contact.email && (
-                  <span className="muted small block truncate">{contact.email}</span>
-                )}
-                {editingId === contact.id ? (
-                  <form
-                    className="inline-form contact-nick-form"
-                    onSubmit={(event) => onSubmit(event, contact)}
-                  >
-                    <label className="sr-only" htmlFor={`nick-${contact.id}`}>
-                      {t('contacts.nicknameLabel')}
-                    </label>
-                    <input
-                      id={`nick-${contact.id}`}
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      placeholder={t('contacts.nicknamePlaceholder')}
-                      maxLength={32}
-                      pattern="[A-Za-z0-9._-]*"
-                      autoComplete="off"
-                      disabled={savingId === contact.id}
-                    />
-                    <button
-                      type="submit"
-                      className="btn small"
-                      disabled={savingId === contact.id}
-                    >
-                      {t('common:save')}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn ghost small"
-                      onClick={cancelEdit}
-                      disabled={savingId === contact.id}
-                    >
-                      {t('common:cancel')}
-                    </button>
-                  </form>
-                ) : contact.nickname ? (
-                  <span className="muted small block">
-                    {t('contacts.nicknameValue', { nickname: contact.nickname })}
-                  </span>
-                ) : (
-                  <span className="muted small block">{t('contacts.nicknameUnset')}</span>
-                )}
-              </span>
-              <span className="row-actions">
-                {editingId === contact.id ? (
+            <ListRow
+              key={contact.id}
+              className="contact-row"
+              leading={
+                <span className="avatar small" aria-hidden="true">
+                  {initials(contact.display_name)}
+                </span>
+              }
+              title={contact.display_name}
+              subtitle={contact.email}
+              trailing={
+                editingId === contact.id ? (
                   contact.nickname ? (
                     <button
                       type="button"
                       className="btn ghost small"
                       onClick={() => void saveNickname(contact, null)}
                       disabled={savingId === contact.id}
-                      title={t('contacts.clearNickname')}
                     >
                       {t('contacts.clearNickname')}
                     </button>
@@ -156,18 +127,53 @@ export function ContactsPage() {
                     type="button"
                     className="btn ghost small"
                     onClick={() => startEdit(contact)}
-                    title={t('contacts.editNickname')}
                   >
                     {contact.nickname
                       ? t('contacts.editNickname')
                       : t('contacts.setNickname')}
                   </button>
-                )}
-                <span className="muted small" title={t('contacts.fromGraph')}>
-                  <Icon name="users" size={14} />
+                )
+              }
+            >
+              {editingId === contact.id ? (
+                <form
+                  className="inline-form contact-nick-form"
+                  onSubmit={(event) => onSubmit(event, contact)}
+                >
+                  <label className="sr-only" htmlFor={`nick-${contact.id}`}>
+                    {t('contacts.nicknameLabel')}
+                  </label>
+                  <input
+                    id={`nick-${contact.id}`}
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder={t('contacts.nicknamePlaceholder')}
+                    maxLength={32}
+                    pattern="[A-Za-z0-9._-]*"
+                    autoComplete="off"
+                    autoFocus
+                    disabled={savingId === contact.id}
+                  />
+                  <button type="submit" className="btn small" disabled={savingId === contact.id}>
+                    {t('common:save')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost small"
+                    onClick={cancelEdit}
+                    disabled={savingId === contact.id}
+                  >
+                    {t('common:cancel')}
+                  </button>
+                </form>
+              ) : contact.nickname ? (
+                <span className="tag nick-tag">
+                  {t('contacts.nicknameValue', { nickname: contact.nickname })}
                 </span>
-              </span>
-            </li>
+              ) : (
+                <span className="muted small block">{t('contacts.nicknameUnset')}</span>
+              )}
+            </ListRow>
           ))}
         </ul>
       )}

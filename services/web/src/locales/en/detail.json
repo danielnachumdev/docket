@@ -185,5 +185,6 @@
     "outcomeObject": "Outcome must be a JSON object.",
     "outcomeJson": "Outcome must be valid JSON.",
     "submit": "Mark done"
-  }
+  },
+  "savedToast": "Changes saved"
 }

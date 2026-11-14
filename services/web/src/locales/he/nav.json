@@ -13,5 +13,8 @@
   "storage": "אחסון",
   "menu": "תפריט",
   "openMenu": "פתיחת תפריט",
-  "unreadCount": "{{count}} שלא נקראו"
+  "unreadCount": "{{count}} שלא נקראו",
+  "team": "צוות",
+  "admin": "ניהול",
+  "more": "עוד"
 }

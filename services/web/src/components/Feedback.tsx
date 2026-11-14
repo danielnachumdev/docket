@@ -2,12 +2,34 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon, type IconName } from './Icon'
 
-export function Alert({ children, onDismiss }: { children: ReactNode; onDismiss?: () => void }) {
+export type Tone = 'danger' | 'warning' | 'info' | 'success'
+
+const TONE_ICON: Record<Tone, IconName> = {
+  danger: 'alert',
+  warning: 'alert',
+  info: 'info',
+  success: 'check',
+}
+
+export function Alert({
+  children,
+  tone = 'danger',
+  icon,
+  action,
+  onDismiss,
+}: {
+  children: ReactNode
+  tone?: Tone
+  icon?: IconName
+  action?: ReactNode
+  onDismiss?: () => void
+}) {
   const { t } = useTranslation('common')
   return (
-    <div className="alert" role="alert">
-      <Icon name="alert" />
+    <div className={`alert tone-${tone}`} role={tone === 'danger' ? 'alert' : 'status'}>
+      <Icon name={icon ?? TONE_ICON[tone]} />
       <span>{children}</span>
+      {action}
       {onDismiss && (
         <button type="button" className="icon-btn" aria-label={t('dismiss')} onClick={onDismiss}>
           <Icon name="x" size={14} />
@@ -20,10 +42,12 @@ export function Alert({ children, onDismiss }: { children: ReactNode; onDismiss?
 export function EmptyState({
   icon,
   title,
+  action,
   children,
 }: {
   icon: IconName
   title: string
+  action?: ReactNode
   children?: ReactNode
 }) {
   return (
@@ -33,6 +57,7 @@ export function EmptyState({
       </span>
       <strong>{title}</strong>
       {children && <p>{children}</p>}
+      {action && <div className="empty-action">{action}</div>}
     </div>
   )
 }

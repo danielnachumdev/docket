@@ -81,5 +81,11 @@
   "commentDeleteFailed": "לא ניתן למחוק תגובה",
   "shareRoleViewer": "יכול לצפות",
   "shareRoleCommentor": "יכול להגיב",
-  "shareRoleEditor": "יכול לערוך"
+  "shareRoleEditor": "יכול לערוך",
+  "clearFilters": "ניקוי מסננים",
+  "addFirstTask": "הוספת המשימה הראשונה",
+  "createdToast": "משימה #{{number}} נוצרה",
+  "bulkUpdatedToast_one": "משימה אחת עודכנה",
+  "bulkUpdatedToast_two": "שתי משימות עודכנו",
+  "bulkUpdatedToast_other": "{{count}} משימות עודכנו"
 }

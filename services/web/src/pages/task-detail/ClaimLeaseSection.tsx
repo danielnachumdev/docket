@@ -57,7 +57,7 @@ export function ClaimLeaseSection({ task, events }: Props) {
 
   return (
     <Section icon="key" title={t('claim.title')} count={timeline.length}>
-      <div className="claim-status">
+      <div className={timeline.length > 0 ? 'claim-status' : 'claim-status only'}>
         {active ? (
           <>
             <p>{t('claim.holds', { token: holder })}</p>
@@ -81,9 +81,7 @@ export function ClaimLeaseSection({ task, events }: Props) {
         )}
       </div>
 
-      {timeline.length === 0 ? (
-        <p className="muted small">{t('claim.noEvents')}</p>
-      ) : (
+      {timeline.length > 0 && (
         <ol className="timeline claim-timeline">
           {timeline.map((ev) => {
             const payload = parsePayload(ev.payload_json)

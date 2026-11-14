@@ -22,7 +22,8 @@
     "revokeTitle": "לבטל את האסימון?",
     "revokeBody": "\"{{name}}\" יפסיק לעבוד מיד. סוכנים שמשתמשים בו יאבדו גישה.",
     "createFailed": "לא ניתן ליצור אסימון",
-    "revokeFailed": "לא ניתן לבטל את האסימון"
+    "revokeFailed": "לא ניתן לבטל את האסימון",
+    "revokedToast": "האסימון „{{name}}” בוטל"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -55,7 +56,10 @@
     "deleteBody": "\"{{name}}\" יפסיק לקבל אירועים.",
     "createFailed": "לא ניתן ליצור webhook",
     "updateFailed": "לא ניתן לעדכן webhook",
-    "deleteFailed": "לא ניתן למחוק webhook"
+    "deleteFailed": "לא ניתן למחוק webhook",
+    "enabledToast": "ה-Webhook „{{name}}” הופעל",
+    "disabledToast": "ה-Webhook „{{name}}” הושבת",
+    "deletedToast": "ה-Webhook „{{name}}” נמחק"
   },
   "invites": {
     "title": "הזמנות",
@@ -78,7 +82,8 @@
     "createFailed": "לא ניתן ליצור הזמנה",
     "revokeFailed": "לא ניתן לבטל את ההזמנה",
     "ownerOnlyHint": "רק בעל/ת סביבת העבודה יכול/ה ליצור הזמנות הרשמה.",
-    "mintDisabled": "לבעלים בלבד"
+    "mintDisabled": "לבעלים בלבד",
+    "revokedToast": "ההזמנה בוטלה"
   },
   "contacts": {
     "title": "אנשים",
@@ -97,7 +102,8 @@
     "setNickname": "הגדרת כינוי",
     "editNickname": "עריכת כינוי",
     "clearNickname": "נקה",
-    "nicknameSaveFailed": "לא ניתן לשמור כינוי"
+    "nicknameSaveFailed": "לא ניתן לשמור כינוי",
+    "inviteAction": "הזמנת מישהו"
   },
   "storage": {
     "title": "אחסון",

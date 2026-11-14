@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Section } from '../../components/Section'
 import { UserBidiText } from '../../components/UserBidiText'
 import { userBidiAttrs } from '../../lib/bidi'
 
@@ -19,8 +20,7 @@ export function CompletionSection({
 }: Props) {
   const { t } = useTranslation('detail')
   return (
-    <section className="card stack">
-      <span className="card-label">{t('completion.title')}</span>
+    <Section icon="target" title={t('completion.title')} className="stack">
       <label className="switch">
         <input
           type="checkbox"
@@ -52,7 +52,7 @@ export function CompletionSection({
           />
         </label>
       )}
-    </section>
+    </Section>
   )
 }
 

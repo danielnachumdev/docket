@@ -7,9 +7,11 @@ import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { Alert, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { Menu, type MenuItem } from '../components/Menu'
+import { Section } from '../components/Section'
 import { UserBidiText } from '../components/UserBidiText'
 import { isMixedBidi, userBidiAttrs } from '../lib/bidi'
 import { useConfirm } from '../lib/dialogs'
+import { useToast } from '../lib/toast'
 import { usePageTitle } from '../lib/usePageTitle'
 import {
   PRIORITIES,
@@ -94,6 +96,7 @@ export function TaskDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const toast = useToast()
   const { status } = useAuth()
   const taskId = id ?? ''
   const [detail, setDetail] = useState<TaskDetail | null>(null)
@@ -213,8 +216,9 @@ export function TaskDetailPage() {
     void run(async () => {
       await api.updateTask(taskId, patch)
       await load()
+      toast(t('savedToast'))
     }, t('errors.save'))
-  }, [detail, draft, load, run, setError, taskId, t])
+  }, [detail, draft, load, run, setError, taskId, t, toast])
 
   useEffect(() => {
     if (!dirty) return
@@ -398,23 +402,24 @@ export function TaskDetailPage() {
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {task.last_error && (
-        <div className="notice notice-error" role="status">
-          <Icon name="alert" />
-          <span>
-            <strong>{t('lastError')}</strong>
-            {': '}
-            {task.last_error}
-          </span>
-        </div>
+        <Alert>
+          <strong>{t('lastError')}</strong>
+          {': '}
+          {task.last_error}
+        </Alert>
       )}
       {task.archived_at && (
-        <div className="notice">
-          <Icon name="archive" />
-          <span>{t('archivedNotice', { when: formatRelative(task.archived_at) })}</span>
-          <button type="button" className="btn small" disabled={busy} onClick={toggleArchive}>
-            {t('restore')}
-          </button>
-        </div>
+        <Alert
+          tone="warning"
+          icon="archive"
+          action={
+            <button type="button" className="btn small" disabled={busy} onClick={toggleArchive}>
+              {t('restore')}
+            </button>
+          }
+        >
+          {t('archivedNotice', { when: formatRelative(task.archived_at) })}
+        </Alert>
       )}
 
       <header className="detail-header">
@@ -480,18 +485,18 @@ export function TaskDetailPage() {
 
       <div className="detail-grid">
         <div className="detail-main">
-          <section className="card">
-            <label className="notes">
-              <span className="card-label">{t('notes')}</span>
+          <Section icon="text" title={t('notes')} headingId="notes-label">
+            <div className="notes">
               <textarea
                 {...userBidiAttrs(draft.body)}
+                aria-labelledby="notes-label"
                 rows={Math.min(16, Math.max(4, draft.body.split('\n').length + 1))}
                 value={draft.body}
                 onChange={(e) => update('body', e.target.value)}
                 placeholder={t('notesPlaceholder')}
               />
-            </label>
-          </section>
+            </div>
+          </Section>
           <SubtasksSection taskId={taskId} subtasks={detail.children} onChanged={load} />
           <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
           <CommentsSection
@@ -511,10 +516,7 @@ export function TaskDetailPage() {
         </div>
 
         <aside className="detail-side detail-props">
-          <section className="card">
-            <span className="card-label" id="status-label">
-              {t('status')}
-            </span>
+          <Section icon="flag" title={t('status')} headingId="status-label">
             <div className="status-picker" role="radiogroup" aria-labelledby="status-label">
               {STATUSES.map((s) => (
                 <button
@@ -531,10 +533,9 @@ export function TaskDetailPage() {
                 </button>
               ))}
             </div>
-          </section>
+          </Section>
 
-          <section className="card stack">
-            <span className="card-label">{t('details')}</span>
+          <Section icon="sliders" title={t('details')} className="stack">
             <label className="field">
               <span>{t('priority')}</span>
               <select value={draft.priority} onChange={(e) => update('priority', Number(e.target.value))}>
@@ -599,7 +600,7 @@ export function TaskDetailPage() {
                 )}
               </select>
             </label>
-          </section>
+          </Section>
         </aside>
 
         <aside className="detail-side detail-related">

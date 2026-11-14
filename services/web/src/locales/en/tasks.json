@@ -80,5 +80,10 @@
   "commentDeleteFailed": "Could not delete comment",
   "shareRoleViewer": "Can view",
   "shareRoleCommentor": "Can comment",
-  "shareRoleEditor": "Can edit"
+  "shareRoleEditor": "Can edit",
+  "clearFilters": "Clear filters",
+  "addFirstTask": "Add your first task",
+  "createdToast": "Task #{{number}} created",
+  "bulkUpdatedToast_one": "Updated {{count}} task",
+  "bulkUpdatedToast_other": "Updated {{count}} tasks"
 }

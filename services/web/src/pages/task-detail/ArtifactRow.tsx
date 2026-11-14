@@ -45,7 +45,7 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
   return (
     <li id={`artifact-${a.id}`} className="artifact">
       <div className="list-row">
-        <span className="artifact-icon">
+        <span className="row-icon">
           <Icon name={artifactKindIcon(a.kind)} />
         </span>
         <span className="grow min-0">
