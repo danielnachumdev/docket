@@ -1,8 +1,13 @@
 """Task claim / lease rules for agent workers.
 
+Agent write contract: claim → work → heartbeat → release.
+
 Ownership of an active lease is keyed by ``claimed_by_token_id`` (Bearer API
-token). Session users (no token) do not take claims; they may release or
-override any lease on tasks they own — the human control-plane escape hatch.
+token). Mutating an existing task via an API token requires that token to hold
+the active (non-expired) lease — see ``require_agent_lease``. Session users
+(no token) are exempt from the lease gate; they may update tasks and may
+release or override any lease on tasks they own — the human control-plane
+escape hatch.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -72,6 +77,17 @@ class TaskClaimService:
             actor=principal,
             payload={"previous_claimed_by_token_id": previous},
         )
+
+    def require_agent_lease(self, task: Task, principal: Principal) -> None:
+        """Raise 409 unless session user or this token holds the active lease."""
+        if principal.token_id is None:
+            return
+        holder = self._active_holder_token_id(task)
+        if holder is None or holder != principal.token_id:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Active claim required",
+            )
 
     def renew(
         self,
