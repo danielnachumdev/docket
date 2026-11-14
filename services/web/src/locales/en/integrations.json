@@ -22,7 +22,8 @@
     "revokeTitle": "Revoke token?",
     "revokeBody": "“{{name}}” will stop working immediately. Agents using it will lose access.",
     "createFailed": "Could not create token",
-    "revokeFailed": "Could not revoke token"
+    "revokeFailed": "Could not revoke token",
+    "revokedToast": "Token “{{name}}” revoked"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -55,7 +56,10 @@
     "deleteBody": "“{{name}}” will stop receiving events.",
     "createFailed": "Could not create webhook",
     "updateFailed": "Could not update webhook",
-    "deleteFailed": "Could not delete webhook"
+    "deleteFailed": "Could not delete webhook",
+    "enabledToast": "Webhook “{{name}}” enabled",
+    "disabledToast": "Webhook “{{name}}” disabled",
+    "deletedToast": "Webhook “{{name}}” deleted"
   },
   "invites": {
     "title": "Invites",
@@ -78,7 +82,8 @@
     "createFailed": "Could not create invite",
     "revokeFailed": "Could not revoke invite",
     "ownerOnlyHint": "Only the workspace owner can create registration invites.",
-    "mintDisabled": "Owner only"
+    "mintDisabled": "Owner only",
+    "revokedToast": "Invite revoked"
   },
   "contacts": {
     "title": "People",
@@ -97,7 +102,8 @@
     "setNickname": "Set nickname",
     "editNickname": "Edit nickname",
     "clearNickname": "Clear",
-    "nicknameSaveFailed": "Could not save nickname"
+    "nicknameSaveFailed": "Could not save nickname",
+    "inviteAction": "Invite someone"
   },
   "storage": {
     "title": "Storage",

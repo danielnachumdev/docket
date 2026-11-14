@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth'
 import { AppLayout } from './components/AppLayout'
 import { DialogsProvider } from './components/DialogsProvider'
 import { Spinner } from './components/Feedback'
+import { ToastProvider } from './components/ToastProvider'
 import { PreferencesProvider, useTheme } from './preferences'
 import { AccountPage } from './pages/AccountPage'
 import { ArtifactsPage } from './pages/ArtifactsPage'
@@ -70,9 +71,11 @@ export default function App() {
   return (
     <AuthProvider>
       <PreferencesProvider>
-        <DialogsProvider>
-          <Shell />
-        </DialogsProvider>
+        <ToastProvider>
+          <DialogsProvider>
+            <Shell />
+          </DialogsProvider>
+        </ToastProvider>
       </PreferencesProvider>
     </AuthProvider>
   )

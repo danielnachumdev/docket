@@ -3,10 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { api, type Webhook } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
+import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
 import { SecretReveal } from '../components/SecretReveal'
+import { SectionHeading } from '../components/SectionHeading'
 import { useConfirm } from '../lib/dialogs'
 import { formatDateTime, formatRelative, humanize } from '../lib/format'
+import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
 
 const EVENT_TYPES = [
@@ -21,6 +24,7 @@ const EVENT_TYPES = [
 export function WebhooksPage() {
   const { t } = useTranslation(['integrations', 'common'])
   const confirm = useConfirm()
+  const toast = useToast()
   const [hooks, setHooks] = useState<Webhook[] | null>(null)
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
@@ -69,6 +73,11 @@ export function WebhooksPage() {
     void run(async () => {
       await api.updateWebhook(hook.id, { enabled: !hook.enabled })
       await load()
+      toast(
+        hook.enabled
+          ? t('webhooks.disabledToast', { name: hook.name })
+          : t('webhooks.enabledToast', { name: hook.name }),
+      )
     }, t('webhooks.updateFailed'))
   }
 
@@ -83,6 +92,7 @@ export function WebhooksPage() {
     void run(async () => {
       await api.deleteWebhook(hook.id)
       await load()
+      toast(t('webhooks.deletedToast', { name: hook.name }))
     }, t('webhooks.deleteFailed'))
   }
 
@@ -103,7 +113,7 @@ export function WebhooksPage() {
       )}
 
       <form className="card stack" onSubmit={onCreate}>
-        <div className="token-form">
+        <div className="create-form">
           <label className="field grow">
             <span>{t('webhooks.name')}</span>
             <input
@@ -155,9 +165,7 @@ export function WebhooksPage() {
         </div>
       </form>
 
-      <div className="section-head">
-        <h2>{t('webhooks.listTitle')}</h2>
-      </div>
+      <SectionHeading title={t('webhooks.listTitle')} count={hooks?.length} />
 
       {hooks == null ? (
         <Skeleton rows={3} />
@@ -168,59 +176,63 @@ export function WebhooksPage() {
       ) : (
         <ul className="card list">
           {hooks.map((hook) => (
-            <li key={hook.id} className={hook.enabled ? 'list-row' : 'list-row revoked'}>
-              <span className="artifact-icon">
-                <Icon name="webhook" />
-              </span>
-              <span className="grow min-0">
-                <strong className="block truncate">
+            <ListRow
+              key={hook.id}
+              icon="webhook"
+              muted={!hook.enabled}
+              title={
+                <>
                   {hook.name}
                   {!hook.enabled && <span className="tag inline-tag">{t('webhooks.disabled')}</span>}
-                </strong>
-                <span className="muted small block truncate mono">{hook.url}</span>
-                <span className="muted small meta-line">
-                  <span>{hook.event_types.map(eventLabel).join(', ')}</span>
-                  <span title={formatDateTime(hook.created_at)}>
-                    {t('created', { when: formatRelative(hook.created_at) })}
+                </>
+              }
+              subtitle={<span className="mono">{hook.url}</span>}
+              meta={[
+                hook.event_types.map(eventLabel).join(', '),
+                <span key="created" title={formatDateTime(hook.created_at)}>
+                  {t('created', { when: formatRelative(hook.created_at) })}
+                </span>,
+                <span key="delivered" title={formatDateTime(hook.last_delivered_at)}>
+                  {hook.last_delivered_at
+                    ? hook.last_status_code != null
+                      ? t('webhooks.lastDeliveryStatus', {
+                          when: formatRelative(hook.last_delivered_at),
+                          code: hook.last_status_code,
+                        })
+                      : t('webhooks.lastDelivery', { when: formatRelative(hook.last_delivered_at) })
+                    : t('webhooks.neverDelivered')}
+                </span>,
+                hook.last_error && (
+                  <span key="error" className="danger-text">
+                    {t('webhooks.error', { message: hook.last_error })}
                   </span>
-                  <span title={formatDateTime(hook.last_delivered_at)}>
-                    {hook.last_delivered_at
-                      ? hook.last_status_code != null
-                        ? t('webhooks.lastDeliveryStatus', {
-                            when: formatRelative(hook.last_delivered_at),
-                            code: hook.last_status_code,
-                          })
-                        : t('webhooks.lastDelivery', { when: formatRelative(hook.last_delivered_at) })
-                      : t('webhooks.neverDelivered')}
-                  </span>
-                  {hook.last_error && (
-                    <span className="danger-text">
-                      {t('webhooks.error', { message: hook.last_error })}
-                    </span>
-                  )}
-                </span>
-              </span>
-              <span className="row-actions">
-                <button
-                  type="button"
-                  className="btn ghost small"
-                  disabled={busy}
-                  onClick={() => onToggle(hook)}
-                >
-                  {hook.enabled ? t('common:disable') : t('common:enable')}
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn danger"
-                  disabled={busy}
-                  aria-label={t('common:delete')}
-                  title={t('common:delete')}
-                  onClick={() => void onDelete(hook)}
-                >
-                  <Icon name="trash" />
-                </button>
-              </span>
-            </li>
+                ),
+              ]}
+              trailing={
+                <>
+                  <label className="switch" title={hook.enabled ? t('common:disable') : t('common:enable')}>
+                    <input
+                      type="checkbox"
+                      checked={hook.enabled}
+                      disabled={busy}
+                      onChange={() => onToggle(hook)}
+                      aria-label={hook.enabled ? t('common:disable') : t('common:enable')}
+                    />
+                    <span className="switch-track" aria-hidden="true" />
+                  </label>
+                  <button
+                    type="button"
+                    className="icon-btn danger"
+                    disabled={busy}
+                    aria-label={t('common:delete')}
+                    title={t('common:delete')}
+                    onClick={() => void onDelete(hook)}
+                  >
+                    <Icon name="trash" />
+                  </button>
+                </>
+              }
+            />
           ))}
         </ul>
       )}

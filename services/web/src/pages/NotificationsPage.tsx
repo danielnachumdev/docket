@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
 import { UserBidiText } from '../components/UserBidiText'
 import { formatDateTime, formatRelative, humanize } from '../lib/format'
+import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
 
 function notifyChanged() {
@@ -15,6 +16,7 @@ function notifyChanged() {
 
 export function NotificationsPage() {
   const { t } = useTranslation('inbox')
+  const toast = useToast()
   const [rows, setRows] = useState<Notification[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const { busy, error, setError, run } = useAction()
@@ -54,6 +56,7 @@ export function NotificationsPage() {
                   await api.markAllNotificationsRead()
                   await load()
                   notifyChanged()
+                  toast(t('markedAllRead'))
                 }, t('markAllFailed'))
               }
             >
@@ -70,7 +73,16 @@ export function NotificationsPage() {
       {rows == null ? (
         !loadError && <Skeleton rows={5} />
       ) : rows.length === 0 ? (
-        <EmptyState icon="bell" title={t('emptyTitle')}>
+        <EmptyState
+          icon="bell"
+          title={t('emptyTitle')}
+          action={
+            <Link to="/" className="btn">
+              <Icon name="tasks" />
+              {t('browseTasks')}
+            </Link>
+          }
+        >
           {t('emptyHint')}
         </EmptyState>
       ) : (

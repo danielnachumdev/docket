@@ -13,5 +13,7 @@
     "mentioned": "Mention",
     "shared": "Shared",
     "invite_accepted": "Invite"
-  }
+  },
+  "browseTasks": "Browse tasks",
+  "markedAllRead": "All notifications marked as read"
 }

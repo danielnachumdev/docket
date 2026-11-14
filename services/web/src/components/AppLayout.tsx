@@ -16,6 +16,12 @@ type NavItem = {
   badge?: number
 }
 
+type NavGroup = {
+  id: string
+  label: string
+  items: NavItem[]
+}
+
 export function Logo() {
   return (
     <span className="logo" aria-hidden="true">
@@ -71,6 +77,7 @@ function NavLink({
   onNavigate?: () => void
 }) {
   const { t } = useTranslation('nav')
+  const badge = item.badge != null && item.badge > 0 ? (item.badge > 99 ? '99+' : item.badge) : null
   return (
     <Link
       to={item.to}
@@ -80,13 +87,18 @@ function NavLink({
     >
       <span className="nav-icon-wrap">
         <Icon name={item.icon} size={18} />
-        {item.badge != null && item.badge > 0 && (
-          <span className="nav-badge" aria-label={t('unreadCount', { count: item.badge })}>
-            {item.badge > 99 ? '99+' : item.badge}
+        {badge != null && (
+          <span className="nav-badge" aria-hidden="true">
+            {badge}
           </span>
         )}
       </span>
       <span className="nav-label">{item.label}</span>
+      {badge != null && (
+        <span className="nav-count" aria-label={t('unreadCount', { count: item.badge })}>
+          {badge}
+        </span>
+      )}
     </Link>
   )
 }
@@ -106,74 +118,66 @@ export function AppLayout({
   const isArchived = new URLSearchParams(search).get('view') === 'archived'
   const closeMenu = useCallback(() => setMenuOpen(false), [])
 
-  const workspace: NavItem[] = [
-    {
-      to: '/',
-      label: t('nav:tasks'),
-      icon: 'tasks',
-      match: (path) => (path === '/' && !isArchived) || path.startsWith('/tasks/'),
-    },
-    {
-      to: '/notifications',
-      label: t('nav:inbox'),
-      icon: 'bell',
-      match: (path) => path === '/notifications',
-      badge: unread,
-    },
-    {
-      to: '/artifacts',
-      label: t('nav:artifacts'),
-      icon: 'paperclip',
-      match: (path) => path === '/artifacts',
-    },
-    {
-      to: '/?view=archived',
-      label: t('nav:archived'),
-      icon: 'archive',
-      match: (path) => path === '/' && isArchived,
-    },
-  ]
+  const page = (to: string, label: string, icon: IconName, badge?: number): NavItem => ({
+    to,
+    label,
+    icon,
+    badge,
+    match: (path) => path === to,
+  })
 
-  const integrations: NavItem[] = [
+  const groups: NavGroup[] = [
     {
-      to: '/tokens',
-      label: t('nav:apiTokens'),
-      icon: 'key',
-      match: (path) => path === '/tokens',
+      id: 'workspace',
+      label: t('nav:workspace'),
+      items: [
+        {
+          to: '/',
+          label: t('nav:tasks'),
+          icon: 'tasks',
+          match: (path) => (path === '/' && !isArchived) || path.startsWith('/tasks/'),
+        },
+        page('/notifications', t('nav:inbox'), 'bell', unread),
+        page('/artifacts', t('nav:artifacts'), 'paperclip'),
+        {
+          to: '/?view=archived',
+          label: t('nav:archived'),
+          icon: 'archive',
+          match: (path) => path === '/' && isArchived,
+        },
+      ],
     },
     {
-      to: '/webhooks',
-      label: t('nav:webhooks'),
-      icon: 'webhook',
-      match: (path) => path === '/webhooks',
+      id: 'team',
+      label: t('nav:team'),
+      items: [
+        page('/people', t('nav:people'), 'users'),
+        page('/invites', t('nav:invites'), 'userPlus'),
+      ],
     },
     {
-      to: '/people',
-      label: t('nav:people'),
-      icon: 'users',
-      match: (path) => path === '/people',
-    },
-    {
-      to: '/invites',
-      label: t('nav:invites'),
-      icon: 'users',
-      match: (path) => path === '/invites',
+      id: 'integrations',
+      label: t('nav:integrations'),
+      items: [
+        page('/tokens', t('nav:apiTokens'), 'key'),
+        page('/webhooks', t('nav:webhooks'), 'webhook'),
+      ],
     },
     ...(canAdmin
       ? [
           {
-            to: '/storage',
-            label: t('nav:storage'),
-            icon: 'archive' as const,
-            match: (path: string) => path === '/storage',
+            id: 'admin',
+            label: t('nav:admin'),
+            items: [page('/storage', t('nav:storage'), 'database')],
           },
         ]
       : []),
   ]
 
-  const tabs = workspace.slice(0, 3)
+  const tabs = groups[0].items.slice(0, 3)
+  const onTabRoute = tabs.some((item) => item.match(pathname, search))
 
-  const renderGroup = (items: NavItem[], onNavigate?: () => void) =>
+  const renderItems = (items: NavItem[], onNavigate?: () => void) =>
     items.map((item) => (
       <NavLink
         key={item.to}
@@ -183,14 +187,13 @@ export function AppLayout({
       />
     ))
 
-  const profileMenu = (
-    <ProfileMenu
-      user={user}
-      theme={theme}
-      onToggleTheme={onToggleTheme}
-      onLogout={onLogout}
-    />
-  )
+  const renderGroups = (onNavigate?: () => void) =>
+    groups.map((group) => (
+      <div key={group.id} className="nav-group">
+        <span className="nav-group-label">{group.label}</span>
+        {renderItems(group.items, onNavigate)}
+      </div>
+    ))
 
   return (
     <div className="layout">
@@ -205,17 +208,16 @@ export function AppLayout({
             <span>{t('common:appName')}</span>
           </Link>
           <nav className="nav" aria-label={t('nav:main')}>
-            <div className="nav-group">
-              <span className="nav-group-label">{t('nav:workspace')}</span>
-              {renderGroup(workspace)}
-            </div>
-            <div className="nav-group">
-              <span className="nav-group-label">{t('nav:integrations')}</span>
-              {renderGroup(integrations)}
-            </div>
+            {renderGroups()}
           </nav>
           <div className="sidebar-footer">
-            <div className="sidebar-footer-row">{profileMenu}</div>
+            <ProfileMenu
+              user={user}
+              theme={theme}
+              onToggleTheme={onToggleTheme}
+              onLogout={onLogout}
+              showIdentity
+            />
           </div>
         </div>
       </aside>
@@ -251,20 +253,25 @@ export function AppLayout({
       </div>
 
       <nav className="tabbar" aria-label={t('nav:main')}>
-        {renderGroup(tabs)}
+        {renderItems(tabs)}
+        <button
+          type="button"
+          className={onTabRoute ? 'nav-item' : 'nav-item active'}
+          aria-haspopup="dialog"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
+        >
+          <span className="nav-icon-wrap">
+            <Icon name="menu" size={18} />
+          </span>
+          <span className="nav-label">{t('nav:more')}</span>
+        </button>
       </nav>
 
       {menuOpen && (
         <Dialog title={t('nav:menu')} variant="drawer" onClose={closeMenu}>
           <nav className="nav drawer-nav" aria-label={t('nav:menu')}>
-            <div className="nav-group">
-              <span className="nav-group-label">{t('nav:workspace')}</span>
-              {renderGroup(workspace, closeMenu)}
-            </div>
-            <div className="nav-group">
-              <span className="nav-group-label">{t('nav:integrations')}</span>
-              {renderGroup(integrations, closeMenu)}
-            </div>
+            {renderGroups(closeMenu)}
           </nav>
         </Dialog>
       )}

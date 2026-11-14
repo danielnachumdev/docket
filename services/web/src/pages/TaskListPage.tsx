@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, type SavedView, type Task } from '../api'
 import { useAuth } from '../auth'
 import { DueBadge, PriorityBadge, StatusBadge } from '../components/Badges'
@@ -27,6 +27,7 @@ import {
   type FilterKey,
 } from '../lib/smartFilters'
 import { ranksForOrder, reorderBodyAfterMove } from '../lib/taskReorder'
+import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
 import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
 import { TaskKanbanBoard } from './TaskKanbanBoard'
@@ -249,6 +250,8 @@ export function TaskListPage() {
   const { busy, error, setError, run } = useAction()
   const confirm = useConfirm()
   const prompt = usePrompt()
+  const toast = useToast()
+  const navigate = useNavigate()
   const searchRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLInputElement>(null)
 
@@ -357,9 +360,14 @@ export function TaskListPage() {
     e.preventDefault()
     if (!title.trim()) return
     void run(async () => {
-      await api.createTask({ title: title.trim(), priority })
+      const created = await api.createTask({ title: title.trim(), priority })
       setTitle('')
+      setPinned((prev) => new Set(prev).add(created.id))
       await load()
+      toast({
+        message: t('tasks:createdToast', { number: created.number }),
+        action: { label: t('common:open'), onSelect: () => navigate(`/tasks/${created.id}`) },
+      })
     }, t('tasks:createFailed'))
   }
 
@@ -488,6 +496,7 @@ export function TaskListPage() {
         return next
       })
       clearSelection()
+      toast(t('tasks:bulkUpdatedToast', { count: updated.length }))
     }, t('tasks:bulkUpdateFailed'))
   }
 
@@ -518,7 +527,17 @@ export function TaskListPage() {
     }, t('tasks:bulkUpdateFailed'))
   }
 
-  const statusChips: StatusChip[] = ['active', 'all', ...STATUSES]
+  const isChipSelected = (key: FilterKey) => activeSavedId == null && filter === key
+  const statusChips = (['active', 'all', ...STATUSES] as StatusChip[]).filter(
+    (key) => key === 'active' || key === 'all' || (counts[key] ?? 0) > 0 || isChipSelected(key),
+  )
+  const smartChips = SMART_FILTERS.filter((key) => (counts[key] ?? 0) > 0 || isChipSelected(key))
+  const filtersNarrowed = query.trim() !== '' || filter !== (archived ? 'all' : 'active')
+
+  function resetFilters() {
+    setQuery('')
+    selectFilter(archived ? 'all' : 'active')
+  }
 
   return (
     <main
@@ -633,8 +652,8 @@ export function TaskListPage() {
               key={f}
               type="button"
               role="tab"
-              aria-selected={activeSavedId == null && filter === f}
-              className={activeSavedId == null && filter === f ? 'chip active' : 'chip'}
+              aria-selected={isChipSelected(f)}
+              className={isChipSelected(f) ? 'chip active' : 'chip'}
               onClick={() => selectFilter(f)}
             >
               {filterLabel(f)}
@@ -647,15 +666,13 @@ export function TaskListPage() {
       {!archived && (
         <div className="views-bar" aria-label={t('tasks:smartAndSavedViews')}>
           <div className="chips views-chips" role="tablist" aria-label={t('tasks:smartFilters')}>
-            {SMART_FILTERS.map((f) => (
+            {smartChips.map((f) => (
               <button
                 key={f}
                 type="button"
                 role="tab"
-                aria-selected={activeSavedId == null && filter === f}
-                className={
-                  activeSavedId == null && filter === f ? 'chip smart active' : 'chip smart'
-                }
+                aria-selected={isChipSelected(f)}
+                className={isChipSelected(f) ? 'chip smart active' : 'chip smart'}
                 onClick={() => selectFilter(f)}
               >
                 {filterLabel(f)}
@@ -701,13 +718,30 @@ export function TaskListPage() {
         <Skeleton rows={5} />
       ) : visible.length === 0 ? (
         <EmptyState
-          icon={archived ? 'archive' : 'inbox'}
+          icon={tasks.length > 0 ? 'search' : archived ? 'archive' : 'inbox'}
           title={
             tasks.length === 0
               ? archived
                 ? t('tasks:emptyNoneArchived')
                 : t('tasks:emptyNoneYet')
               : t('tasks:emptyNoMatch')
+          }
+          action={
+            tasks.length > 0 && filtersNarrowed ? (
+              <button type="button" className="btn" onClick={resetFilters}>
+                <Icon name="x" />
+                {t('tasks:clearFilters')}
+              </button>
+            ) : tasks.length === 0 && !archived ? (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => composerRef.current?.focus()}
+              >
+                <Icon name="plus" />
+                {t('tasks:addFirstTask')}
+              </button>
+            ) : null
           }
         >
           {tasks.length === 0

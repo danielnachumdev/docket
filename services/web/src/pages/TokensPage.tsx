@@ -3,15 +3,19 @@ import { useTranslation } from 'react-i18next'
 import { api, type ApiToken, type Role } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
+import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
 import { SecretReveal } from '../components/SecretReveal'
+import { SectionHeading } from '../components/SectionHeading'
 import { useConfirm } from '../lib/dialogs'
 import { formatDateTime, formatRelative } from '../lib/format'
+import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
 
 export function TokensPage() {
   const { t } = useTranslation(['integrations', 'common'])
   const confirm = useConfirm()
+  const toast = useToast()
   const [tokens, setTokens] = useState<ApiToken[] | null>(null)
   const [roles, setRoles] = useState<Role[]>([])
   const [name, setName] = useState('')
@@ -60,6 +64,7 @@ export function TokensPage() {
     void run(async () => {
       await api.revokeToken(token.id)
       await load()
+      toast(t('tokens.revokedToast', { name: token.name }))
     }, t('tokens.revokeFailed'))
   }
 
@@ -79,7 +84,7 @@ export function TokensPage() {
         </SecretReveal>
       )}
 
-      <form className="card token-form" onSubmit={onCreate}>
+      <form className="card create-form" onSubmit={onCreate}>
         <label className="field grow">
           <span>{t('tokens.name')}</span>
           <input
@@ -108,18 +113,21 @@ export function TokensPage() {
         </button>
       </form>
 
-      <div className="section-head">
-        <h2>{t('tokens.listTitle')}</h2>
-        <label className="switch">
-          <input
-            type="checkbox"
-            checked={includeRevoked}
-            onChange={(e) => setIncludeRevoked(e.target.checked)}
-          />
-          <span className="switch-track" aria-hidden="true" />
-          {t('tokens.showRevoked')}
-        </label>
-      </div>
+      <SectionHeading
+        title={t('tokens.listTitle')}
+        count={tokens?.length}
+        action={
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={includeRevoked}
+              onChange={(e) => setIncludeRevoked(e.target.checked)}
+            />
+            <span className="switch-track" aria-hidden="true" />
+            {t('tokens.showRevoked')}
+          </label>
+        }
+      />
 
       {tokens == null ? (
         <Skeleton rows={3} />
@@ -132,41 +140,39 @@ export function TokensPage() {
           {tokens.map((token) => {
             const revoked = token.revoked_at != null
             return (
-              <li key={token.id} className={revoked ? 'list-row revoked' : 'list-row'}>
-                <span className="artifact-icon">
-                  <Icon name="key" />
-                </span>
-                <span className="grow min-0">
-                  <strong className="block truncate">{token.name}</strong>
-                  <span className="muted small meta-line">
-                    <span>
-                      {token.role_name
-                        ? t('tokens.role', { name: token.role_name })
-                        : t('tokens.fullPermissions')}
-                    </span>
-                    <span title={formatDateTime(token.created_at)}>
-                      {t('created', { when: formatRelative(token.created_at) })}
-                    </span>
-                    <span title={formatDateTime(token.last_used_at)}>
-                      {token.last_used_at
-                        ? t('tokens.lastUsed', { when: formatRelative(token.last_used_at) })
-                        : t('tokens.neverUsed')}
-                    </span>
-                  </span>
-                </span>
-                {revoked ? (
-                  <span className="tag">{t('tokens.revoked')}</span>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn ghost small danger"
-                    disabled={busy}
-                    onClick={() => void onRevoke(token)}
-                  >
-                    {t('common:revoke')}
-                  </button>
-                )}
-              </li>
+              <ListRow
+                key={token.id}
+                icon="key"
+                muted={revoked}
+                title={token.name}
+                meta={[
+                  token.role_name
+                    ? t('tokens.role', { name: token.role_name })
+                    : t('tokens.fullPermissions'),
+                  <span key="created" title={formatDateTime(token.created_at)}>
+                    {t('created', { when: formatRelative(token.created_at) })}
+                  </span>,
+                  <span key="used" title={formatDateTime(token.last_used_at)}>
+                    {token.last_used_at
+                      ? t('tokens.lastUsed', { when: formatRelative(token.last_used_at) })
+                      : t('tokens.neverUsed')}
+                  </span>,
+                ]}
+                trailing={
+                  revoked ? (
+                    <span className="tag">{t('tokens.revoked')}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn ghost small danger"
+                      disabled={busy}
+                      onClick={() => void onRevoke(token)}
+                    >
+                      {t('common:revoke')}
+                    </button>
+                  )
+                }
+              />
             )
           })}
         </ul>

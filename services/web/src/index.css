@@ -17,6 +17,8 @@
   --danger-soft: #fdecec;
   --warning: #b45309;
   --warning-soft: #fdf3e2;
+  --success: #15803d;
+  --success-soft: #e8f6ed;
 
   /* Status palette: backlog grey, active green, hold yellow, blocked red,
      failed black; done blue + cancelled violet (see PR Proof). */
@@ -84,6 +86,8 @@
   --danger-soft: #2a1618;
   --warning: #fbbf24;
   --warning-soft: #2a2213;
+  --success: #4ade80;
+  --success-soft: #13261a;
 
   --st-backlog: #94a3b8;
   --st-in_progress: #4ade80;

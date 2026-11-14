@@ -3,10 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { api, type RegistrationInvite } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
+import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
 import { SecretReveal } from '../components/SecretReveal'
+import { SectionHeading } from '../components/SectionHeading'
 import { useConfirm } from '../lib/dialogs'
 import { formatDateTime, formatRelative } from '../lib/format'
+import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
 
 type Props = {
@@ -16,6 +19,7 @@ type Props = {
 export function InvitesPage({ canMint = false }: Props) {
   const { t } = useTranslation(['integrations', 'common'])
   const confirm = useConfirm()
+  const toast = useToast()
   const [invites, setInvites] = useState<RegistrationInvite[] | null>(null)
   const [email, setEmail] = useState('')
   const [createdPath, setCreatedPath] = useState<string | null>(null)
@@ -59,6 +63,7 @@ export function InvitesPage({ canMint = false }: Props) {
     void run(async () => {
       await api.revokeInvite(invite.id)
       await load()
+      toast(t('invites.revokedToast'))
     }, t('invites.revokeFailed'))
   }
 
@@ -67,10 +72,10 @@ export function InvitesPage({ canMint = false }: Props) {
       <PageHeader title={t('invites.title')} subtitle={t('invites.subtitle')} />
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
-      {!canMint && <Alert>{t('invites.ownerOnlyHint')}</Alert>}
+      {!canMint && <Alert tone="info">{t('invites.ownerOnlyHint')}</Alert>}
       {createdPath && (
         <SecretReveal
-          icon="users"
+          icon="userPlus"
           title={t('invites.revealTitle')}
           secret={`${window.location.origin}${createdPath}`}
           onDismiss={() => setCreatedPath(null)}
@@ -79,7 +84,7 @@ export function InvitesPage({ canMint = false }: Props) {
         </SecretReveal>
       )}
 
-      <form className="card token-form" onSubmit={onCreate}>
+      <form className="card create-form" onSubmit={onCreate}>
         <label className="field grow">
           <span>{t('invites.email')}</span>
           <input
@@ -102,14 +107,12 @@ export function InvitesPage({ canMint = false }: Props) {
         </button>
       </form>
 
-      <div className="section-head">
-        <h2>{t('invites.historyTitle')}</h2>
-      </div>
+      <SectionHeading title={t('invites.historyTitle')} count={invites?.length} />
 
       {invites == null ? (
         <Skeleton rows={3} />
       ) : invites.length === 0 ? (
-        <EmptyState icon="users" title={t('invites.emptyTitle')}>
+        <EmptyState icon="userPlus" title={t('invites.emptyTitle')}>
           {canMint ? t('invites.emptyHint') : t('invites.ownerOnlyHint')}
         </EmptyState>
       ) : (
@@ -118,43 +121,41 @@ export function InvitesPage({ canMint = false }: Props) {
             const consumed = invite.consumed_at != null
             const expired = !consumed && new Date(invite.expires_at).getTime() <= Date.now()
             return (
-              <li key={invite.id} className={consumed || expired ? 'list-row revoked' : 'list-row'}>
-                <span className="artifact-icon">
-                  <Icon name="users" />
-                </span>
-                <span className="grow min-0">
-                  <strong className="block truncate">
-                    {invite.email ?? t('invites.openInvite')}
-                  </strong>
-                  <span className="muted small meta-line">
-                    <span title={formatDateTime(invite.created_at)}>
-                      {t('created', { when: formatRelative(invite.created_at) })}
+              <ListRow
+                key={invite.id}
+                icon="userPlus"
+                muted={consumed || expired}
+                title={invite.email ?? t('invites.openInvite')}
+                meta={[
+                  <span key="created" title={formatDateTime(invite.created_at)}>
+                    {t('created', { when: formatRelative(invite.created_at) })}
+                  </span>,
+                  <span key="expires" title={formatDateTime(invite.expires_at)}>
+                    {t('invites.expires', { when: formatRelative(invite.expires_at) })}
+                  </span>,
+                  consumed && (
+                    <span key="used" title={formatDateTime(invite.consumed_at)}>
+                      {t('invites.used', { when: formatRelative(invite.consumed_at) })}
                     </span>
-                    <span title={formatDateTime(invite.expires_at)}>
-                      {t('invites.expires', { when: formatRelative(invite.expires_at) })}
-                    </span>
-                    {consumed && (
-                      <span title={formatDateTime(invite.consumed_at)}>
-                        {t('invites.used', { when: formatRelative(invite.consumed_at) })}
-                      </span>
-                    )}
-                  </span>
-                </span>
-                {consumed ? (
-                  <span className="tag">{t('invites.usedTag')}</span>
-                ) : expired ? (
-                  <span className="tag">{t('invites.expiredTag')}</span>
-                ) : canMint ? (
-                  <button
-                    type="button"
-                    className="btn ghost small danger"
-                    disabled={busy}
-                    onClick={() => void onRevoke(invite)}
-                  >
-                    {t('common:revoke')}
-                  </button>
-                ) : null}
-              </li>
+                  ),
+                ]}
+                trailing={
+                  consumed ? (
+                    <span className="tag">{t('invites.usedTag')}</span>
+                  ) : expired ? (
+                    <span className="tag">{t('invites.expiredTag')}</span>
+                  ) : canMint ? (
+                    <button
+                      type="button"
+                      className="btn ghost small danger"
+                      disabled={busy}
+                      onClick={() => void onRevoke(invite)}
+                    >
+                      {t('common:revoke')}
+                    </button>
+                  ) : null
+                }
+              />
             )
           })}
         </ul>

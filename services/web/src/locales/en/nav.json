@@ -13,5 +13,8 @@
   "storage": "Storage",
   "menu": "Menu",
   "openMenu": "Open menu",
-  "unreadCount": "{{count}} unread"
+  "unreadCount": "{{count}} unread",
+  "team": "Team",
+  "admin": "Admin",
+  "more": "More"
 }
