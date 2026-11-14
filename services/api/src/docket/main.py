@@ -22,6 +22,7 @@ from docket.api import (
 from docket.auth import AuthnMiddleware
 from docket.config import ROOT, get_settings
 from docket.db import database
+from docket.rate_limit import RateLimitMiddleware
 from docket.seed import rbac_seeder
 
 
@@ -47,7 +48,9 @@ def create_app() -> FastAPI:
         version=settings.running_version,
         lifespan=lifespan,
     )
-    # Authn outermost among our middleware so principal is set before routes.
+    # add_middleware wraps outward: last added runs first on the request.
+    # Request order: CORS → Authn → RateLimit → routes (principal set before limit).
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(AuthnMiddleware)
     app.add_middleware(
         CORSMiddleware,

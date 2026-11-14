@@ -1,3 +1,8 @@
+# Flood safety net (http context via conf.d include).
+# ~100 r/s per IP (~6000/min) — far above per-token app limits (default 120/min).
+# Only trips pathological floods; agents are policed in FastAPI middleware.
+limit_req_zone $binary_remote_addr zone=docket_api_flood:10m rate=100r/s;
+
 server {
     listen 80;
     server_name _;
@@ -20,7 +25,19 @@ server {
 
     # API_UPSTREAM is substituted at container start (e.g. api:8000 or docket-api:8000).
     # Match API artifact_max_bytes default (10 MiB) for content_base64 uploads.
+    # Health probes must not consume the IP flood budget.
+    location = /api/health {
+        proxy_pass http://${API_UPSTREAM};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location /api/ {
+        limit_req zone=docket_api_flood burst=200 nodelay;
+        limit_req_status 429;
         client_max_body_size 10m;
         proxy_pass http://${API_UPSTREAM};
         proxy_http_version 1.1;
