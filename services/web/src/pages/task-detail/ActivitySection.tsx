@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import type { TaskEvent } from '../../api'
+import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
 
@@ -138,44 +140,89 @@ type Props = {
   actorUserLabel: (event: TaskEvent) => string
 }
 
+const EXPANDED_SESSION_KEY = 'docket.activitySectionExpanded'
+
+function readExpandedPreference(): boolean {
+  try {
+    return sessionStorage.getItem(EXPANDED_SESSION_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeExpandedPreference(expanded: boolean) {
+  try {
+    sessionStorage.setItem(EXPANDED_SESSION_KEY, expanded ? '1' : '0')
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
 export function ActivitySection({ events, actorName, actorUserLabel }: Props) {
   const { t } = useTranslation('detail')
+  const [expanded, setExpanded] = useState(readExpandedPreference)
   const ordered = [...events].sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id)
 
+  function toggleExpanded() {
+    setExpanded((prev) => {
+      const next = !prev
+      writeExpandedPreference(next)
+      return next
+    })
+  }
+
   return (
-    <Section icon="activity" title={t('activity.title')} count={events.length}>
-      {ordered.length === 0 ? (
-        <p className="muted small">{t('activity.empty')}</p>
-      ) : (
-        <ol className="timeline">
-          {ordered.map((ev) => {
-            const payload = parsePayload(ev.payload_json)
-            return (
-              <li key={ev.id} className={`event event-${ev.type}`}>
-                <span className="event-dot" aria-hidden="true" />
-                <div className="event-body">
-                  <p>
-                    <strong>{actorName(ev)}</strong> {describe(t, ev, payload)}
-                    <span className="muted small" title={formatDateTime(ev.created_at)}>
-                      {' · '}
-                      {formatRelative(ev.created_at)}
-                    </span>
-                  </p>
-                  <div className="event-details">
-                    <ActorDrillDown event={ev} actorLabel={actorUserLabel(ev)} />
-                    {ev.payload_json && (
-                      <details>
-                        <summary>{t('activity.payload')}</summary>
-                        <pre>{payload ? JSON.stringify(payload, null, 2) : ev.payload_json}</pre>
-                      </details>
-                    )}
-                  </div>
-                </div>
-              </li>
-            )
-          })}
-        </ol>
-      )}
+    <Section
+      icon="activity"
+      title={t('activity.title')}
+      count={events.length}
+      action={
+        <button
+          type="button"
+          className="icon-btn ghost expand"
+          aria-label={expanded ? t('activity.collapse') : t('activity.expand')}
+          aria-expanded={expanded}
+          onClick={toggleExpanded}
+        >
+          <Icon name={expanded ? 'chevronDown' : 'chevronRight'} size={14} />
+        </button>
+      }
+    >
+      {expanded &&
+        (ordered.length === 0 ? (
+          <p className="muted small activity-empty">{t('activity.empty')}</p>
+        ) : (
+          <div className="activity-scroll">
+            <ol className="timeline activity-timeline">
+              {ordered.map((ev) => {
+                const payload = parsePayload(ev.payload_json)
+                return (
+                  <li key={ev.id} className={`event event-${ev.type}`}>
+                    <span className="event-dot" aria-hidden="true" />
+                    <div className="event-body">
+                      <p>
+                        <strong>{actorName(ev)}</strong> {describe(t, ev, payload)}
+                        <span className="muted small" title={formatDateTime(ev.created_at)}>
+                          {' · '}
+                          {formatRelative(ev.created_at)}
+                        </span>
+                      </p>
+                      <div className="event-details">
+                        <ActorDrillDown event={ev} actorLabel={actorUserLabel(ev)} />
+                        {ev.payload_json && (
+                          <details>
+                            <summary>{t('activity.payload')}</summary>
+                            <pre>{payload ? JSON.stringify(payload, null, 2) : ev.payload_json}</pre>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          </div>
+        ))}
     </Section>
   )
 }
