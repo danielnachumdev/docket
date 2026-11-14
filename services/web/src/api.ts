@@ -291,6 +291,14 @@ export const api = {
   }) => request<Task>('/api/tasks', { method: 'POST', body: JSON.stringify(body) }),
   updateTask: (id: string, body: Record<string, unknown>) =>
     request<Task>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  reorderTask: (
+    id: string,
+    body: { before_task_id?: string | null; after_task_id?: string | null } = {},
+  ) =>
+    request<Task>(`/api/tasks/${id}/reorder`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   bulkUpdateTasks: (body: {
     task_ids: string[]
     status?: string

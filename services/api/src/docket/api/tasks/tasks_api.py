@@ -18,6 +18,7 @@ from docket.schemas import (
     TaskLinkCreate,
     TaskLinkOut,
     TaskOut,
+    TaskReorder,
     TaskStatusIn,
     TaskUpdate,
 )
@@ -73,6 +74,12 @@ class TasksApi:
         self.router.add_api_route(
             "/{task_id}/status",
             self.set_status,
+            methods=["POST"],
+            response_model=TaskOut,
+        )
+        self.router.add_api_route(
+            "/{task_id}/reorder",
+            self.reorder_task,
             methods=["POST"],
             response_model=TaskOut,
         )
@@ -218,6 +225,11 @@ class TasksApi:
         self, task_id: str, body: TaskStatusIn, db: DbSession, principal: CanWrite
     ) -> TaskOut:
         return TaskService(db).set_status(principal, task_id, body)
+
+    def reorder_task(
+        self, task_id: str, body: TaskReorder, db: DbSession, principal: CanWrite
+    ) -> TaskOut:
+        return TaskService(db).reorder(principal, task_id, body)
 
     def add_comment(
         self,

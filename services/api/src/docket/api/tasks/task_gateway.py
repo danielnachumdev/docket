@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import nulls_last, or_, select
+from sqlalchemy import func, nulls_last, or_, select
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import ColumnElement, Select
 
@@ -67,7 +67,7 @@ class TaskGateway:
             stmt = stmt.where(Task.parent_task_id == parent_task_id)
         elif roots_only:
             stmt = stmt.where(Task.parent_task_id.is_(None))
-        stmt = stmt.order_by(Task.priority.asc(), Task.rank.asc(), Task.id.asc())
+        stmt = stmt.order_by(Task.rank.asc(), Task.id.asc())
         return list(self._db.scalars(stmt).all())
 
     def list_claimable(
@@ -91,9 +91,8 @@ class TaskGateway:
         if due_before is not None:
             stmt = stmt.where(Task.due_at.is_not(None), Task.due_at <= due_before)
         stmt = stmt.order_by(
-            Task.priority.asc(),
-            nulls_last(Task.due_at.asc()),
             Task.rank.asc(),
+            nulls_last(Task.due_at.asc()),
             Task.id.asc(),
         ).limit(limit)
         return list(self._db.scalars(stmt).all())
@@ -123,9 +122,37 @@ class TaskGateway:
             self._db.scalars(
                 select(Task)
                 .where(Task.parent_task_id == parent_id, Task.archived_at.is_(None))
-                .order_by(Task.priority.asc(), Task.rank.asc(), Task.id.asc())
+                .order_by(Task.rank.asc(), Task.id.asc())
             ).all()
         )
+
+    def list_siblings(
+        self, parent_task_id: int | None, *, owner_user_id: int
+    ) -> list[Task]:
+        stmt = select(Task).where(Task.archived_at.is_(None))
+        if parent_task_id is None:
+            # Roots are per-owner queues (NULL parent is not globally unique).
+            stmt = stmt.where(
+                Task.parent_task_id.is_(None),
+                Task.owner_user_id == owner_user_id,
+            )
+        else:
+            stmt = stmt.where(Task.parent_task_id == parent_task_id)
+        stmt = stmt.order_by(Task.rank.asc(), Task.id.asc())
+        return list(self._db.scalars(stmt).all())
+
+    def max_rank_for_parent(
+        self, parent_task_id: int | None, *, owner_user_id: int
+    ) -> float | None:
+        stmt = select(func.max(Task.rank)).where(Task.archived_at.is_(None))
+        if parent_task_id is None:
+            stmt = stmt.where(
+                Task.parent_task_id.is_(None),
+                Task.owner_user_id == owner_user_id,
+            )
+        else:
+            stmt = stmt.where(Task.parent_task_id == parent_task_id)
+        return self._db.scalar(stmt)
 
     def commit(self) -> None:
         self._db.commit()
