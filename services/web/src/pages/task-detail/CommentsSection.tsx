@@ -142,15 +142,24 @@ export function CommentsSection({
           (u) =>
             u.display_name.toLowerCase().includes(q) ||
             (u.email ?? '').toLowerCase().includes(q) ||
+            (u.nickname ?? '').toLowerCase().includes(q) ||
             u.handle.toLowerCase().includes(q),
         )
         .slice(0, 8)
-        .map((u) => ({
-          key: `u-${u.user_id}`,
-          label: u.display_name,
-          detail: u.email ?? u.handle,
-          insert: `@${u.handle}`,
-        }))
+        .map((u) => {
+          const token =
+            u.nickname && u.email
+              ? `@${u.nickname} (${u.email})`
+              : u.nickname
+                ? `@${u.nickname}`
+                : `@${u.email ?? u.handle}`
+          return {
+            key: `u-${u.user_id}`,
+            label: token,
+            detail: u.display_name,
+            insert: `@${u.handle}`,
+          }
+        })
     }
     if (trigger.kind === '#') {
       return tasks

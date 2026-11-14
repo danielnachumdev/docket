@@ -1,11 +1,11 @@
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from docket.models import Membership, RegistrationInvite, Task, User
+from docket.models import ContactNickname, Membership, RegistrationInvite, Task, User
 
 
 class ContactGateway:
-    """Raw queries for the caller's implicit contacts graph."""
+    """Raw queries for the caller's implicit contacts graph and nicknames."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -62,6 +62,90 @@ class ContactGateway:
             )
         stmt = stmt.order_by(User.display_name.asc(), User.id.asc())
         return list(self._db.scalars(stmt).all())
+
+    def nicknames_for_viewer(
+        self, viewer_user_id: int, contact_ids: set[int]
+    ) -> dict[int, str]:
+        if not contact_ids:
+            return {}
+        rows = self._db.scalars(
+            select(ContactNickname).where(
+                ContactNickname.viewer_user_id == viewer_user_id,
+                ContactNickname.contact_user_id.in_(contact_ids),
+            )
+        ).all()
+        return {row.contact_user_id: row.nickname for row in rows}
+
+    def contact_ids_matching_nickname(
+        self, viewer_user_id: int, contact_ids: set[int], query: str
+    ) -> set[int]:
+        if not contact_ids or not query.strip():
+            return set()
+        pattern = f"%{query.strip()}%"
+        return set(
+            self._db.scalars(
+                select(ContactNickname.contact_user_id).where(
+                    ContactNickname.viewer_user_id == viewer_user_id,
+                    ContactNickname.contact_user_id.in_(contact_ids),
+                    ContactNickname.nickname.ilike(pattern),
+                )
+            ).all()
+        )
+
+    def get_nickname_edge(
+        self, viewer_user_id: int, contact_user_id: int
+    ) -> ContactNickname | None:
+        return self._db.scalar(
+            select(ContactNickname).where(
+                ContactNickname.viewer_user_id == viewer_user_id,
+                ContactNickname.contact_user_id == contact_user_id,
+            )
+        )
+
+    def find_nickname_conflict(
+        self,
+        viewer_user_id: int,
+        nickname_normalized: str,
+        *,
+        except_contact_user_id: int,
+    ) -> ContactNickname | None:
+        return self._db.scalar(
+            select(ContactNickname).where(
+                ContactNickname.viewer_user_id == viewer_user_id,
+                ContactNickname.nickname_normalized == nickname_normalized,
+                ContactNickname.contact_user_id != except_contact_user_id,
+            )
+        )
+
+    def upsert_nickname(
+        self, viewer_user_id: int, contact_user_id: int, nickname: str
+    ) -> ContactNickname:
+        row = self.get_nickname_edge(viewer_user_id, contact_user_id)
+        normalized = nickname.lower()
+        if row is None:
+            row = ContactNickname(
+                viewer_user_id=viewer_user_id,
+                contact_user_id=contact_user_id,
+                nickname=nickname,
+                nickname_normalized=normalized,
+            )
+            self._db.add(row)
+        else:
+            row.nickname = nickname
+            row.nickname_normalized = normalized
+        self._db.commit()
+        self._db.refresh(row)
+        return row
+
+    def delete_nickname(self, viewer_user_id: int, contact_user_id: int) -> None:
+        row = self.get_nickname_edge(viewer_user_id, contact_user_id)
+        if row is None:
+            return
+        self._db.delete(row)
+        self._db.commit()
+
+    def get_user(self, user_id: int) -> User | None:
+        return self._db.get(User, user_id)
 
     def _collaborative_task_ids(self, user_id: int) -> set[int]:
         owned = set(

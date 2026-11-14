@@ -5,7 +5,7 @@ from docket.schemas.auth import (
     UserOut,
     UserUpdate,
 )
-from docket.schemas.contacts import ContactOut
+from docket.schemas.contacts import ContactNicknamePatch, ContactOut
 from docket.schemas.preferences import (
     UserPreferencesOut,
     UserPreferencesPatch,
@@ -71,6 +71,7 @@ __all__ = [
     "ArtifactUpdate",
     "AuthStatusOut",
     "BootstrapIn",
+    "ContactNicknamePatch",
     "ContactOut",
     "InviteCreate",
     "InviteCreatedOut",

@@ -168,3 +168,117 @@ def test_member_cannot_mint_invite() -> None:
     _login(client, "alex@example.com", MEMBER_PASSWORD)
     forbidden = client.post("/api/invites", json={})
     assert forbidden.status_code == 403
+
+
+def test_contact_nickname_patch_search_and_uniqueness() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    task_id = client.post("/api/tasks", json={"title": "Nick board"}).json()["id"]
+    alex = _create_member("alex@example.com", "Alex Friend")
+    blake = _create_member("blake@example.com", "Blake Friend")
+    for email in ("alex@example.com", "blake@example.com"):
+        assert (
+            client.post(
+                f"/api/tasks/{task_id}/shares",
+                json={"email": email, "role": "viewer"},
+            ).status_code
+            == 201
+        )
+
+    listed = client.get("/api/me/contacts")
+    assert listed.status_code == 200
+    assert all(row["nickname"] is None for row in listed.json())
+
+    patched = client.patch(
+        f"/api/me/contacts/{alex.id}", json={"nickname": "dana"}
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["nickname"] == "dana"
+    assert patched.json()["email"] == "alex@example.com"
+
+    by_nick = client.get("/api/me/contacts", params={"q": "dana"})
+    assert [r["id"] for r in by_nick.json()] == [alex.id]
+
+    conflict = client.patch(
+        f"/api/me/contacts/{blake.id}", json={"nickname": "Dana"}
+    )
+    assert conflict.status_code == 409, conflict.text
+
+    blake_nick = client.patch(
+        f"/api/me/contacts/{blake.id}", json={"nickname": "blake_ops"}
+    )
+    assert blake_nick.status_code == 200
+    assert blake_nick.json()["nickname"] == "blake_ops"
+
+    cleared = client.patch(
+        f"/api/me/contacts/{alex.id}", json={"nickname": None}
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["nickname"] is None
+
+    bad = client.patch(
+        f"/api/me/contacts/{blake.id}", json={"nickname": "bad nick!"}
+    )
+    assert bad.status_code == 422
+
+    missing = client.patch("/api/me/contacts/999999", json={"nickname": "ghost"})
+    assert missing.status_code == 404
+
+
+def test_contact_nickname_private_to_viewer_and_mention_resolve() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    task_id = client.post("/api/tasks", json={"title": "Mention nick"}).json()["id"]
+    alex = _create_member("alex@example.com", "Alex Friend")
+    assert (
+        client.post(
+            f"/api/tasks/{task_id}/shares",
+            json={"email": "alex@example.com", "role": "commentor"},
+        ).status_code
+        == 201
+    )
+    assert (
+        client.patch(
+            f"/api/me/contacts/{alex.id}", json={"nickname": "dana"}
+        ).status_code
+        == 200
+    )
+
+    mentionables = client.get(f"/api/tasks/{task_id}/mentionables")
+    assert mentionables.status_code == 200
+    alex_row = next(r for r in mentionables.json() if r["user_id"] == alex.id)
+    assert alex_row["nickname"] == "dana"
+    assert alex_row["handle"] == "dana"
+
+    mentioned = client.post(
+        f"/api/tasks/{task_id}/comments",
+        json={"body": "Ping @dana please"},
+    )
+    assert mentioned.status_code == 201, mentioned.text
+    assert alex.id in mentioned.json()["mentioned_user_ids"]
+    user_ref = next(r for r in mentioned.json()["refs"] if r["kind"] == "user")
+    assert user_ref["user_id"] == alex.id
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", MEMBER_PASSWORD)
+    alex_contacts = client.get("/api/me/contacts")
+    assert alex_contacts.status_code == 200
+    owner_row = alex_contacts.json()[0]
+    assert owner_row["email"] == "ops@example.com"
+    assert owner_row["nickname"] is None
+
+    leak = client.get("/api/me/contacts", params={"q": "dana"})
+    assert leak.json() == []
+
+    alex_mentionables = client.get(f"/api/tasks/{task_id}/mentionables")
+    owner_mention = next(
+        r for r in alex_mentionables.json() if r["email"] == "ops@example.com"
+    )
+    assert owner_mention["nickname"] is None
+    assert owner_mention["handle"] == "ops@example.com"
+
+    unresolved = client.post(
+        f"/api/tasks/{task_id}/comments",
+        json={"body": "Cannot see @dana"},
+    )
+    assert unresolved.status_code == 400, unresolved.text

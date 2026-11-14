@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
-from docket.models import Artifact, Membership, Task, TaskComment, User
+from docket.models import Artifact, ContactNickname, Membership, Task, TaskComment, User
 from docket.notifications.comment_ref_parser import CommentRefParser, RawCommentToken
 
 
@@ -25,22 +25,32 @@ class CommentRefResolver:
         if not tokens:
             return []
         people = self._people_on_task(task)
+        nicknames = self._nicknames_for_viewer(
+            principal.user_id, {user.id for user in people}
+        )
         return [
-            self._resolve_token(principal, task, people, token) for token in tokens
+            self._resolve_token(principal, task, people, nicknames, token)
+            for token in tokens
         ]
 
     def mentionable_users(self, task: Task) -> list[User]:
         return self._people_on_task(task)
+
+    def nicknames_for_viewer(
+        self, viewer_user_id: int, user_ids: set[int]
+    ) -> dict[int, str]:
+        return self._nicknames_for_viewer(viewer_user_id, user_ids)
 
     def _resolve_token(
         self,
         principal: Principal,
         task: Task,
         people: list[User],
+        nicknames: dict[int, str],
         token: RawCommentToken,
     ) -> dict[str, Any]:
         if token.kind == "user":
-            return self._resolve_user(people, token)
+            return self._resolve_user(people, nicknames, token)
         if token.kind == "task":
             return self._resolve_task(principal, token)
         if token.kind == "artifact":
@@ -48,9 +58,12 @@ class CommentRefResolver:
         return self._resolve_comment(task, token)
 
     def _resolve_user(
-        self, people: list[User], token: RawCommentToken
+        self,
+        people: list[User],
+        nicknames: dict[int, str],
+        token: RawCommentToken,
     ) -> dict[str, Any]:
-        user = self._match_person(people, token.value)
+        user = self._match_person(people, nicknames, token.value)
         if user is None:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
@@ -64,6 +77,7 @@ class CommentRefResolver:
             "user_id": user.id,
             "email": user.email,
             "display_name": user.display_name,
+            "nickname": nicknames.get(user.id),
             "label": user.display_name,
         }
 
@@ -150,8 +164,33 @@ class CommentRefResolver:
             users = [owner, *[u for u in users if u.id != owner.id]]
         return users
 
-    def _match_person(self, people: list[User], value: str) -> User | None:
+    def _nicknames_for_viewer(
+        self, viewer_user_id: int, user_ids: set[int]
+    ) -> dict[int, str]:
+        if not user_ids:
+            return {}
+        rows = self._db.scalars(
+            select(ContactNickname).where(
+                ContactNickname.viewer_user_id == viewer_user_id,
+                ContactNickname.contact_user_id.in_(user_ids),
+            )
+        ).all()
+        return {row.contact_user_id: row.nickname for row in rows}
+
+    def _match_person(
+        self,
+        people: list[User],
+        nicknames: dict[int, str],
+        value: str,
+    ) -> User | None:
         lowered = value.lower()
+        nick_hits = [
+            user
+            for user in people
+            if nicknames.get(user.id, "").lower() == lowered
+        ]
+        if len(nick_hits) == 1:
+            return nick_hits[0]
         email_hits = [
             u for u in people if u.email is not None and u.email.lower() == lowered
         ]
