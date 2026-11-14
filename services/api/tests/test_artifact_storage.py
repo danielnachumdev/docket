@@ -14,9 +14,11 @@ class _FakeBlob:
     def __init__(self, store: dict[str, bytes], name: str) -> None:
         self._store = store
         self.name = name
+        self.size: int | None = None
 
     def upload_from_string(self, data: bytes, content_type: str | None = None) -> None:
         self._store[self.name] = data
+        self.size = len(data)
 
     def download_as_bytes(self) -> bytes:
         return self._store[self.name]
@@ -24,8 +26,12 @@ class _FakeBlob:
     def exists(self) -> bool:
         return self.name in self._store
 
+    def reload(self) -> None:
+        self.size = len(self._store[self.name])
+
     def delete(self) -> None:
         self._store.pop(self.name, None)
+        self.size = None
 
 
 class _FakeBucket:
@@ -49,9 +55,12 @@ def test_local_filesystem_put_get_delete_exists(tmp_path: Path) -> None:
     key = "42/demo.bin"
     storage.put(key, b"hello", content_type="text/plain")
     assert storage.exists(key)
+    assert storage.size(key) == len(b"hello")
     assert storage.get(key) == b"hello"
     storage.delete(key)
     assert not storage.exists(key)
+    with pytest.raises(FileNotFoundError):
+        storage.size(key)
 
 
 def test_local_filesystem_rejects_path_escape(tmp_path: Path) -> None:
@@ -66,10 +75,13 @@ def test_gcs_storage_with_fake_client() -> None:
     key = "7/note.txt"
     storage.put(key, b"payload", content_type="text/plain")
     assert storage.exists(key)
+    assert storage.size(key) == len(b"payload")
     assert storage.get(key) == b"payload"
     assert "artifacts/7/note.txt" in client._store
     storage.delete(key)
     assert not storage.exists(key)
+    with pytest.raises(FileNotFoundError):
+        storage.size(key)
 
 
 def test_factory_builds_local(tmp_path: Path) -> None:

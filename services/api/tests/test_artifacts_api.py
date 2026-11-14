@@ -4,7 +4,9 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from docket.config import get_settings
+from docket.db import database
 from docket.main import create_app
+from docket.models import Artifact
 
 
 def _bootstrap(client: TestClient) -> None:
@@ -635,3 +637,76 @@ def test_list_accessible_artifacts_filters_and_sorts_server_side(
     assert by_size.status_code == 200
     sizes = [row["byte_size"] for row in by_size.json()["items"]]
     assert sizes == sorted(sizes, reverse=True)
+
+
+def test_file_artifact_heals_zero_byte_size_from_storage(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Rows stuck at byte_size=0 (pre-column default) heal on list/get/detail."""
+    artifact_root = tmp_path / "arts"
+    monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(artifact_root))
+    get_settings.cache_clear()
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+    payload = b"legacy-pdf-bytes"
+    created = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "file",
+            "title": "Legacy.pdf",
+            "content_base64": base64.b64encode(payload).decode(),
+            "content_type": "application/pdf",
+        },
+    )
+    assert created.status_code == 201
+    artifact_id = created.json()["id"]
+    assert created.json()["byte_size"] == len(payload)
+
+    db = database.SessionLocal()
+    try:
+        row = db.get(Artifact, artifact_id)
+        assert row is not None
+        row.byte_size = 0
+        db.commit()
+    finally:
+        db.close()
+
+    listed = client.get(f"/api/tasks/{task_id}/artifacts")
+    assert listed.status_code == 200
+    assert listed.json()[0]["byte_size"] == len(payload)
+
+    db = database.SessionLocal()
+    try:
+        assert db.get(Artifact, artifact_id).byte_size == len(payload)
+        db.get(Artifact, artifact_id).byte_size = 0
+        db.commit()
+    finally:
+        db.close()
+
+    got = client.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}")
+    assert got.status_code == 200
+    assert got.json()["byte_size"] == len(payload)
+
+    db = database.SessionLocal()
+    try:
+        db.get(Artifact, artifact_id).byte_size = 0
+        db.commit()
+    finally:
+        db.close()
+
+    detail = client.get(f"/api/tasks/{task_id}")
+    assert detail.status_code == 200
+    assert detail.json()["artifacts"][0]["byte_size"] == len(payload)
+
+    db = database.SessionLocal()
+    try:
+        db.get(Artifact, artifact_id).byte_size = 0
+        db.commit()
+    finally:
+        db.close()
+
+    library = client.get("/api/artifacts", params={"kind": "file"})
+    assert library.status_code == 200
+    assert library.json()["items"][0]["byte_size"] == len(payload)

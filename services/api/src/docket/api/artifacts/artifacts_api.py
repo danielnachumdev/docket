@@ -84,6 +84,7 @@ class ArtifactsApi:
         )
         page = ArtifactLibraryService(db).list_page(principal, query)
         service = ArtifactService(db)
+        service.ensure_byte_sizes([artifact for artifact, _ in page.rows])
         mapper = TaskResponseMapper(db)
         mapper.remember(task for _, task in page.rows)
         items = [
