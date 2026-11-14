@@ -83,7 +83,7 @@ def test_artifact_crud_text_and_file(tmp_path: Path, monkeypatch) -> None:
 
     library = client.get("/api/artifacts")
     assert library.status_code == 200
-    by_id = {row["id"]: row for row in library.json()}
+    by_id = {row["id"]: row for row in library.json()["items"]}
     assert by_id[text_id]["byte_size"] == 0
     assert by_id[file_id]["byte_size"] == len(b"file-bytes")
 
@@ -409,21 +409,25 @@ def test_list_accessible_artifacts_includes_owned_and_shared() -> None:
 
     owner_list = client.get("/api/artifacts")
     assert owner_list.status_code == 200
-    owner_titles = {row["title"] for row in owner_list.json()}
+    owner_body = owner_list.json()
+    assert owner_body["total"] == 2
+    assert owner_body["has_more"] is False
+    owner_titles = {row["title"] for row in owner_body["items"]}
     assert "Owner note" in owner_titles
     assert "Shared note" in owner_titles
     assert "Private note" not in owner_titles
-    owner_row = next(r for r in owner_list.json() if r["title"] == "Owner note")
+    owner_row = next(r for r in owner_body["items"] if r["title"] == "Owner note")
     assert owner_row["can_modify"] is True
     assert owner_row["task_title"] == "Demo task"
 
     viewer_list = other.get("/api/artifacts")
     assert viewer_list.status_code == 200
-    viewer_titles = {row["title"] for row in viewer_list.json()}
+    viewer_body = viewer_list.json()
+    viewer_titles = {row["title"] for row in viewer_body["items"]}
     assert "Private note" in viewer_titles
     assert "Shared note" in viewer_titles
     assert "Owner note" not in viewer_titles
-    shared_row = next(r for r in viewer_list.json() if r["title"] == "Shared note")
+    shared_row = next(r for r in viewer_body["items"] if r["title"] == "Shared note")
     assert shared_row["can_modify"] is False
     assert shared_row["task_title"] == "Shared board"
 
@@ -514,3 +518,120 @@ def test_shared_editor_cannot_mutate_others_artifact() -> None:
         == 200
     )
     assert editor.delete(f"/api/tasks/{task_id}/artifacts/{own_id}").status_code == 204
+
+
+def test_list_accessible_artifacts_paginates_with_has_more() -> None:
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+    for i in range(5):
+        created = client.post(
+            f"/api/tasks/{task_id}/artifacts",
+            json={"kind": "text", "title": f"Note {i}", "content_text": f"body-{i}"},
+        )
+        assert created.status_code == 201
+
+    page1 = client.get("/api/artifacts", params={"limit": 2, "offset": 0})
+    assert page1.status_code == 200
+    body1 = page1.json()
+    assert body1["limit"] == 2
+    assert body1["offset"] == 0
+    assert body1["total"] == 5
+    assert body1["has_more"] is True
+    assert len(body1["items"]) == 2
+    assert body1["kind_counts"]["all"] == 5
+    assert body1["kind_counts"]["text"] == 5
+
+    page2 = client.get("/api/artifacts", params={"limit": 2, "offset": 2})
+    assert page2.status_code == 200
+    body2 = page2.json()
+    assert body2["offset"] == 2
+    assert body2["has_more"] is True
+    assert len(body2["items"]) == 2
+
+    page3 = client.get("/api/artifacts", params={"limit": 2, "offset": 4})
+    assert page3.status_code == 200
+    body3 = page3.json()
+    assert body3["has_more"] is False
+    assert len(body3["items"]) == 1
+
+    titles = [row["title"] for row in body1["items"] + body2["items"] + body3["items"]]
+    assert titles == ["Note 4", "Note 3", "Note 2", "Note 1", "Note 0"]
+
+
+def test_list_accessible_artifacts_filters_and_sorts_server_side(
+    tmp_path: Path, monkeypatch
+) -> None:
+    artifact_root = tmp_path / "arts"
+    monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(artifact_root))
+    get_settings.cache_clear()
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_a = client.post("/api/tasks", json={"title": "Alpha board", "priority": 2})
+    task_b = client.post("/api/tasks", json={"title": "Beta board", "priority": 2})
+    assert task_a.status_code == 201
+    assert task_b.status_code == 201
+    a_id = task_a.json()["id"]
+    b_id = task_b.json()["id"]
+
+    assert (
+        client.post(
+            f"/api/tasks/{a_id}/artifacts",
+            json={"kind": "text", "title": "Zebra note", "content_text": "alpha text"},
+        ).status_code
+        == 201
+    )
+    assert (
+        client.post(
+            f"/api/tasks/{a_id}/artifacts",
+            json={
+                "kind": "link",
+                "title": "Docs link",
+                "content_text": "https://example.com/docs",
+            },
+        ).status_code
+        == 201
+    )
+    assert (
+        client.post(
+            f"/api/tasks/{b_id}/artifacts",
+            json={
+                "kind": "file",
+                "title": "Report.pdf",
+                "content_base64": base64.b64encode(b"pdf").decode(),
+                "content_type": "application/pdf",
+            },
+        ).status_code
+        == 201
+    )
+
+    by_kind = client.get("/api/artifacts", params={"kind": "link", "limit": 10})
+    assert by_kind.status_code == 200
+    kind_body = by_kind.json()
+    assert kind_body["total"] == 1
+    assert kind_body["items"][0]["title"] == "Docs link"
+    assert kind_body["kind_counts"]["all"] == 3
+    assert kind_body["kind_counts"]["link"] == 1
+    assert kind_body["kind_counts"]["text"] == 1
+    assert kind_body["kind_counts"]["file"] == 1
+
+    by_q = client.get("/api/artifacts", params={"q": "Beta", "limit": 10})
+    assert by_q.status_code == 200
+    q_body = by_q.json()
+    assert q_body["total"] == 1
+    assert q_body["items"][0]["title"] == "Report.pdf"
+
+    by_name = client.get("/api/artifacts", params={"sort": "name", "limit": 10})
+    assert by_name.status_code == 200
+    names = [row["title"] for row in by_name.json()["items"]]
+    assert names == sorted(names)
+
+    mine = client.get("/api/artifacts", params={"mine": True, "limit": 10})
+    assert mine.status_code == 200
+    assert mine.json()["total"] == 3
+
+    by_size = client.get("/api/artifacts", params={"sort": "largest", "limit": 10})
+    assert by_size.status_code == 200
+    sizes = [row["byte_size"] for row in by_size.json()["items"]]
+    assert sizes == sorted(sizes, reverse=True)
