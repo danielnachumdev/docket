@@ -15,7 +15,7 @@ server {
     # Practical CSP for the Vite SPA: same-origin assets + /api; inline theme
     # boot script and React style={{}} need 'unsafe-inline'; blob:/data: for
     # artifact previews. frame-ancestors backs X-Frame-Options.
-    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'" always;
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'" always;
 
     # API_UPSTREAM is substituted at container start (e.g. api:8000 or docket-api:8000).
     # Match API artifact_max_bytes default (10 MiB) for content_base64 uploads.
@@ -27,6 +27,19 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Service worker + web manifest must revalidate so installs pick up new builds.
+    location = /sw.js {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
     }
 
     location / {
