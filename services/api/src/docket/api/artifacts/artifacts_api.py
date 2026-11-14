@@ -1,14 +1,19 @@
 from typing import Annotated
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from docket.api.tasks.task_response_mapper import TaskResponseMapper
-from docket.artifacts import ArtifactContent, ArtifactService
+from docket.artifacts import (
+    ArtifactContent,
+    ArtifactLibraryQuery,
+    ArtifactLibraryService,
+    ArtifactService,
+)
 from docket.auth import Principal, RequirePermission
 from docket.db import DbSession
 from docket.models import Artifact, Task
-from docket.schemas import ArtifactCreate, ArtifactOut, ArtifactUpdate
+from docket.schemas import ArtifactCreate, ArtifactListOut, ArtifactOut, ArtifactUpdate
 
 CanRead = Annotated[Principal, Depends(RequirePermission("tasks:read"))]
 CanArtifacts = Annotated[Principal, Depends(RequirePermission("artifacts:write"))]
@@ -24,7 +29,7 @@ class ArtifactsApi:
             "/api/artifacts",
             self.list_accessible_artifacts,
             methods=["GET"],
-            response_model=list[ArtifactOut],
+            response_model=ArtifactListOut,
         )
         self.router.add_api_route(
             "/api/tasks/{task_id}/artifacts",
@@ -64,16 +69,35 @@ class ArtifactsApi:
         )
 
     def list_accessible_artifacts(
-        self, db: DbSession, principal: CanRead
-    ) -> list[ArtifactOut]:
+        self,
+        db: DbSession,
+        principal: CanRead,
+        kind: Annotated[str | None, Query()] = None,
+        q: Annotated[str | None, Query()] = None,
+        sort: Annotated[str | None, Query()] = None,
+        mine: Annotated[bool, Query()] = False,
+        offset: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(ge=1, le=100)] = 40,
+    ) -> ArtifactListOut:
+        query = ArtifactLibraryQuery.from_params(
+            kind=kind, q=q, sort=sort, mine=mine, offset=offset, limit=limit
+        )
+        page = ArtifactLibraryService(db).list_page(principal, query)
         service = ArtifactService(db)
         mapper = TaskResponseMapper(db)
-        rows = service.list_accessible(principal)
-        mapper.remember(task for _, task in rows)
-        return [
+        mapper.remember(task for _, task in page.rows)
+        items = [
             self._artifact_out(mapper, service, principal, artifact, task)
-            for artifact, task in rows
+            for artifact, task in page.rows
         ]
+        return ArtifactListOut(
+            items=items,
+            total=page.total,
+            offset=page.offset,
+            limit=page.limit,
+            has_more=page.has_more,
+            kind_counts=page.kind_counts,
+        )
 
     def list_artifacts(
         self, task_id: str, db: DbSession, principal: CanRead

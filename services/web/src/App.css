@@ -2187,6 +2187,17 @@ a.list-row:hover {
   gap: 0.85rem;
 }
 
+.artifacts-scroll-sentinel {
+  height: 1px;
+  width: 100%;
+}
+
+.artifacts-loading-more,
+.artifacts-end {
+  margin: 0.25rem 0 0;
+  text-align: center;
+}
+
 .toolbar-sort {
   flex: none;
 }

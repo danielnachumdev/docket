@@ -27,6 +27,8 @@
   "groupCount_one": "קובץ מצורף אחד",
   "groupCount_two": "שני קבצים מצורפים",
   "groupCount_other": "{{count}} קבצים מצורפים",
+  "loadingMore": "טוען קבצים מצורפים נוספים…",
+  "endOfList": "מוצגים כל {{count}} הקבצים המצורפים",
   "expandGroup": "הרחבת {{title}}",
   "collapseGroup": "כיווץ {{title}}",
   "attach": "צירוף",

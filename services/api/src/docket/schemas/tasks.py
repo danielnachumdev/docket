@@ -164,6 +164,15 @@ class ArtifactOut(BaseModel):
     task_number: int | None = None
 
 
+class ArtifactListOut(BaseModel):
+    items: list[ArtifactOut]
+    total: int
+    offset: int
+    limit: int
+    has_more: bool
+    kind_counts: dict[str, int] = Field(default_factory=dict)
+
+
 class TaskLinkCreate(BaseModel):
     to_task_id: str
     kind: str = Field(

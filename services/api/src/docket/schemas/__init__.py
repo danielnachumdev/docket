@@ -38,6 +38,7 @@ from docket.schemas.saved_views import (
 )
 from docket.schemas.tasks import (
     ArtifactCreate,
+    ArtifactListOut,
     ArtifactOut,
     ArtifactUpdate,
     TaskBulkUpdate,
@@ -73,6 +74,7 @@ __all__ = [
     "ApiTokenCreatedOut",
     "ApiTokenOut",
     "ArtifactCreate",
+    "ArtifactListOut",
     "ArtifactOut",
     "ArtifactUpdate",
     "AuthStatusOut",
