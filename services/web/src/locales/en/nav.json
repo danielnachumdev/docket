@@ -9,6 +9,7 @@
   "apiTokens": "API tokens",
   "webhooks": "Webhooks",
   "invites": "Invites",
-  "more": "More",
+  "menu": "Menu",
+  "openMenu": "Open menu",
   "unreadCount": "{{count}} unread"
 }
