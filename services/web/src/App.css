@@ -1804,6 +1804,16 @@ a.list-row:hover {
   margin: 0;
 }
 
+.artifacts-library .task-chip-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.artifacts-library .task-chip-link:hover {
+  color: var(--accent);
+}
+
 .artifact-lightbox {
   position: fixed;
   inset: 0;

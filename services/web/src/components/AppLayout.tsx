@@ -34,6 +34,12 @@ const NAV_BASE: Omit<NavItem, 'badge'>[] = [
     icon: 'bell',
     match: (path) => path === '/notifications',
   },
+  {
+    to: '/artifacts',
+    label: 'Artifacts',
+    icon: 'paperclip',
+    match: (path) => path === '/artifacts',
+  },
   { to: '/tokens', label: 'API tokens', icon: 'key', match: (path) => path === '/tokens' },
   { to: '/webhooks', label: 'Webhooks', icon: 'webhook', match: (path) => path === '/webhooks' },
   {
