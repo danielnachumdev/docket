@@ -9,7 +9,6 @@ import { PageHeader } from '../components/PageHeader'
 import {
   ARTIFACT_KIND_FILTERS,
   ARTIFACT_SORTS,
-  filterArtifacts,
   groupArtifacts,
   taskGroupLabel,
   type ArtifactKindFilter,
@@ -19,66 +18,132 @@ import { useAction } from '../lib/useAction'
 import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
 import { ArtifactRow } from './task-detail/ArtifactRow'
 
+const PAGE_SIZE = 20
+const SEARCH_DEBOUNCE_MS = 300
+
+const EMPTY_KIND_COUNTS: Record<ArtifactKindFilter, number> = {
+  all: 0,
+  text: 0,
+  link: 0,
+  file: 0,
+}
+
 export function ArtifactsPage() {
   const { t } = useTranslation('artifacts')
   const { status: auth } = useAuth()
   const userId = auth?.user?.id ?? null
   const [rows, setRows] = useState<Artifact[] | null>(null)
+  const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [kindCounts, setKindCounts] = useState(EMPTY_KIND_COUNTS)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [kind, setKind] = useState<ArtifactKindFilter>('all')
   const [sort, setSort] = useState<ArtifactSort>('newest')
   const [mineOnly, setMineOnly] = useState(false)
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const [loadingMore, setLoadingMore] = useState(false)
   const { busy, error, setError, run } = useAction()
   const searchRef = useRef<HTMLInputElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const requestGen = useRef(0)
+  const loadingMoreLock = useRef(false)
 
   useKeyboardShortcut('/', () => searchRef.current?.focus())
 
-  const load = useCallback(async () => {
-    setRows(await api.listArtifacts())
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  const fetchPage = useCallback(
+    async (offset: number) =>
+      api.listArtifacts({
+        kind,
+        q: debouncedQuery,
+        sort,
+        mine: mineOnly,
+        offset,
+        limit: PAGE_SIZE,
+      }),
+    [kind, debouncedQuery, sort, mineOnly],
+  )
+
+  const applyKindCounts = useCallback((counts: Record<string, number>) => {
+    setKindCounts({
+      all: counts.all ?? 0,
+      text: counts.text ?? 0,
+      link: counts.link ?? 0,
+      file: counts.file ?? 0,
+    })
   }, [])
 
+  const reload = useCallback(async () => {
+    const gen = ++requestGen.current
+    setLoadError(null)
+    try {
+      const page = await fetchPage(0)
+      if (gen !== requestGen.current) return
+      setRows(page.items)
+      setTotal(page.total)
+      setHasMore(page.has_more)
+      applyKindCounts(page.kind_counts)
+    } catch (err) {
+      if (gen !== requestGen.current) return
+      setLoadError(err instanceof Error ? err.message : String(err))
+      setRows([])
+      setTotal(0)
+      setHasMore(false)
+    }
+  }, [fetchPage, applyKindCounts])
+
   useEffect(() => {
-    load().catch((err: Error) => setLoadError(err.message))
-  }, [load])
+    setRows(null)
+    void reload()
+  }, [reload])
+
+  const loadMore = useCallback(async () => {
+    if (rows == null || !hasMore || loadingMoreLock.current) return
+    loadingMoreLock.current = true
+    setLoadingMore(true)
+    const gen = requestGen.current
+    const offset = rows.length
+    try {
+      const page = await fetchPage(offset)
+      if (gen !== requestGen.current) return
+      setRows((prev) => (prev == null ? page.items : [...prev, ...page.items]))
+      setTotal(page.total)
+      setHasMore(page.has_more)
+      applyKindCounts(page.kind_counts)
+    } catch (err) {
+      if (gen !== requestGen.current) return
+      setLoadError(err instanceof Error ? err.message : String(err))
+    } finally {
+      loadingMoreLock.current = false
+      setLoadingMore(false)
+    }
+  }, [rows, hasMore, fetchPage, applyKindCounts])
+
+  useEffect(() => {
+    const node = sentinelRef.current
+    if (!node || !hasMore || rows == null) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void loadMore()
+      },
+      { rootMargin: '240px' },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasMore, rows, loadMore])
 
   const taskFallback = t('taskFallback')
 
-  const filtered = useMemo(() => {
-    if (rows == null) return []
-    return filterArtifacts(rows, { kind, query, mineOnly, userId, taskFallback })
-  }, [rows, kind, query, mineOnly, userId, taskFallback])
-
   const groups = useMemo(
-    () => groupArtifacts(filtered, sort, taskFallback),
-    [filtered, sort, taskFallback],
+    () => (rows == null ? [] : groupArtifacts(rows, sort, taskFallback)),
+    [rows, sort, taskFallback],
   )
-
-  const kindCounts = useMemo(() => {
-    const base =
-      rows == null
-        ? []
-        : filterArtifacts(rows, {
-            kind: 'all',
-            query,
-            mineOnly,
-            userId,
-            taskFallback,
-          })
-    const counts: Record<ArtifactKindFilter, number> = {
-      all: base.length,
-      text: 0,
-      link: 0,
-      file: 0,
-    }
-    for (const a of base) {
-      if (a.kind === 'text' || a.kind === 'link' || a.kind === 'file') {
-        counts[a.kind] += 1
-      }
-    }
-    return counts
-  }, [rows, query, mineOnly, userId, taskFallback])
 
   function toggleCollapsed(taskId: string) {
     setCollapsed((prev) => {
@@ -90,7 +155,7 @@ export function ArtifactsPage() {
   }
 
   const hasFilters = query.trim() !== '' || kind !== 'all' || mineOnly || sort !== 'newest'
-  const showToolbar = rows != null && (rows.length > 0 || hasFilters)
+  const showToolbar = rows != null && (total > 0 || hasFilters || (rows?.length ?? 0) > 0)
 
   return (
     <main className="page">
@@ -171,11 +236,11 @@ export function ArtifactsPage() {
 
       {rows == null ? (
         !loadError && <Skeleton rows={5} />
-      ) : rows.length === 0 ? (
+      ) : total === 0 && !hasFilters ? (
         <EmptyState icon="paperclip" title={t('emptyTitle')}>
           {t('emptyHint')}
         </EmptyState>
-      ) : filtered.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState icon="search" title={t('emptyNoMatch')}>
           {t('emptyNoMatchHint')}
         </EmptyState>
@@ -215,7 +280,7 @@ export function ArtifactsPage() {
                         artifact={a}
                         busy={busy}
                         run={run}
-                        onDeleted={load}
+                        onDeleted={reload}
                       />
                     ))}
                   </ul>
@@ -223,6 +288,17 @@ export function ArtifactsPage() {
               </section>
             )
           })}
+          <div ref={sentinelRef} className="artifacts-scroll-sentinel" aria-hidden="true" />
+          {loadingMore && (
+            <p className="muted small artifacts-loading-more" role="status">
+              {t('loadingMore')}
+            </p>
+          )}
+          {!hasMore && rows.length > 0 && (
+            <p className="muted small artifacts-end" role="status">
+              {t('endOfList', { count: total })}
+            </p>
+          )}
         </div>
       )}
     </main>

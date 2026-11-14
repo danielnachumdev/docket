@@ -25,6 +25,8 @@
   "sizeBytes_other": "{{count}} bytes",
   "groupCount_one": "{{count}} artifact",
   "groupCount_other": "{{count}} artifacts",
+  "loadingMore": "Loading more artifacts…",
+  "endOfList": "Showing all {{count}} artifacts",
   "expandGroup": "Expand {{title}}",
   "collapseGroup": "Collapse {{title}}",
   "attach": "Attach",

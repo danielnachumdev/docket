@@ -99,6 +99,24 @@ export type Artifact = {
   task_number?: number | null
 }
 
+export type ArtifactListPage = {
+  items: Artifact[]
+  total: number
+  offset: number
+  limit: number
+  has_more: boolean
+  kind_counts: Record<string, number>
+}
+
+export type ArtifactListParams = {
+  kind?: string
+  q?: string
+  sort?: string
+  mine?: boolean
+  offset?: number
+  limit?: number
+}
+
 export type TaskLink = {
   id: number
   from_task_id: string
@@ -390,7 +408,17 @@ export const api = {
     request<Task>(`/api/tasks/${id}/unread`, { method: 'POST' }),
   deleteTask: (id: string) =>
     request<void>(`/api/tasks/${id}`, { method: 'DELETE' }),
-  listArtifacts: () => request<Artifact[]>('/api/artifacts'),
+  listArtifacts: (opts?: ArtifactListParams) => {
+    const params = new URLSearchParams()
+    if (opts?.kind && opts.kind !== 'all') params.set('kind', opts.kind)
+    if (opts?.q?.trim()) params.set('q', opts.q.trim())
+    if (opts?.sort) params.set('sort', opts.sort)
+    if (opts?.mine) params.set('mine', 'true')
+    if (opts?.offset != null) params.set('offset', String(opts.offset))
+    if (opts?.limit != null) params.set('limit', String(opts.limit))
+    const qs = params.toString()
+    return request<ArtifactListPage>(`/api/artifacts${qs ? `?${qs}` : ''}`)
+  },
   addArtifact: (
     id: string,
     body: {
