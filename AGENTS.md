@@ -14,7 +14,7 @@ Product pitch for humans: [`README.md`](README.md). Keep marketing and “why tr
 | Services | `services/api` (FastAPI), `services/web` (SPA + nginx) |
 | API entry | `services/api` — `uv run docket` / image entrypoint runs Alembic then uvicorn |
 | Migrations | `cd services/api && uv run alembic upgrade head` |
-| SPA | `services/web` — Vite React TS; Compose nginx proxies `/api` → `api:8000` |
+| SPA | `services/web` — Vite React TS PWA (`vite-plugin-pwa`); Compose nginx proxies `/api` → `api:8000` |
 | Compose | Root [`compose.yml`](compose.yml) for local multi-service run |
 | CI hub | Shared reusable workflows pinned `@latest` |
 | Thin orchestrator | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
