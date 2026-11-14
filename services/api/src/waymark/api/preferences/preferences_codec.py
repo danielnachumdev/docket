@@ -3,10 +3,19 @@ import json
 from fastapi import HTTPException, status
 
 from waymark.schemas.preferences import (
+    ALLOWED_COLOR_SCHEMES,
     ALLOWED_LOCALES,
-    ALLOWED_THEMES,
+    ALLOWED_THEME_TOKEN_KEYS,
+    CUSTOM_THEME_ID_RE,
+    CustomThemeOut,
     KNOWN_PREFERENCE_KEYS,
     UserPreferencesOut,
+    _MAX_CUSTOM_THEMES,
+    _MAX_THEME_NAME_LEN,
+    canonicalize_theme_id,
+    is_builtin_theme_id,
+    is_custom_theme_id,
+    validate_theme_token_value,
 )
 
 
@@ -15,17 +24,40 @@ class PreferencesCodec:
 
     def decode(self, raw: str | None) -> UserPreferencesOut:
         data = self._parse_object(raw)
+        customs: list[CustomThemeOut] | None
+        if "custom_themes" in data:
+            try:
+                customs = self._optional_custom_themes(data.get("custom_themes"))
+            except HTTPException:
+                customs = None
+        else:
+            customs = None
+        theme_raw = data.get("theme")
+        try:
+            theme = self._optional_theme(theme_raw, customs)
+        except HTTPException:
+            theme = None
+        locale: str | None
+        try:
+            locale = self._optional_locale(data.get("locale"))
+        except HTTPException:
+            locale = None
         return UserPreferencesOut(
-            theme=self._optional_theme(data.get("theme")),
-            locale=self._optional_locale(data.get("locale")),
+            theme=theme,
+            locale=locale,
+            custom_themes=customs,
         )
 
     def encode(self, prefs: UserPreferencesOut) -> str:
-        payload: dict[str, str] = {}
+        payload: dict[str, object] = {}
         if prefs.theme is not None:
             payload["theme"] = prefs.theme
         if prefs.locale is not None:
             payload["locale"] = prefs.locale
+        if prefs.custom_themes is not None:
+            payload["custom_themes"] = [
+                theme.model_dump(mode="json") for theme in prefs.custom_themes
+            ]
         return json.dumps(payload, separators=(",", ":"), sort_keys=True)
 
     def merge(
@@ -34,11 +66,26 @@ class PreferencesCodec:
         self._reject_unknown_keys(patch)
         theme = current.theme
         locale = current.locale
+        custom_themes = current.custom_themes
+        if "custom_themes" in patch:
+            custom_themes = self._optional_custom_themes(patch["custom_themes"])
         if "theme" in patch:
-            theme = self._optional_theme(patch["theme"])
+            theme = self._optional_theme(patch["theme"], custom_themes)
         if "locale" in patch:
             locale = self._optional_locale(patch["locale"])
-        return UserPreferencesOut(theme=theme, locale=locale)
+        # Active theme must remain resolvable after catalog changes.
+        if theme is not None and not is_builtin_theme_id(theme):
+            ids = {t.id for t in (custom_themes or [])}
+            if theme not in ids:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "theme references an unknown custom theme",
+                )
+        return UserPreferencesOut(
+            theme=theme,
+            locale=locale,
+            custom_themes=custom_themes,
+        )
 
     @staticmethod
     def _parse_object(raw: str | None) -> dict[str, object]:
@@ -62,15 +109,31 @@ class PreferencesCodec:
             )
 
     @staticmethod
-    def _optional_theme(value: object | None) -> str | None:
+    def _optional_theme(
+        value: object | None, customs: list[CustomThemeOut] | None
+    ) -> str | None:
         if value is None:
             return None
-        if not isinstance(value, str) or value not in ALLOWED_THEMES:
+        if not isinstance(value, str):
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "theme must be 'light' or 'dark'",
+                "theme must be a string",
             )
-        return value
+        theme_id = canonicalize_theme_id(value)
+        if is_builtin_theme_id(theme_id):
+            return theme_id
+        if not is_custom_theme_id(theme_id):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "theme must be a builtin id or a custom theme id",
+            )
+        ids = {t.id for t in (customs or [])}
+        if theme_id not in ids:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "theme references an unknown custom theme",
+            )
+        return theme_id
 
     @staticmethod
     def _optional_locale(value: object | None) -> str | None:
@@ -82,3 +145,98 @@ class PreferencesCodec:
                 "locale must be a known locale code",
             )
         return value
+
+    @classmethod
+    def _optional_custom_themes(
+        cls, value: object | None
+    ) -> list[CustomThemeOut] | None:
+        if value is None:
+            return None
+        if not isinstance(value, list):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "custom_themes must be a list",
+            )
+        if len(value) > _MAX_CUSTOM_THEMES:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes supports at most {_MAX_CUSTOM_THEMES} themes",
+            )
+        seen: set[str] = set()
+        out: list[CustomThemeOut] = []
+        for index, item in enumerate(value):
+            theme = cls._parse_custom_theme(item, index)
+            if theme.id in seen:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    f"duplicate custom theme id: {theme.id}",
+                )
+            seen.add(theme.id)
+            out.append(theme)
+        return out
+
+    @classmethod
+    def _parse_custom_theme(cls, value: object, index: int) -> CustomThemeOut:
+        if not isinstance(value, dict):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes[{index}] must be an object",
+            )
+        raw_id = value.get("id")
+        raw_name = value.get("name")
+        raw_base = value.get("base")
+        raw_tokens = value.get("tokens")
+        if not isinstance(raw_id, str) or not CUSTOM_THEME_ID_RE.match(raw_id):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes[{index}].id is invalid",
+            )
+        if not isinstance(raw_name, str):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes[{index}].name must be a string",
+            )
+        name = " ".join(raw_name.split()).strip()
+        if not name or len(name) > _MAX_THEME_NAME_LEN:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes[{index}].name must be 1–{_MAX_THEME_NAME_LEN} characters",
+            )
+        if not isinstance(raw_base, str) or raw_base not in ALLOWED_COLOR_SCHEMES:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes[{index}].base must be 'light' or 'dark'",
+            )
+        if not isinstance(raw_tokens, dict):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes[{index}].tokens must be an object",
+            )
+        missing = ALLOWED_THEME_TOKEN_KEYS - set(raw_tokens)
+        if missing:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes[{index}].tokens missing keys: {', '.join(sorted(missing))}",
+            )
+        unknown = set(raw_tokens) - ALLOWED_THEME_TOKEN_KEYS
+        if unknown:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"custom_themes[{index}].tokens unknown keys: {', '.join(sorted(unknown))}",
+            )
+        cleaned: dict[str, str] = {}
+        for key in sorted(ALLOWED_THEME_TOKEN_KEYS):
+            raw_val = raw_tokens[key]
+            if not isinstance(raw_val, str):
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    f"custom_themes[{index}].tokens.{key} must be a string",
+                )
+            try:
+                cleaned[key] = validate_theme_token_value(key, raw_val)
+            except ValueError as exc:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    f"custom_themes[{index}].tokens.{key}: {exc}",
+                ) from exc
+        return CustomThemeOut(id=raw_id, name=name, base=raw_base, tokens=cleaned)

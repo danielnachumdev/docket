@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { api, type User } from '../api'
-import type { Theme } from '../lib/theme'
+import type { ColorScheme } from '../lib/theme'
 import { Dialog } from './Dialog'
 import waymarkIcon from '../assets/waymark-icon.svg'
 import { Icon, type IconName } from './Icon'
@@ -32,7 +32,7 @@ export function Logo() {
 
 type Props = {
   user: User
-  theme: Theme
+  themeScheme: ColorScheme
   onToggleTheme: () => void
   onLogout: () => void
   canAdmin?: boolean
@@ -105,7 +105,7 @@ function NavLink({
 
 export function AppLayout({
   user,
-  theme,
+  themeScheme,
   onToggleTheme,
   onLogout,
   canAdmin = false,
@@ -213,7 +213,7 @@ export function AppLayout({
           <div className="sidebar-footer">
             <ProfileMenu
               user={user}
-              theme={theme}
+              themeScheme={themeScheme}
               onToggleTheme={onToggleTheme}
               onLogout={onLogout}
               showIdentity
@@ -241,7 +241,7 @@ export function AppLayout({
         </div>
         <ProfileMenu
           user={user}
-          theme={theme}
+          themeScheme={themeScheme}
           onToggleTheme={onToggleTheme}
           onLogout={onLogout}
           align="end"

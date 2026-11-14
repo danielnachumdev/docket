@@ -21,7 +21,7 @@ import './App.css'
 
 function Shell() {
   const { status, loading, logout } = useAuth()
-  const { theme, toggle } = useTheme()
+  const { themeScheme, toggle } = useTheme()
   const location = useLocation()
 
   if (loading) {
@@ -43,7 +43,7 @@ function Shell() {
   return (
     <AppLayout
       user={status.user}
-      theme={theme}
+      themeScheme={themeScheme}
       onToggleTheme={toggle}
       onLogout={() => void logout()}
       canAdmin={canInvite}

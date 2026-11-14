@@ -3,14 +3,14 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { User } from '../api'
 import { initials } from '../lib/format'
-import type { Theme } from '../lib/theme'
+import type { ColorScheme } from '../lib/theme'
 import { AppVersion, useAppVersion } from './AppVersion'
 import { Icon } from './Icon'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
 type Props = {
   user: User
-  theme: Theme
+  themeScheme: ColorScheme
   onToggleTheme: () => void
   onLogout: () => void
   align?: 'start' | 'end'
@@ -20,7 +20,7 @@ type Props = {
 
 export function ProfileMenu({
   user,
-  theme,
+  themeScheme,
   onToggleTheme,
   onLogout,
   align = 'start',
@@ -34,7 +34,7 @@ export function ProfileMenu({
   const panelRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuId = useId()
-  const themeLabel = theme === 'dark' ? t('themeToLight') : t('themeToDark')
+  const themeLabel = themeScheme === 'dark' ? t('themeToLight') : t('themeToDark')
 
   useEffect(() => {
     if (!open) return
@@ -124,7 +124,7 @@ export function ProfileMenu({
           <div className="profile-menu-prefs" role="none">
             <div className="profile-menu-pref">
               <span>
-                <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
+                <Icon name={themeScheme === 'dark' ? 'moon' : 'sun'} />
                 {t('theme')}
               </span>
               <button
@@ -135,7 +135,7 @@ export function ProfileMenu({
                 title={themeLabel}
                 onClick={onToggleTheme}
               >
-                <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
+                <Icon name={themeScheme === 'dark' ? 'sun' : 'moon'} />
               </button>
             </div>
             <div className="profile-menu-pref">
