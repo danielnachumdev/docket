@@ -32,6 +32,7 @@
   "themeToDark": "מעבר למצב כהה",
   "logOut": "התנתקות",
   "account": "חשבון",
+  "accountMenu": "תפריט חשבון",
   "releaseNotes": "הערות גרסה",
   "updateAvailable": "עדכון זמין",
   "updateAvailableVersion": "עדכון זמין: v{{version}}",

@@ -2,13 +2,11 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { api, type User } from '../api'
-import { initials } from '../lib/format'
 import type { Theme } from '../lib/theme'
-import { AppVersion, useAppVersion } from './AppVersion'
 import { Dialog } from './Dialog'
 import docketIcon from '../assets/docket-icon.svg'
 import { Icon, type IconName } from './Icon'
-import { LanguageSwitcher } from './LanguageSwitcher'
+import { ProfileMenu } from './ProfileMenu'
 
 type NavItem = {
   to: string
@@ -101,10 +99,8 @@ export function AppLayout({
 }: Props) {
   const { t } = useTranslation(['nav', 'common'])
   const { pathname, search } = useLocation()
-  const version = useAppVersion()
   const unread = useUnreadCount(pathname)
   const [menuOpen, setMenuOpen] = useState(false)
-  const themeLabel = theme === 'dark' ? t('common:themeToLight') : t('common:themeToDark')
   const isArchived = new URLSearchParams(search).get('view') === 'archived'
   const closeMenu = useCallback(() => setMenuOpen(false), [])
 
@@ -175,16 +171,13 @@ export function AppLayout({
       />
     ))
 
-  const userChip = (
-    <div className="user-chip">
-      <span className="avatar" aria-hidden="true">
-        {initials(user.display_name)}
-      </span>
-      <span className="user-meta">
-        <strong>{user.display_name}</strong>
-        {user.email && <span>{user.email}</span>}
-      </span>
-    </div>
+  const profileMenu = (
+    <ProfileMenu
+      user={user}
+      theme={theme}
+      onToggleTheme={onToggleTheme}
+      onLogout={onLogout}
+    />
   )
 
   return (
@@ -210,31 +203,7 @@ export function AppLayout({
             </div>
           </nav>
           <div className="sidebar-footer">
-            <div className="sidebar-footer-row">
-              <LanguageSwitcher />
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={onToggleTheme}
-                aria-label={themeLabel}
-                title={themeLabel}
-              >
-                <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
-              </button>
-            </div>
-            <div className="sidebar-footer-row">
-              {userChip}
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={onLogout}
-                aria-label={t('common:logOut')}
-                title={t('common:logOut')}
-              >
-                <Icon name="logout" />
-              </button>
-            </div>
-            <AppVersion info={version} />
+            <div className="sidebar-footer-row">{profileMenu}</div>
           </div>
         </div>
       </aside>
@@ -256,9 +225,13 @@ export function AppLayout({
             <span>{t('common:appName')}</span>
           </Link>
         </div>
-        <span className="avatar" aria-hidden="true">
-          {initials(user.display_name)}
-        </span>
+        <ProfileMenu
+          user={user}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          onLogout={onLogout}
+          align="end"
+        />
       </header>
 
       <div className="content" id="main-content">
@@ -271,7 +244,6 @@ export function AppLayout({
 
       {menuOpen && (
         <Dialog title={t('nav:menu')} variant="drawer" onClose={closeMenu}>
-          <div className="drawer-section">{userChip}</div>
           <nav className="nav drawer-nav" aria-label={t('nav:menu')}>
             <div className="nav-group">
               <span className="nav-group-label">{t('nav:workspace')}</span>
@@ -282,42 +254,6 @@ export function AppLayout({
               {renderGroup(integrations, closeMenu)}
             </div>
           </nav>
-          <div className="drawer-settings">
-            <div className="drawer-setting">
-              <span>
-                <Icon name="globe" />
-                {t('common:language')}
-              </span>
-              <LanguageSwitcher />
-            </div>
-            <div className="drawer-setting">
-              <span>
-                <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
-                {t('common:theme')}
-              </span>
-              <div className="segmented" role="radiogroup" aria-label={t('common:theme')}>
-                {(['light', 'dark'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    role="radio"
-                    aria-checked={theme === mode}
-                    className={theme === mode ? 'active' : ''}
-                    onClick={() => theme !== mode && onToggleTheme()}
-                  >
-                    {mode === 'light' ? t('common:themeLight') : t('common:themeDark')}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="drawer-footer">
-            <AppVersion info={version} />
-            <button type="button" className="btn ghost danger" onClick={onLogout}>
-              <Icon name="logout" />
-              {t('common:logOut')}
-            </button>
-          </div>
         </Dialog>
       )}
     </div>
