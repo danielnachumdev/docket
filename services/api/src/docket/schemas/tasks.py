@@ -51,6 +51,19 @@ class TaskBulkUpdate(BaseModel):
         return self
 
 
+class TaskReorder(BaseModel):
+    """Place a task among siblings. At most one of before/after; neither = end."""
+
+    before_task_id: str | None = None
+    after_task_id: str | None = None
+
+    @model_validator(mode="after")
+    def at_most_one_anchor(self) -> Self:
+        if self.before_task_id is not None and self.after_task_id is not None:
+            raise ValueError("Provide at most one of before_task_id or after_task_id")
+        return self
+
+
 class TaskClaimIn(BaseModel):
     lease_seconds: int = Field(default=900, ge=1, le=86_400)
 

@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import { DueBadge, PriorityBadge, StatusBadge } from '../components/Badges'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
+import { SortableSiblingItem, SortableSiblingList } from '../components/SortableSiblingList'
 import { PRIORITIES, STATUSES, isClosed, priorityLabel, statusLabel } from '../lib/format'
 import {
   SMART_FILTERS,
@@ -13,6 +14,7 @@ import {
   matchesFilterKey,
   type FilterKey,
 } from '../lib/smartFilters'
+import { ranksForOrder, reorderBodyAfterMove } from '../lib/taskReorder'
 import { useAction } from '../lib/useAction'
 
 type TaskNode = Task & { children: TaskNode[] }
@@ -75,6 +77,7 @@ type RowProps = {
   onToggleDone: (task: Task) => void
   onToggleSelect: (id: string) => void
   onToggleUnread: (task: Task) => void
+  onReorderSiblings: (activeId: string, orderedIds: string[]) => void
 }
 
 function TaskRow({
@@ -86,6 +89,7 @@ function TaskRow({
   onToggleDone,
   onToggleSelect,
   onToggleUnread,
+  onReorderSiblings,
 }: RowProps) {
   const closed = isClosed(task.status)
   const done = task.status === 'done'
@@ -95,93 +99,110 @@ function TaskRow({
   const kidsDone = kids.filter((k) => k.status === 'done').length
   const isCollapsed = collapsed.has(task.id)
   const isSelected = selected.has(task.id)
+  const childIds = task.children.map((child) => child.id)
 
   return (
-    <li className="task-node">
-      <div className={closed ? 'task-row closed' : 'task-row'}>
-        <input
-          type="checkbox"
-          className="task-select"
-          checked={isSelected}
-          onChange={() => onToggleSelect(task.id)}
-          aria-label={`Select “${task.title}”`}
-        />
-        {task.children.length > 0 ? (
-          <button
-            type="button"
-            className="icon-btn ghost expand"
-            aria-label={isCollapsed ? 'Expand subtasks' : 'Collapse subtasks'}
-            aria-expanded={!isCollapsed}
-            onClick={() => onToggleCollapse(task.id)}
-          >
-            <Icon name={isCollapsed ? 'chevronRight' : 'chevronDown'} size={14} />
-          </button>
-        ) : (
-          <span className="expand-spacer" />
-        )}
-        <button
-          type="button"
-          className={`check status-${task.status}`}
-          aria-label={done ? `Reopen “${task.title}”` : `Mark “${task.title}” done`}
-          title={done ? 'Reopen' : 'Mark done'}
-          onClick={() => onToggleDone(task)}
+    <SortableSiblingItem id={task.id}>
+      {({ dragHandle, setNodeRef, style, isDragging }) => (
+        <li
+          className={isDragging ? 'task-node dragging' : 'task-node'}
+          ref={setNodeRef}
+          style={style}
         >
-          <Icon name="check" size={12} />
-        </button>
-        <Link to={`/tasks/${task.id}`} className="task-main">
-          <span className="task-title-row">
-            {unread && <span className="unread-dot" aria-hidden="true" />}
-            {shared && (
-              <span className="shared-mark" title="Shared" aria-label="Shared">
-                <Icon name="users" size={12} />
-              </span>
-            )}
-            <span className={unread ? 'task-title unread' : 'task-title'}>{task.title}</span>
-          </span>
-          <span className="task-meta">
-            <PriorityBadge priority={task.priority} />
-            <DueBadge due={task.due_at} closed={closed} />
-            {kids.length > 0 && (
-              <span className="meta-item" title="Subtasks done">
-                <Icon name="subtasks" size={13} />
-                {kidsDone}/{kids.length}
-              </span>
-            )}
-            <span className="meta-item mono">#{task.number}</span>
-          </span>
-        </Link>
-        <button
-          type="button"
-          className={unread ? 'icon-btn ghost unread-toggle active' : 'icon-btn ghost unread-toggle'}
-          aria-label={unread ? `Mark “${task.title}” read` : `Mark “${task.title}” unread`}
-          aria-pressed={unread}
-          title={unread ? 'Mark read' : 'Mark unread'}
-          onClick={() => onToggleUnread(task)}
-        >
-          <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
-        </button>
-        <span className="task-status">
-          <StatusBadge status={task.status} />
-        </span>
-      </div>
-      {task.children.length > 0 && !isCollapsed && (
-        <ul className="task-children">
-          {task.children.map((child) => (
-            <TaskRow
-              key={child.id}
-              task={child}
-              totalChildren={totalChildren}
-              collapsed={collapsed}
-              selected={selected}
-              onToggleCollapse={onToggleCollapse}
-              onToggleDone={onToggleDone}
-              onToggleSelect={onToggleSelect}
-              onToggleUnread={onToggleUnread}
+          <div className={closed ? 'task-row closed' : 'task-row'}>
+            {dragHandle}
+            <input
+              type="checkbox"
+              className="task-select"
+              checked={isSelected}
+              onChange={() => onToggleSelect(task.id)}
+              aria-label={`Select “${task.title}”`}
             />
-          ))}
-        </ul>
+            {task.children.length > 0 ? (
+              <button
+                type="button"
+                className="icon-btn ghost expand"
+                aria-label={isCollapsed ? 'Expand subtasks' : 'Collapse subtasks'}
+                aria-expanded={!isCollapsed}
+                onClick={() => onToggleCollapse(task.id)}
+              >
+                <Icon name={isCollapsed ? 'chevronRight' : 'chevronDown'} size={14} />
+              </button>
+            ) : (
+              <span className="expand-spacer" />
+            )}
+            <button
+              type="button"
+              className={`check status-${task.status}`}
+              aria-label={done ? `Reopen “${task.title}”` : `Mark “${task.title}” done`}
+              title={done ? 'Reopen' : 'Mark done'}
+              onClick={() => onToggleDone(task)}
+            >
+              <Icon name="check" size={12} />
+            </button>
+            <Link to={`/tasks/${task.id}`} className="task-main">
+              <span className="task-title-row">
+                {unread && <span className="unread-dot" aria-hidden="true" />}
+                {shared && (
+                  <span className="shared-mark" title="Shared" aria-label="Shared">
+                    <Icon name="users" size={12} />
+                  </span>
+                )}
+                <span className={unread ? 'task-title unread' : 'task-title'}>{task.title}</span>
+              </span>
+              <span className="task-meta">
+                <PriorityBadge priority={task.priority} />
+                <DueBadge due={task.due_at} closed={closed} />
+                {kids.length > 0 && (
+                  <span className="meta-item" title="Subtasks done">
+                    <Icon name="subtasks" size={13} />
+                    {kidsDone}/{kids.length}
+                  </span>
+                )}
+                <span className="meta-item mono">#{task.number}</span>
+              </span>
+            </Link>
+            <button
+              type="button"
+              className={
+                unread ? 'icon-btn ghost unread-toggle active' : 'icon-btn ghost unread-toggle'
+              }
+              aria-label={unread ? `Mark “${task.title}” read` : `Mark “${task.title}” unread`}
+              aria-pressed={unread}
+              title={unread ? 'Mark read' : 'Mark unread'}
+              onClick={() => onToggleUnread(task)}
+            >
+              <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
+            </button>
+            <span className="task-status">
+              <StatusBadge status={task.status} />
+            </span>
+          </div>
+          {task.children.length > 0 && !isCollapsed && (
+            <SortableSiblingList
+              ids={childIds}
+              className="task-children"
+              onReorder={onReorderSiblings}
+            >
+              {task.children.map((child) => (
+                <TaskRow
+                  key={child.id}
+                  task={child}
+                  totalChildren={totalChildren}
+                  collapsed={collapsed}
+                  selected={selected}
+                  onToggleCollapse={onToggleCollapse}
+                  onToggleDone={onToggleDone}
+                  onToggleSelect={onToggleSelect}
+                  onToggleUnread={onToggleUnread}
+                  onReorderSiblings={onReorderSiblings}
+                />
+              ))}
+            </SortableSiblingList>
+          )}
+        </li>
       )}
-    </li>
+    </SortableSiblingItem>
   )
 }
 
@@ -337,6 +358,19 @@ export function TaskListPage() {
     setTasks((prev) => prev?.map((t) => (t.id === task.id ? { ...t, unread: next } : t)) ?? null)
     const req = next ? api.markTaskUnread(task.id) : api.markTaskRead(task.id)
     req.catch((err: Error) => {
+      setError(err.message)
+      void load()
+    })
+  }
+
+  function reorderSiblings(activeId: string, orderedIds: string[]) {
+    const ranks = ranksForOrder(orderedIds)
+    setTasks(
+      (prev) =>
+        prev?.map((t) => (ranks.has(t.id) ? { ...t, rank: ranks.get(t.id)! } : t)) ?? null,
+    )
+    const body = reorderBodyAfterMove(orderedIds, activeId)
+    api.reorderTask(activeId, body).catch((err: Error) => {
       setError(err.message)
       void load()
     })
@@ -560,7 +594,11 @@ export function TaskListPage() {
               </span>
             </label>
           </div>
-          <ul className="task-tree">
+          <SortableSiblingList
+            ids={visible.map((task) => task.id)}
+            className="task-tree"
+            onReorder={reorderSiblings}
+          >
             {visible.map((task) => (
               <TaskRow
                 key={task.id}
@@ -572,9 +610,10 @@ export function TaskListPage() {
                 onToggleDone={toggleDone}
                 onToggleSelect={toggleSelect}
                 onToggleUnread={toggleUnread}
+                onReorderSiblings={reorderSiblings}
               />
             ))}
-          </ul>
+          </SortableSiblingList>
         </>
       )}
 

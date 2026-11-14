@@ -82,7 +82,7 @@ def test_inbox_returns_claimable_excludes_claimed_closed_archived() -> None:
     assert archived_id not in ids
 
 
-def test_inbox_sorts_by_priority_then_due_date() -> None:
+def test_inbox_sorts_by_rank_then_due_date() -> None:
     client = TestClient(create_app())
     user = bootstrap_owner(client)
     raw, _ = mint_api_token(user_id=user["id"])
@@ -90,14 +90,31 @@ def test_inbox_sorts_by_priority_then_due_date() -> None:
     later = (datetime.now(UTC) + timedelta(days=3)).isoformat()
     sooner = (datetime.now(UTC) + timedelta(days=1)).isoformat()
 
-    low = _create_task(client, title="Low", priority=4, due_at=sooner)
-    high_later = _create_task(client, title="High later", priority=1, due_at=later)
-    high_sooner = _create_task(client, title="High sooner", priority=1, due_at=sooner)
+    first = _create_task(client, title="Created first", priority=4, due_at=later)
+    second = _create_task(client, title="Created second", priority=1, due_at=sooner)
+    third = _create_task(client, title="Created third", priority=1, due_at=later)
+
+    # Manual queue: second first, then third, then first (rank overrides priority).
+    assert (
+        client.post(f"/api/tasks/{second}/reorder", json={}).status_code == 200
+    )
+    assert (
+        client.post(
+            f"/api/tasks/{third}/reorder", json={"after_task_id": second}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/api/tasks/{first}/reorder", json={"after_task_id": third}
+        ).status_code
+        == 200
+    )
 
     inbox = client.get("/api/tasks/inbox", headers=bearer(raw))
     assert inbox.status_code == 200, inbox.text
     ids = [t["id"] for t in inbox.json()]
-    assert ids.index(high_sooner) < ids.index(high_later) < ids.index(low)
+    assert ids.index(second) < ids.index(third) < ids.index(first)
 
 
 def test_inbox_filters_priority_and_due_before() -> None:

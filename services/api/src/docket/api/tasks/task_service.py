@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from docket.api.task_watches.task_watch_service import TaskWatchService
 from docket.api.tasks.owner_task_number_allocator import OwnerTaskNumberAllocator
+from docket.api.tasks.sibling_rank_allocator import SiblingRankAllocator
 from docket.api.tasks.task_gateway import TaskGateway
 from docket.api.tasks.task_response_mapper import TaskResponseMapper
 from docket.artifacts import ArtifactGateway
@@ -26,6 +27,7 @@ from docket.schemas import (
     TaskCreate,
     TaskDetailOut,
     TaskOut,
+    TaskReorder,
     TaskStatusIn,
     TaskUpdate,
 )
@@ -45,6 +47,7 @@ class TaskService:
         self._outcomes = DoneOutcomeEnforcer()
         self._schema_codec = OutcomeSchemaCodec()
         self._numbers = OwnerTaskNumberAllocator(db)
+        self._ranks = SiblingRankAllocator()
         self._mapper = TaskResponseMapper(db)
 
     def list_tasks(
@@ -165,6 +168,32 @@ class TaskService:
                 status.HTTP_409_CONFLICT,
                 "external_id already used by another task for this owner",
             ) from exc
+        self._gateway.refresh(task)
+        return self._mapper.task_out(task)
+
+    def reorder(
+        self, principal: Principal, task_ref: str, body: TaskReorder
+    ) -> TaskOut:
+        task = self._access.get_task(principal, task_ref, "tasks:write")
+        siblings = self._gateway.list_siblings(
+            task.parent_task_id, owner_user_id=task.owner_user_id
+        )
+        others = [row for row in siblings if row.id != task.id]
+        insert_at = self._reorder_insert_index(principal, task, body, others)
+        self._apply_reorder_rank(task, others, insert_at)
+        payload: dict[str, Any] = {"rank": task.rank}
+        if body.before_task_id is not None:
+            payload["before_task_id"] = body.before_task_id
+        if body.after_task_id is not None:
+            payload["after_task_id"] = body.after_task_id
+        task_event_recorder.record(
+            self._db,
+            task_id=task.id,
+            event_type="reordered",
+            actor=principal,
+            payload=payload,
+        )
+        self._gateway.commit()
         self._gateway.refresh(task)
         return self._mapper.task_out(task)
 
@@ -369,6 +398,11 @@ class TaskService:
             title=body.title.strip(),
             body=body.body,
             priority=body.priority,
+            rank=self._ranks.append_rank(
+                self._gateway.max_rank_for_parent(
+                    parent_internal, owner_user_id=principal.user_id
+                )
+            ),
             due_at=body.due_at,
             source="api" if principal.token else "ui",
             created_by_user_id=principal.user_id,
@@ -376,6 +410,62 @@ class TaskService:
             require_artifact_on_done=body.require_artifact_on_done,
             outcome_schema_json=self._encode_schema(body.outcome_schema),
         )
+
+    def _reorder_insert_index(
+        self,
+        principal: Principal,
+        task: Task,
+        body: TaskReorder,
+        others: list[Task],
+    ) -> int:
+        if body.after_task_id is not None:
+            anchor = self._reorder_anchor(principal, task, body.after_task_id)
+            return self._sibling_index(others, anchor.id) + 1
+        if body.before_task_id is not None:
+            anchor = self._reorder_anchor(principal, task, body.before_task_id)
+            return self._sibling_index(others, anchor.id)
+        return len(others)
+
+    @staticmethod
+    def _sibling_index(siblings: list[Task], task_id: int) -> int:
+        for index, row in enumerate(siblings):
+            if row.id == task_id:
+                return index
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Anchor is not in the sibling list"
+        )
+
+    def _reorder_anchor(
+        self, principal: Principal, task: Task, anchor_ref: str
+    ) -> Task:
+        if anchor_ref == task.public_id:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Cannot reorder relative to itself"
+            )
+        anchor = self._access.get_task(principal, anchor_ref, "tasks:write")
+        if anchor.parent_task_id != task.parent_task_id:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Anchor must be a sibling (same parent)",
+            )
+        if anchor.archived_at is not None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Anchor task is archived"
+            )
+        return anchor
+
+    def _apply_reorder_rank(
+        self, task: Task, others: list[Task], insert_at: int
+    ) -> None:
+        prev_rank = others[insert_at - 1].rank if insert_at > 0 else None
+        next_rank = others[insert_at].rank if insert_at < len(others) else None
+        new_rank = self._ranks.insert_rank(prev_rank, next_rank)
+        if new_rank is not None:
+            task.rank = new_rank
+            return
+        ordered = list(others)
+        ordered.insert(insert_at, task)
+        self._ranks.reindex(ordered)
 
     def _resolve_parent_filter(
         self, principal: Principal, parent_task_id: str | None
