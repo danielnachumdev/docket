@@ -99,6 +99,37 @@ export type Artifact = {
   task_number?: number | null
 }
 
+export type StorageKindTotal = {
+  kind: string
+  artifact_count: number
+  stored_bytes: number
+}
+
+export type StorageUploader = {
+  user_id: number
+  email: string | null
+  display_name: string
+  artifact_count: number
+  stored_bytes: number
+}
+
+export type StorageTask = {
+  task_id: string
+  task_number: number
+  title: string
+  artifact_count: number
+  stored_bytes: number
+}
+
+export type StorageOverview = {
+  size_note: string
+  artifact_count: number
+  stored_bytes: number
+  by_kind: StorageKindTotal[]
+  by_uploader: StorageUploader[]
+  top_tasks: StorageTask[]
+}
+
 export type ArtifactListPage = {
   items: Artifact[]
   total: number
@@ -352,6 +383,7 @@ export const api = {
     }),
   revokeInvite: (id: number) =>
     request<void>(`/api/invites/${id}`, { method: 'DELETE' }),
+  getAdminStorage: () => request<StorageOverview>('/api/admin/storage'),
   listTasks: (opts?: {
     archived?: boolean
     rootsOnly?: boolean

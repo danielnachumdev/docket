@@ -98,5 +98,32 @@
     "editNickname": "עריכת כינוי",
     "clearNickname": "נקה",
     "nicknameSaveFailed": "לא ניתן לשמור כינוי"
+  },
+  "storage": {
+    "title": "אחסון",
+    "subtitle": "שימוש בקבצים מצורפים בסביבת העבודה. הגודל סופר רק בתים של קבצים שמורים.",
+    "sizeNote": "הסיכומים מבוססים על גודל ה-blob של קבצים מצורפים מסוג file. הערות, קישורים ו-JSON נשמרים במסד הנתונים ונחשבים כאן כ־0 בתים.",
+    "ownerOnlyHint": "רק בעל/ת סביבת העבודה יכול/ה לצפות בשימוש באחסון.",
+    "loadFailed": "לא ניתן לטעון את סקירת האחסון",
+    "totalsTitle": "סקירה",
+    "totalArtifacts": "קבצים מצורפים",
+    "totalBytes": "בתים שמורים",
+    "byKindTitle": "לפי סוג",
+    "kind": "סוג",
+    "count": "כמות",
+    "bytes": "בתים שמורים",
+    "kindLabel": {
+      "file": "קובץ",
+      "text": "הערה",
+      "link": "קישור",
+      "json": "JSON"
+    },
+    "uploadersTitle": "לפי מעלה",
+    "uploader": "מעלה",
+    "emptyUploadersTitle": "עדיין אין קבצים מצורפים",
+    "emptyUploadersHint": "העלו קובץ מצורף למשימה כדי לראות שימוש כאן.",
+    "topTasksTitle": "המשימות הגדולות ביותר",
+    "task": "משימה",
+    "emptyTopTasks": "עדיין אין משימות עם קבצים מצורפים."
   }
 }

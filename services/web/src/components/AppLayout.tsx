@@ -157,6 +157,12 @@ export function AppLayout({
       icon: 'users',
       match: (path) => path === '/invites',
     },
+    {
+      to: '/storage',
+      label: t('nav:storage'),
+      icon: 'archive',
+      match: (path) => path === '/storage',
+    },
   ]
 
   const tabs = workspace.slice(0, 3)

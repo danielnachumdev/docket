@@ -98,5 +98,32 @@
     "editNickname": "Edit nickname",
     "clearNickname": "Clear",
     "nicknameSaveFailed": "Could not save nickname"
+  },
+  "storage": {
+    "title": "Storage",
+    "subtitle": "Artifact blob usage across this workspace. Size counts stored file bytes only.",
+    "sizeNote": "Totals use stored blob size for file artifacts. Notes, links, and JSON live in the database and count as 0 bytes here.",
+    "ownerOnlyHint": "Only the workspace owner can view storage usage.",
+    "loadFailed": "Could not load storage overview",
+    "totalsTitle": "Overview",
+    "totalArtifacts": "Artifacts",
+    "totalBytes": "Stored bytes",
+    "byKindTitle": "By kind",
+    "kind": "Kind",
+    "count": "Count",
+    "bytes": "Stored bytes",
+    "kindLabel": {
+      "file": "File",
+      "text": "Note",
+      "link": "Link",
+      "json": "JSON"
+    },
+    "uploadersTitle": "By uploader",
+    "uploader": "Uploader",
+    "emptyUploadersTitle": "No artifacts yet",
+    "emptyUploadersHint": "Upload a file artifact on a task to see usage here.",
+    "topTasksTitle": "Largest tasks",
+    "task": "Task",
+    "emptyTopTasks": "No tasks with artifacts yet."
   }
 }

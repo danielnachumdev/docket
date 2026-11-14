@@ -13,6 +13,7 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { TaskDetailPage } from './pages/TaskDetailPage'
 import { TaskListPage } from './pages/TaskListPage'
+import { StoragePage } from './pages/StoragePage'
 import { TokensPage } from './pages/TokensPage'
 import { WebhooksPage } from './pages/WebhooksPage'
 import './App.css'
@@ -55,6 +56,7 @@ function Shell() {
         <Route path="/people" element={<ContactsPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/invites" element={<InvitesPage canMint={canInvite} />} />
+        <Route path="/storage" element={<StoragePage canAdmin={canInvite} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>
