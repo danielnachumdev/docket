@@ -1,0 +1,21 @@
+{
+  "appName": "Docket",
+  "loading": "טוען",
+  "loadingEllipsis": "טוען…",
+  "working": "עובד…",
+  "dismiss": "סגור",
+  "clear": "נקה",
+  "add": "הוסף",
+  "save": "שמור",
+  "delete": "מחק",
+  "cancel": "ביטול",
+  "language": "שפה",
+  "themeToLight": "מעבר למצב בהיר",
+  "themeToDark": "מעבר למצב כהה",
+  "logOut": "התנתקות",
+  "releaseNotes": "הערות גרסה",
+  "updateAvailable": "עדכון זמין",
+  "updateAvailableVersion": "עדכון זמין: v{{version}}",
+  "versionAvailable": "v{{version}} זמין",
+  "emDash": "—"
+}

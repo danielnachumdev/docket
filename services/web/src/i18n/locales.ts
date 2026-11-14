@@ -3,10 +3,7 @@
  * 1. Creating `src/locales/<code>/*.json` (copy from `en/`)
  * 2. Importing those JSON files in `src/i18n/index.ts` and registering under `resources`
  * 3. Appending an entry here with the correct `dir` (`ltr` or `rtl`)
- *
- * Example RTL sketch (not shipped yet):
- *   { code: 'ar', name: 'العربية', dir: 'rtl' }
- *   { code: 'he', name: 'עברית', dir: 'rtl' }
+ * 4. Adding the code → dir mapping in `index.html` early boot (avoids FOUC)
  */
 export type TextDirection = 'ltr' | 'rtl'
 
@@ -18,6 +15,7 @@ export type LocaleMeta = {
 
 export const LOCALES: readonly LocaleMeta[] = [
   { code: 'en', name: 'English', dir: 'ltr' },
+  { code: 'he', name: 'עברית', dir: 'rtl' },
 ] as const
 
 export const DEFAULT_LOCALE = 'en'

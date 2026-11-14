@@ -22,11 +22,10 @@
             : matchMedia('(prefers-color-scheme: dark)').matches
               ? 'dark'
               : 'light'
-        // Locale registry dirs live in src/i18n; only `en` (ltr) ships today.
-        // When adding RTL locales, map code → dir here to avoid a flash.
+        // Keep in sync with LOCALES dirs in src/i18n/locales.ts (avoids FOUC).
         const locale = localStorage.getItem('docket.locale')
         const code = (locale || navigator.language || 'en').toLowerCase().split('-')[0]
-        const dirs = { en: 'ltr' }
+        const dirs = { en: 'ltr', he: 'rtl' }
         if (dirs[code]) {
           document.documentElement.lang = code
           document.documentElement.dir = dirs[code]

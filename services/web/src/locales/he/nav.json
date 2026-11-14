@@ -1,0 +1,11 @@
+{
+  "main": "ראשי",
+  "tasks": "משימות",
+  "archived": "ארכיון",
+  "inbox": "דואר נכנס",
+  "artifacts": "קבצים מצורפים",
+  "apiTokens": "אסימוני API",
+  "webhooks": "Webhooks",
+  "invites": "הזמנות",
+  "unreadCount": "{{count}} שלא נקראו"
+}
