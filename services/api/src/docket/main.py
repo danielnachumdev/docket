@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from docket.api import (
     artifacts_api,
     auth_api,
+    contacts_api,
     invites_api,
     notifications_api,
     preferences_api,
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_api.router)
     app.include_router(invites_api.router)
     app.include_router(preferences_api.router)
+    app.include_router(contacts_api.router)
     app.include_router(tasks_api.router)
     app.include_router(task_comments_api.router)
     app.include_router(artifacts_api.router)

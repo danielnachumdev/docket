@@ -5,6 +5,7 @@ import { DialogsProvider } from './components/DialogsProvider'
 import { Spinner } from './components/Feedback'
 import { PreferencesProvider, useTheme } from './preferences'
 import { ArtifactsPage } from './pages/ArtifactsPage'
+import { ContactsPage } from './pages/ContactsPage'
 import { InvitesPage } from './pages/InvitesPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotificationsPage } from './pages/NotificationsPage'
@@ -39,7 +40,6 @@ function Shell() {
   return (
     <AppLayout
       user={status.user}
-      canInvite={canInvite}
       theme={theme}
       onToggleTheme={toggle}
       onLogout={() => void logout()}
@@ -51,7 +51,8 @@ function Shell() {
         <Route path="/artifacts" element={<ArtifactsPage />} />
         <Route path="/tokens" element={<TokensPage />} />
         <Route path="/webhooks" element={<WebhooksPage />} />
-        {canInvite && <Route path="/invites" element={<InvitesPage />} />}
+        <Route path="/people" element={<ContactsPage />} />
+        <Route path="/invites" element={<InvitesPage canMint={canInvite} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

@@ -171,6 +171,12 @@ export type MentionableUser = {
   handle: string
 }
 
+export type Contact = {
+  id: number
+  email: string | null
+  display_name: string
+}
+
 export type TaskShare = {
   id: number
   user_id: number
@@ -289,6 +295,12 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+  listContacts: (q?: string) => {
+    const params = new URLSearchParams()
+    if (q?.trim()) params.set('q', q.trim())
+    const qs = params.toString()
+    return request<Contact[]>(`/api/me/contacts${qs ? `?${qs}` : ''}`)
+  },
   bootstrap: (body: { email: string; display_name: string; password: string }) =>
     request<User>('/api/auth/bootstrap', { method: 'POST', body: JSON.stringify(body) }),
   login: (body: { email: string; password: string }) =>
