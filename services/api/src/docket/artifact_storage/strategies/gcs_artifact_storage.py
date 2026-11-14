@@ -40,6 +40,13 @@ class GcsArtifactStorage(ArtifactStorage):
     def exists(self, key: str) -> bool:
         return bool(self._blob(key).exists())
 
+    def size(self, key: str) -> int:
+        blob = self._blob(key)
+        if not blob.exists():
+            raise FileNotFoundError(key)
+        blob.reload()
+        return int(blob.size)
+
     def _blob(self, key: str):
         return self._bucket.blob(self._object_name(key))
 

@@ -136,8 +136,8 @@ class TaskService:
         )
         children = self._gateway.list_children(task.id)
         events = self._gateway.list_events(task.id)
-        artifacts = self._artifacts.list_for_task(task.id)
         artifact_service = ArtifactService(self._db)
+        artifacts = artifact_service.list_artifacts(principal, task_ref)
         return TaskDetailOut(
             task=self._mapper.task_out(task),
             events=[self._mapper.event_out(e) for e in events],
