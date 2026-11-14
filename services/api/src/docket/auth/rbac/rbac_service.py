@@ -8,7 +8,7 @@ from docket.models import Role
 class RbacService:
     """Permission checks for authenticated principals."""
 
-    SHAREABLE_ROLE_NAMES = frozenset({"viewer", "editor"})
+    SHAREABLE_ROLE_NAMES = frozenset({"viewer", "commentor", "editor"})
 
     def __init__(self, db: Session) -> None:
         self._gateway = RbacGateway(db)

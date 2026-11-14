@@ -133,11 +133,42 @@ export type UnreadCount = {
   count: number
 }
 
+export type CommentRef = {
+  kind: 'user' | 'task' | 'artifact' | 'comment' | string
+  raw: string
+  start: number
+  end: number
+  label?: string
+  user_id?: number
+  email?: string | null
+  display_name?: string
+  task_id?: string
+  number?: number
+  title?: string
+  artifact_id?: number
+  comment_id?: number
+}
+
 export type TaskComment = {
-  event_id: number
+  id: number
+  event_id: number | null
   task_id: string
   body: string
+  refs: CommentRef[]
   mentioned_user_ids: number[]
+  author_user_id: number
+  author_display_name: string
+  author_email: string | null
+  created_at: string
+  updated_at: string
+  can_edit: boolean
+}
+
+export type MentionableUser = {
+  user_id: number
+  email: string | null
+  display_name: string
+  handle: string
 }
 
 export type TaskShare = {
@@ -145,7 +176,7 @@ export type TaskShare = {
   user_id: number
   email: string | null
   display_name: string
-  role: 'viewer' | 'editor' | string
+  role: 'viewer' | 'commentor' | 'editor' | string
   created_at: string
 }
 
@@ -366,7 +397,7 @@ export const api = {
   deleteLink: (id: string, linkId: number) =>
     request<void>(`/api/tasks/${id}/links/${linkId}`, { method: 'DELETE' }),
   listShares: (id: string) => request<TaskShare[]>(`/api/tasks/${id}/shares`),
-  shareTask: (id: string, body: { email: string; role: 'viewer' | 'editor' }) =>
+  shareTask: (id: string, body: { email: string; role: 'viewer' | 'commentor' | 'editor' }) =>
     request<TaskShare>(`/api/tasks/${id}/shares`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -377,11 +408,21 @@ export const api = {
     request<{ watching: boolean }>(`/api/tasks/${id}/watch`, { method: 'PUT' }),
   unwatchTask: (id: string) =>
     request<void>(`/api/tasks/${id}/watch`, { method: 'DELETE' }),
+  listComments: (id: string) => request<TaskComment[]>(`/api/tasks/${id}/comments`),
+  listMentionables: (id: string) =>
+    request<MentionableUser[]>(`/api/tasks/${id}/mentionables`),
   addComment: (id: string, body: string) =>
     request<TaskComment>(`/api/tasks/${id}/comments`, {
       method: 'POST',
       body: JSON.stringify({ body }),
     }),
+  updateComment: (id: string, commentId: number, body: string) =>
+    request<TaskComment>(`/api/tasks/${id}/comments/${commentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body }),
+    }),
+  deleteComment: (id: string, commentId: number) =>
+    request<void>(`/api/tasks/${id}/comments/${commentId}`, { method: 'DELETE' }),
   listNotifications: (opts?: { unreadOnly?: boolean; limit?: number }) => {
     const params = new URLSearchParams()
     if (opts?.unreadOnly) params.set('unread_only', 'true')

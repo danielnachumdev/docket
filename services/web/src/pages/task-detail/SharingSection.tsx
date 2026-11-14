@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api, type TaskShare } from '../../api'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
@@ -14,8 +15,9 @@ type Props = {
 }
 
 export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
+  const { t } = useTranslation('tasks')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'viewer' | 'editor'>('viewer')
+  const [role, setRole] = useState<'viewer' | 'commentor' | 'editor'>('viewer')
   const { busy, error, setError, run } = useAction()
 
   function onShare(e: FormEvent) {
@@ -36,7 +38,7 @@ export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
       ) : (
         <ul className="list">
           {shares.map((s) => (
-            <li key={s.id} className="list-row">
+            <li key={s.id} id={`share-user-${s.user_id}`} className="list-row">
               <span className="avatar small">{initials(s.display_name)}</span>
               <span className="grow min-0">
                 <span className="block truncate">{s.display_name}</span>
@@ -78,11 +80,14 @@ export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
             <select
               className="grow"
               value={role}
-              onChange={(e) => setRole(e.target.value as 'viewer' | 'editor')}
+              onChange={(e) =>
+                setRole(e.target.value as 'viewer' | 'commentor' | 'editor')
+              }
               aria-label="Share role"
             >
-              <option value="viewer">Can view</option>
-              <option value="editor">Can edit</option>
+              <option value="viewer">{t('shareRoleViewer')}</option>
+              <option value="commentor">{t('shareRoleCommentor')}</option>
+              <option value="editor">{t('shareRoleEditor')}</option>
             </select>
             <button type="submit" className="btn" disabled={busy || !email.trim()}>
               <Icon name="users" />

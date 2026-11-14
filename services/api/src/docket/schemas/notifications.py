@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -12,10 +13,25 @@ class TaskCommentIn(BaseModel):
 
 
 class TaskCommentOut(BaseModel):
-    event_id: int
+    id: int
+    event_id: int | None = None
     task_id: str
     body: str
+    refs: list[dict[str, Any]] = []
     mentioned_user_ids: list[int]
+    author_user_id: int
+    author_display_name: str
+    author_email: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    can_edit: bool = False
+
+
+class MentionableUserOut(BaseModel):
+    user_id: int
+    email: str | None
+    display_name: str
+    handle: str
 
 
 class NotificationOut(BaseModel):

@@ -38,7 +38,7 @@ class TaskShareService:
         if role is None:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                "Role must be viewer or editor",
+                "Role must be viewer, commentor, or editor",
             )
 
         email = body.email.strip().lower()

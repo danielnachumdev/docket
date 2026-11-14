@@ -196,7 +196,7 @@ class TaskDetailOut(BaseModel):
 
 class TaskShareCreate(BaseModel):
     email: str = Field(min_length=3, max_length=320)
-    role: str = Field(pattern="^(viewer|editor)$")
+    role: str = Field(pattern="^(viewer|commentor|editor)$")
 
 
 class TaskShareOut(BaseModel):

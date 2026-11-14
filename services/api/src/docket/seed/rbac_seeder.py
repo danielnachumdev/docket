@@ -5,6 +5,7 @@ from docket.models import Permission, Role, RolePermission
 
 PERMISSIONS: list[tuple[str, str]] = [
     ("tasks:read", "List and view tasks, events, and artifacts"),
+    ("tasks:comment", "Add and edit own comments on tasks"),
     ("tasks:write", "Create and update tasks and links"),
     ("tasks:claim", "Claim and release tasks as an agent"),
     ("tasks:admin", "Archive, hard-delete, and manage others' tasks"),
@@ -19,6 +20,7 @@ ROLES: dict[str, tuple[str, list[str]]] = {
         "Full access",
         [
             "tasks:read",
+            "tasks:comment",
             "tasks:write",
             "tasks:claim",
             "tasks:admin",
@@ -32,6 +34,7 @@ ROLES: dict[str, tuple[str, list[str]]] = {
         "Invited user: own workspace without user admin",
         [
             "tasks:read",
+            "tasks:comment",
             "tasks:write",
             "tasks:claim",
             "artifacts:write",
@@ -41,7 +44,17 @@ ROLES: dict[str, tuple[str, list[str]]] = {
     ),
     "editor": (
         "Read/write tasks and artifacts; claim work",
-        ["tasks:read", "tasks:write", "tasks:claim", "artifacts:write"],
+        [
+            "tasks:read",
+            "tasks:comment",
+            "tasks:write",
+            "tasks:claim",
+            "artifacts:write",
+        ],
+    ),
+    "commentor": (
+        "Read tasks and leave comments",
+        ["tasks:read", "tasks:comment"],
     ),
     "viewer": (
         "Read-only",
@@ -49,7 +62,13 @@ ROLES: dict[str, tuple[str, list[str]]] = {
     ),
     "agent_worker": (
         "Agent token role: work tasks without admin/token management",
-        ["tasks:read", "tasks:write", "tasks:claim", "artifacts:write"],
+        [
+            "tasks:read",
+            "tasks:comment",
+            "tasks:write",
+            "tasks:claim",
+            "artifacts:write",
+        ],
     ),
 }
 

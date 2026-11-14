@@ -316,6 +316,12 @@ export function TaskDetailPage() {
   const task = detail.task
   const me = status?.user
   const isOwner = me?.id === task.owner_user_id
+  const myShare = shares.find((s) => s.user_id === me?.id)
+  const canComment =
+    isOwner ||
+    myShare?.role === 'commentor' ||
+    myShare?.role === 'editor' ||
+    Boolean(status?.permissions.includes('tasks:comment') && myShare == null)
   const names = new Map<number, string>(shares.map((s) => [s.user_id, s.display_name]))
 
   const actorUserLabel = (ev: TaskEvent) =>
@@ -458,7 +464,14 @@ export function TaskDetailPage() {
           </section>
           <SubtasksSection taskId={taskId} subtasks={detail.children} onChanged={load} />
           <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
-          <CommentsSection taskId={taskId} onChanged={load} />
+          <CommentsSection
+            taskId={taskId}
+            artifacts={detail.artifacts}
+            tasks={allTasks}
+            shares={shares}
+            canComment={canComment}
+            onChanged={load}
+          />
           <ClaimLeaseSection task={task} events={detail.events} />
           <ActivitySection
             events={detail.events}

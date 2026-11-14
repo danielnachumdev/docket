@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -16,14 +15,12 @@ from docket.artifacts import ArtifactGateway, ArtifactService
 from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
 from docket.events import task_event_recorder
-from docket.models import Membership, Task, TaskEvent
+from docket.models import Task, TaskEvent
 from docket.models.task_public_id import new_task_public_id
-from docket.notifications import mention_resolver, notification_dispatcher
+from docket.notifications import notification_dispatcher
 from docket.schemas import (
     TaskBulkUpdate,
     TaskClaimIn,
-    TaskCommentIn,
-    TaskCommentOut,
     TaskCreate,
     TaskDetailOut,
     TaskOut,
@@ -239,56 +236,6 @@ class TaskService:
             payload=payload,
         )
         return self._commit_and_dispatch(task, event, payload)
-
-    def add_comment(
-        self,
-        principal: Principal,
-        task_ref: str,
-        body: TaskCommentIn,
-    ) -> TaskCommentOut:
-        task = self._access.get_task(principal, task_ref, "tasks:write")
-        text = body.body.strip()
-        if not text:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Comment cannot be empty")
-        mentioned = self._accessible_mention_ids(principal, task, text)
-        payload: dict[str, Any] = {
-            "body": text,
-            "mentioned_user_ids": mentioned,
-        }
-        event = task_event_recorder.record(
-            self._db,
-            task_id=task.id,
-            event_type="commented",
-            actor=principal,
-            payload=payload,
-        )
-        dispatcher = notification_dispatcher(self._db)
-        mentioned_set = set(mentioned)
-        dispatcher.notify_users(
-            user_ids=mentioned,
-            task=task,
-            actor=principal,
-            kind="mentioned",
-            title=f"Mentioned on “{task.title}”",
-            body=text,
-            payload={"body": text},
-        )
-        dispatcher.notify_watchers(
-            task=task,
-            actor=principal,
-            kind="commented",
-            title=f"Comment on “{task.title}”",
-            body=text,
-            payload={"body": text},
-            exclude_user_ids=mentioned_set,
-        )
-        self._commit_and_dispatch(task, event, payload)
-        return self._mapper.comment_out(
-            event_id=event.id,
-            task=task,
-            body=text,
-            mentioned_user_ids=mentioned,
-        )
 
     def bulk_update(
         self, principal: Principal, body: TaskBulkUpdate
@@ -637,28 +584,6 @@ class TaskService:
             return
         if body.status != "failed" and old == "failed":
             task.last_error = None
-
-    def _accessible_mention_ids(
-        self, principal: Principal, task: Task, text: str
-    ) -> list[int]:
-        resolved = mention_resolver.resolve_user_ids(self._db, text)
-        return [
-            user_id
-            for user_id in resolved
-            if user_id != principal.user_id and self._user_can_see_task(user_id, task)
-        ]
-
-    def _user_can_see_task(self, user_id: int, task: Task) -> bool:
-        if task.owner_user_id == user_id:
-            return True
-        shared = self._db.scalar(
-            select(Membership.id).where(
-                Membership.user_id == user_id,
-                Membership.scope_type == "task",
-                Membership.scope_task_id == task.id,
-            )
-        )
-        return shared is not None
 
     def _unique_refs(self, task_ids: list[str]) -> list[str]:
         seen: set[str] = set()

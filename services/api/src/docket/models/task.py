@@ -94,6 +94,7 @@ class Task(Base):
     parent: Mapped["Task | None"] = relationship(remote_side=[id], backref="children")
     events: Mapped[list["TaskEvent"]] = relationship(back_populates="task")
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="task")
+    comments: Mapped[list["TaskComment"]] = relationship(back_populates="task")
     claimed_by_token: Mapped["ApiToken | None"] = relationship(
         foreign_keys=[claimed_by_token_id]
     )

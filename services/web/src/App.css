@@ -580,6 +580,11 @@
   color: var(--accent);
 }
 
+.role-commentor {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
 .count {
   display: inline-grid;
   place-items: center;
@@ -2468,6 +2473,103 @@ textarea.mono {
 
 .comment-form .btn {
   justify-self: start;
+}
+
+.comment-thread {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.comment-item {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.comment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  align-items: baseline;
+  margin-bottom: 0.35rem;
+}
+
+.comment-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.comment-chip {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.1rem;
+  padding: 0.05rem 0.4rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.86em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.comment-chip.kind-task,
+.comment-chip.kind-artifact,
+.comment-chip.kind-comment {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.comment-picker {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  max-height: 12rem;
+  overflow: auto;
+}
+
+.comment-picker-item {
+  width: 100%;
+  display: grid;
+  gap: 0.1rem;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+}
+
+.comment-picker-item:hover,
+.comment-picker-item:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.comment-flash {
+  animation: comment-flash 1.4s ease;
+}
+
+@keyframes comment-flash {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  25%,
+  60% {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
 }
 
 .notification-list {

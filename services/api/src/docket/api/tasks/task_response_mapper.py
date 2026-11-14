@@ -11,7 +11,6 @@ from docket.schemas import (
     TaskLinkOut,
     TaskOut,
 )
-from docket.schemas.notifications import TaskCommentOut
 
 
 class TaskResponseMapper:
@@ -142,17 +141,6 @@ class TaskResponseMapper:
             actor_user_id=row.actor_user_id,
             read_at=row.read_at,
             created_at=row.created_at,
-        )
-
-    def comment_out(
-        self, *, event_id: int, task: Task, body: str, mentioned_user_ids: list[int]
-    ) -> TaskCommentOut:
-        self.remember([task])
-        return TaskCommentOut(
-            event_id=event_id,
-            task_id=task.public_id,
-            body=body,
-            mentioned_user_ids=mentioned_user_ids,
         )
 
     def public_id(self, internal_id: int | None) -> str | None:
