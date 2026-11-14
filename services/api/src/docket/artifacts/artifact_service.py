@@ -12,7 +12,7 @@ from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
 from docket.config import Settings, get_settings
 from docket.events import task_event_recorder
-from docket.models import Artifact
+from docket.models import Artifact, Task
 from docket.schemas import ArtifactCreate, ArtifactUpdate
 
 
@@ -72,6 +72,10 @@ class ArtifactService:
         task = self._access.get_task(principal, task_ref, "tasks:read")
         return self._gateway.list_for_task(task.id)
 
+    def list_accessible(self, principal: Principal) -> list[tuple[Artifact, Task]]:
+        task_ids = self._access.accessible_task_ids_select(principal.user_id)
+        return self._gateway.list_with_tasks_for_ids(task_ids)
+
     def get_artifact(
         self, principal: Principal, task_ref: str, artifact_id: int
     ) -> Artifact:
@@ -83,6 +87,16 @@ class ArtifactService:
     ) -> ArtifactContent:
         artifact = self.get_artifact(principal, task_ref, artifact_id)
         return self._read_content(artifact)
+
+    def can_modify(
+        self, principal: Principal, artifact: Artifact, task: Task | None = None
+    ) -> bool:
+        if artifact.created_by_user_id != principal.user_id:
+            return False
+        row = task or self._db.get(Task, artifact.task_id)
+        if row is None:
+            return False
+        return self._access.may_access(principal, row, "artifacts:write")
 
     def create(
         self, principal: Principal, task_ref: str, body: ArtifactCreate
@@ -126,6 +140,7 @@ class ArtifactService:
     ) -> Artifact:
         task = self._access.get_task(principal, task_ref, "artifacts:write")
         artifact = self._require_artifact(task.id, artifact_id)
+        self._require_uploader(principal, artifact)
         changes = self._apply_update(artifact, body)
         if changes:
             task_event_recorder.record(
@@ -144,6 +159,7 @@ class ArtifactService:
     ) -> None:
         task = self._access.get_task(principal, task_ref, "artifacts:write")
         artifact = self._require_artifact(task.id, artifact_id)
+        self._require_uploader(principal, artifact)
         storage_key = artifact.storage_key
         title = artifact.title
         kind = artifact.kind
@@ -164,6 +180,14 @@ class ArtifactService:
         if artifact is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Artifact not found")
         return artifact
+
+    def _require_uploader(self, principal: Principal, artifact: Artifact) -> None:
+        if artifact.created_by_user_id == principal.user_id:
+            return
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Only the artifact uploader can modify or delete it",
+        )
 
     def _prepare_create_payload(
         self, task_id: int, body: ArtifactCreate

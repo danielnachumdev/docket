@@ -95,7 +95,14 @@ class TaskResponseMapper:
             created_at=event.created_at,
         )
 
-    def artifact_out(self, artifact: Artifact) -> ArtifactOut:
+    def artifact_out(
+        self,
+        artifact: Artifact,
+        *,
+        can_modify: bool = False,
+        task_title: str | None = None,
+        task_number: int | None = None,
+    ) -> ArtifactOut:
         return ArtifactOut(
             id=artifact.id,
             task_id=self.public_id(artifact.task_id) or "",
@@ -106,6 +113,9 @@ class TaskResponseMapper:
             content_type=artifact.content_type,
             created_by_user_id=artifact.created_by_user_id,
             created_at=artifact.created_at,
+            can_modify=can_modify,
+            task_title=task_title,
+            task_number=task_number,
         )
 
     def link_out(self, link: TaskLink) -> TaskLinkOut:

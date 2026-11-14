@@ -12,7 +12,7 @@ from docket.api.tasks.owner_task_number_allocator import OwnerTaskNumberAllocato
 from docket.api.tasks.sibling_rank_allocator import SiblingRankAllocator
 from docket.api.tasks.task_gateway import TaskGateway
 from docket.api.tasks.task_response_mapper import TaskResponseMapper
-from docket.artifacts import ArtifactGateway
+from docket.artifacts import ArtifactGateway, ArtifactService
 from docket.auth.principal import Principal
 from docket.auth.task_access_service import TaskAccessService
 from docket.events import task_event_recorder
@@ -140,10 +140,19 @@ class TaskService:
         children = self._gateway.list_children(task.id)
         events = self._gateway.list_events(task.id)
         artifacts = self._artifacts.list_for_task(task.id)
+        artifact_service = ArtifactService(self._db)
         return TaskDetailOut(
             task=self._mapper.task_out(task),
             events=[self._mapper.event_out(e) for e in events],
-            artifacts=[self._mapper.artifact_out(a) for a in artifacts],
+            artifacts=[
+                self._mapper.artifact_out(
+                    a,
+                    can_modify=artifact_service.can_modify(principal, a, task),
+                    task_title=task.title,
+                    task_number=task.owner_task_number,
+                )
+                for a in artifacts
+            ],
             children=self._mapper.tasks_out(children),
             links=[self._mapper.link_out(link) for link in links],
             watching=watching,
