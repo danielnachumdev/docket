@@ -45,6 +45,7 @@ function Shell() {
       theme={theme}
       onToggleTheme={toggle}
       onLogout={() => void logout()}
+      canAdmin={canInvite}
     >
       <Routes>
         <Route path="/" element={<TaskListPage />} />
@@ -56,7 +57,9 @@ function Shell() {
         <Route path="/people" element={<ContactsPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/invites" element={<InvitesPage canMint={canInvite} />} />
-        <Route path="/storage" element={<StoragePage canAdmin={canInvite} />} />
+        {canInvite && (
+          <Route path="/storage" element={<StoragePage canAdmin={canInvite} />} />
+        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

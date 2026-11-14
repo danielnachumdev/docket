@@ -29,6 +29,7 @@ type Props = {
   theme: Theme
   onToggleTheme: () => void
   onLogout: () => void
+  canAdmin?: boolean
   children: ReactNode
 }
 
@@ -95,6 +96,7 @@ export function AppLayout({
   theme,
   onToggleTheme,
   onLogout,
+  canAdmin = false,
   children,
 }: Props) {
   const { t } = useTranslation(['nav', 'common'])
@@ -157,12 +159,16 @@ export function AppLayout({
       icon: 'users',
       match: (path) => path === '/invites',
     },
-    {
-      to: '/storage',
-      label: t('nav:storage'),
-      icon: 'archive',
-      match: (path) => path === '/storage',
-    },
+    ...(canAdmin
+      ? [
+          {
+            to: '/storage',
+            label: t('nav:storage'),
+            icon: 'archive' as const,
+            match: (path: string) => path === '/storage',
+          },
+        ]
+      : []),
   ]
 
   const tabs = workspace.slice(0, 3)
