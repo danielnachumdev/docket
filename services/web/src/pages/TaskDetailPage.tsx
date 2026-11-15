@@ -144,10 +144,10 @@ export function TaskDetailPage() {
       const startW = railWidthPx
 
       const onMove = (ev: globalThis.PointerEvent) => {
-        const next = Math.min(
-          DETAIL_RAIL_MAX_PX,
-          Math.max(DETAIL_RAIL_MIN_PX, startW + (ev.clientX - startX)),
-        )
+        const delta = ev.clientX - startX
+        const rtl = document.documentElement.dir === 'rtl'
+        const nextRaw = rtl ? startW + delta : startW - delta
+        const next = Math.min(DETAIL_RAIL_MAX_PX, Math.max(DETAIL_RAIL_MIN_PX, nextRaw))
         setRailWidthPx(next)
       }
 
