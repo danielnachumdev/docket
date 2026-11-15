@@ -20,6 +20,7 @@ const PATHS = {
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
+  maximize: 'M9 3H3v6M15 3h6v6M9 21H3v-6M15 21h6v-6',
   copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
   x: 'M6 6l12 12M18 6L6 18',
   sun: 'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',

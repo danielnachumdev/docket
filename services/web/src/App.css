@@ -2267,6 +2267,33 @@ a.list-row:hover {
   margin-inline-start: 2.7rem;
 }
 
+.artifact-preview-frame {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.artifact-preview-frame .artifact-enlarge-btn {
+  position: absolute;
+  top: 0.35rem;
+  inset-inline-end: 0.35rem;
+  z-index: 1;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.artifact-preview-frame .artifact-enlarge-btn:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.artifact-text-preview {
+  width: 100%;
+}
+
+.artifact-text-preview pre {
+  margin-top: 0.4rem;
+}
+
 .artifact-preview-btn {
   display: block;
   width: fit-content;
@@ -2466,6 +2493,104 @@ a.list-row:hover {
   background: var(--surface);
   object-fit: contain;
   cursor: default;
+}
+
+.artifact-fullview {
+  cursor: default;
+  padding: 1rem;
+}
+
+.artifact-fullview-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(56rem, 100%);
+  max-height: min(92dvh, 56rem);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  cursor: default;
+}
+
+.artifact-fullview-header {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.artifact-fullview-title {
+  margin: 0;
+  padding-top: 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  min-width: 0;
+}
+
+.artifact-fullview-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.artifact-fullview-md .artifact-preview-md {
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  background: transparent;
+  padding: 0;
+}
+
+.artifact-fullview-text pre {
+  margin: 0;
+  max-height: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.artifact-fullview-pdf {
+  display: flex;
+  padding: 0;
+  overflow: hidden;
+}
+
+.artifact-fullview-pdf-frame {
+  display: block;
+  width: 100%;
+  height: min(78dvh, 48rem);
+  border: 0;
+  background: var(--surface-2);
+}
+
+.artifact-fullview-media {
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+  background: color-mix(in srgb, var(--bg) 40%, var(--surface));
+}
+
+.artifact-fullview-img {
+  max-width: 100%;
+  max-height: min(78dvh, 48rem);
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  background: var(--surface-2);
+}
+
+.artifact-fullview-video {
+  display: block;
+  width: 100%;
+  max-height: min(78dvh, 48rem);
+  border-radius: var(--radius-sm);
+  background: #000;
 }
 
 details summary {

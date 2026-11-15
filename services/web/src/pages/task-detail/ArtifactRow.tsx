@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type Artifact } from '../../api'
 import { Icon } from '../../components/Icon'
@@ -7,6 +7,7 @@ import { artifactKindIcon } from '../../lib/artifactMedia'
 import { artifactDisplayBytes } from '../../lib/artifactsLibrary'
 import { useConfirm } from '../../lib/dialogs'
 import { formatBytes, formatDateTime, formatRelative, humanize } from '../../lib/format'
+import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { ArtifactFilePreview } from './ArtifactFilePreview'
 
 function isUrl(value: string | null) {
@@ -24,9 +25,11 @@ type Props = {
 export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Props) {
   const { t } = useTranslation('artifacts')
   const confirm = useConfirm()
+  const [textFullView, setTextFullView] = useState(false)
   const kindKey = `kind.${a.kind}`
   const kindLabel = t(kindKey, { defaultValue: humanize(a.kind) })
   const sizeBytes = artifactDisplayBytes(a)
+  const showTextBody = Boolean(a.content_text && a.kind !== 'file' && a.kind !== 'link')
 
   async function onDelete() {
     const ok = await confirm({
@@ -102,10 +105,13 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
           )}
         </span>
       </div>
-      {a.content_text && a.kind !== 'file' && a.kind !== 'link' && (
+      {showTextBody && a.content_text && (
         <details className="artifact-body">
           <summary>{t('showContent')}</summary>
-          <UserBidiText text={a.content_text} as="pre" />
+          <div className="artifact-preview-frame artifact-text-preview">
+            <ArtifactEnlargeButton title={a.title} onClick={() => setTextFullView(true)} />
+            <UserBidiText text={a.content_text} as="pre" />
+          </div>
         </details>
       )}
       {a.kind === 'link' && a.content_text && !isUrl(a.content_text) && (
@@ -116,6 +122,15 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
         />
       )}
       <ArtifactFilePreview taskId={a.task_id} artifact={a} />
+      {textFullView && a.content_text && (
+        <ArtifactFullView
+          title={a.title}
+          onClose={() => setTextFullView(false)}
+          bodyClassName="artifact-fullview-text"
+        >
+          <UserBidiText text={a.content_text} as="pre" />
+        </ArtifactFullView>
+      )}
     </li>
   )
 }
