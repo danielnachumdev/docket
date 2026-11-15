@@ -103,6 +103,7 @@ UI copy lives under `services/web/src/locales/{en,he}/` (JSON namespaces registe
 - Authorization is RBAC (`permissions` / `roles` / `memberships`); API tokens may downscope via `role_id`.
 - Each service owns its Dockerfile and runtime files under `services/<name>/`.
 - Raft / host / TLS / live env live in **waymark-deploy**; this repo ships product + GHCR images.
+- **UI PR screenshots:** seed dummy data + capture SPA Proof shots with [`scripts/pr_screenshots/AGENTS.md`](scripts/pr_screenshots/AGENTS.md) (`seed_demo.py` → `screenshots.sh` → `attach_to_pr.sh`). Example.com emails only; never prod.
 
 ## After template bootstrap
 
