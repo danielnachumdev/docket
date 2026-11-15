@@ -29,9 +29,17 @@ type Props = {
   run: (fn: () => Promise<unknown>, fallback?: string) => Promise<boolean>
   onDeleted: () => Promise<void>
   context?: ReactNode
+  layout?: 'list' | 'grid'
 }
 
-export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Props) {
+export function ArtifactRow({
+  artifact: a,
+  busy,
+  run,
+  onDeleted,
+  context,
+  layout = 'list',
+}: Props) {
   const { t } = useTranslation('artifacts')
   const confirm = useConfirm()
   const [textFullView, setTextFullView] = useState(false)
@@ -91,7 +99,7 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
   }
 
   return (
-    <li id={`artifact-${a.id}`} className="artifact">
+    <li id={`artifact-${a.id}`} className={layout === 'grid' ? 'artifact artifact-card' : 'artifact'}>
       <div className="list-row">
         <span className="row-icon">
           <Icon name={artifactKindIcon(a.kind)} />

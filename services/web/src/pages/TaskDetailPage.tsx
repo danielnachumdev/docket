@@ -108,6 +108,7 @@ export function TaskDetailPage() {
   const [draft, setDraft] = useState<Draft | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [completeOpen, setCompleteOpen] = useState(false)
+  const [sideCollapsed, setSideCollapsed] = useState(false)
   const { busy, error, setError, run } = useAction()
 
   const load = useCallback(async () => {
@@ -495,8 +496,20 @@ export function TaskDetailPage() {
         </div>
       </header>
 
-      <div className="detail-grid">
+      <div className={sideCollapsed ? 'detail-grid side-collapsed' : 'detail-grid'}>
         <div className="detail-main">
+          <div className="detail-main-toolbar">
+            <button
+              type="button"
+              className="icon-btn detail-side-toggle"
+              aria-label={sideCollapsed ? t('expandSide') : t('collapseSide')}
+              aria-expanded={!sideCollapsed}
+              title={sideCollapsed ? t('expandSide') : t('collapseSide')}
+              onClick={() => setSideCollapsed((v) => !v)}
+            >
+              <Icon name="columns" size={14} />
+            </button>
+          </div>
           <Section icon="text" title={t('notes')} headingId="notes-label">
             <div className="notes">
               <textarea
@@ -509,8 +522,6 @@ export function TaskDetailPage() {
               />
             </div>
           </Section>
-          <SubtasksSection taskId={taskId} subtasks={detail.children} onChanged={load} />
-          <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
           <CommentsSection
             taskId={taskId}
             artifacts={detail.artifacts}
@@ -519,6 +530,7 @@ export function TaskDetailPage() {
             canComment={canComment}
             onChanged={load}
           />
+          <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
           <ClaimLeaseSection task={task} events={detail.events} />
           <ActivitySection
             events={detail.events}
@@ -527,118 +539,149 @@ export function TaskDetailPage() {
           />
         </div>
 
-        <aside className="detail-side detail-props">
-          <Section icon="flag" title={t('status')} headingId="status-label">
-            <div className="status-picker" role="radiogroup" aria-labelledby="status-label">
-              {STATUSES.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  role="radio"
-                  aria-checked={task.status === s}
-                  className={`status-option status-${s}${task.status === s ? ' active' : ''}`}
-                  disabled={busy}
-                  onClick={() => task.status !== s && changeStatus(s)}
-                >
-                  <span className="status-dot" aria-hidden="true" />
-                  {statusLabel(s)}
-                </button>
-              ))}
-            </div>
-          </Section>
+        {!sideCollapsed && (
+          <>
+            <aside className="detail-side detail-props">
+              <Section icon="flag" title={t('status')} headingId="status-label">
+                <div className="status-picker" role="radiogroup" aria-labelledby="status-label">
+                  {STATUSES.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      role="radio"
+                      aria-checked={task.status === s}
+                      className={`status-option status-${s}${task.status === s ? ' active' : ''}`}
+                      disabled={busy}
+                      onClick={() => task.status !== s && changeStatus(s)}
+                    >
+                      <span className="status-dot" aria-hidden="true" />
+                      {statusLabel(s)}
+                    </button>
+                  ))}
+                </div>
+              </Section>
 
-          <Section icon="sliders" title={t('details')} className="stack">
-            <label className="field">
-              <span>{t('priority')}</span>
-              <select value={draft.priority} onChange={(e) => update('priority', Number(e.target.value))}>
-                {PRIORITIES.map((p) => (
-                  <option key={p} value={p}>
-                    {t('priorityOption', { priority: p, label: priorityLabel(p) })}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>{t('deadline')}</span>
-              <span className="input-with-action">
-                <input
-                  type="datetime-local"
-                  value={draft.due}
-                  onChange={(e) => update('due', e.target.value)}
-                />
-                {draft.due && (
+              <Section icon="sliders" title={t('details')} className="stack">
+                <label className="field">
+                  <span>{t('priority')}</span>
+                  <select
+                    value={draft.priority}
+                    onChange={(e) => update('priority', Number(e.target.value))}
+                  >
+                    {PRIORITIES.map((p) => (
+                      <option key={p} value={p}>
+                        {t('priorityOption', { priority: p, label: priorityLabel(p) })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>{t('deadline')}</span>
+                  <span className="input-with-action">
+                    <input
+                      type="datetime-local"
+                      value={draft.due}
+                      onChange={(e) => update('due', e.target.value)}
+                    />
+                    {draft.due && (
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        aria-label={t('clearDeadline')}
+                        title={t('clearDeadline')}
+                        onClick={() => update('due', '')}
+                      >
+                        <Icon name="x" />
+                      </button>
+                    )}
+                  </span>
+                </label>
+                {!isClosed(task.status) && (
                   <button
                     type="button"
-                    className="icon-btn"
-                    aria-label={t('clearDeadline')}
-                    title={t('clearDeadline')}
-                    onClick={() => update('due', '')}
+                    className={dueToday ? 'btn small do-today-btn active' : 'btn small do-today-btn'}
+                    disabled={busy}
+                    aria-pressed={dueToday}
+                    title={dueToday ? t('doThisTodayDone') : t('doThisToday')}
+                    onClick={doThisToday}
                   >
-                    <Icon name="x" />
+                    <Icon name="calendar" size={14} />
+                    {dueToday ? t('doThisTodayDone') : t('doThisToday')}
                   </button>
                 )}
-              </span>
-            </label>
-            {!isClosed(task.status) && (
-              <button
-                type="button"
-                className={dueToday ? 'btn small do-today-btn active' : 'btn small do-today-btn'}
-                disabled={busy}
-                aria-pressed={dueToday}
-                title={dueToday ? t('doThisTodayDone') : t('doThisToday')}
-                onClick={doThisToday}
-              >
-                <Icon name="calendar" size={14} />
-                {dueToday ? t('doThisTodayDone') : t('doThisToday')}
-              </button>
-            )}
-            <label className="field">
-              <span>{t('parentTask')}</span>
-              <select value={draft.parent} onChange={(e) => update('parent', e.target.value)}>
-                <option value="">{t('parentNone')}</option>
-                {parentChoices.map((p) => {
-                  const label = `#${p.number} · ${p.title}`
-                  return (
-                    <option
-                      key={p.id}
-                      value={p.id}
-                      dir={isMixedBidi(label) ? 'rtl' : undefined}
-                    >
-                      {label}
-                    </option>
-                  )
-                })}
-                {parentTask && !parentChoices.some((p) => p.id === parentTask.id) && (
-                  <option
-                    value={parentTask.id}
-                    dir={
-                      isMixedBidi(
-                        `#${parentTask.number} · ${parentTask.title || ''}`,
-                      )
-                        ? 'rtl'
-                        : undefined
-                    }
-                  >
-                    #{parentTask.number} ·{' '}
-                    {parentTask.title || t('parentFallback', { number: parentTask.number })}
-                  </option>
-                )}
-              </select>
-            </label>
-          </Section>
-        </aside>
+                <label className="field">
+                  <span>{t('parentTask')}</span>
+                  <span className="input-with-action">
+                    <select value={draft.parent} onChange={(e) => update('parent', e.target.value)}>
+                      <option value="">{t('parentNone')}</option>
+                      {parentChoices.map((p) => {
+                        const label = `#${p.number} · ${p.title}`
+                        return (
+                          <option
+                            key={p.id}
+                            value={p.id}
+                            dir={isMixedBidi(label) ? 'rtl' : undefined}
+                          >
+                            {label}
+                          </option>
+                        )
+                      })}
+                      {parentTask && !parentChoices.some((p) => p.id === parentTask.id) && (
+                        <option
+                          value={parentTask.id}
+                          dir={
+                            isMixedBidi(
+                              `#${parentTask.number} · ${parentTask.title || ''}`,
+                            )
+                              ? 'rtl'
+                              : undefined
+                          }
+                        >
+                          #{parentTask.number} ·{' '}
+                          {parentTask.title || t('parentFallback', { number: parentTask.number })}
+                        </option>
+                      )}
+                    </select>
+                    {draft.parent && (
+                      <Link
+                        to={`/tasks/${draft.parent}`}
+                        className="icon-btn"
+                        aria-label={t('openParent')}
+                        title={t('openParent')}
+                      >
+                        <Icon name="external" />
+                      </Link>
+                    )}
+                  </span>
+                </label>
+              </Section>
 
-        <aside className="detail-side detail-related">
-          <LinksSection taskId={taskId} links={detail.links ?? []} tasksById={tasksById} onChanged={load} />
-          <SharingSection taskId={taskId} shares={shares} isOwner={isOwner} onChanged={load} />
-          <CompletionSection
-            requireArtifact={draft.requireArtifact}
-            schemaText={draft.outcomeSchema}
-            onRequireArtifact={(value) => update('requireArtifact', value)}
-            onSchemaText={(value) => update('outcomeSchema', value)}
-            recordedOutcome={task.outcome_json}
-          />
-        </aside>
+              <SubtasksSection
+                taskId={taskId}
+                subtasks={detail.children}
+                onChanged={load}
+                compact
+              />
+            </aside>
+
+            <aside className="detail-side detail-related">
+              <LinksSection
+                taskId={taskId}
+                links={detail.links ?? []}
+                tasksById={tasksById}
+                onChanged={load}
+              />
+              <SharingSection taskId={taskId} shares={shares} isOwner={isOwner} onChanged={load} />
+              <CompletionSection
+                requireArtifact={draft.requireArtifact}
+                schemaText={draft.outcomeSchema}
+                onRequireArtifact={(value) => update('requireArtifact', value)}
+                onSchemaText={(value) => update('outcomeSchema', value)}
+                recordedOutcome={task.outcome_json}
+              />
+            </aside>
+          </>
+        )}
       </div>
 
       {completeOpen && (

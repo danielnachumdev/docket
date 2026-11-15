@@ -17,9 +17,10 @@ type Props = {
   taskId: string
   subtasks: Task[]
   onChanged: () => Promise<void>
+  compact?: boolean
 }
 
-export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
+export function SubtasksSection({ taskId, subtasks, onChanged, compact = false }: Props) {
   const { t } = useTranslation(['detail', 'common'])
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState(3)
@@ -71,6 +72,7 @@ export function SubtasksSection({ taskId, subtasks, onChanged }: Props) {
     <Section
       icon="subtasks"
       title={t('subtasks.title')}
+      className={compact ? 'subtasks-side' : undefined}
       action={
         rows.length > 0 && (
           <span className="progress" title={t('subtasks.progress', { done, total: rows.length })}>

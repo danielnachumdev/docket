@@ -98,9 +98,16 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
       {artifacts.length === 0 && !open && <p className="muted small">{t('sectionEmpty')}</p>}
 
       {artifacts.length > 0 && (
-        <ul className="list">
+        <ul className="artifact-grid">
           {artifacts.map((a) => (
-            <ArtifactRow key={a.id} artifact={a} busy={busy} run={run} onDeleted={onChanged} />
+            <ArtifactRow
+              key={a.id}
+              artifact={a}
+              busy={busy}
+              run={run}
+              onDeleted={onChanged}
+              layout="grid"
+            />
           ))}
         </ul>
       )}

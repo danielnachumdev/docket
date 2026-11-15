@@ -55,8 +55,24 @@ export function ClaimLeaseSection({ task, events }: Props) {
     .filter((ev) => CLAIM_EVENT_TYPES.has(ev.type))
     .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id)
 
+  const summary = active
+    ? t('claim.holdsShort', { token: holder })
+    : task.claimed_by_token_id != null && task.claim_expires_at
+      ? t('claim.expiredShort')
+      : t('claim.noneShort')
+
   return (
-    <Section icon="key" title={t('claim.title')} count={timeline.length}>
+    <Section
+      icon="key"
+      title={t('claim.title')}
+      count={timeline.length}
+      collapsible
+      defaultCollapsed
+      collapseLabel={t('claim.collapse')}
+      expandLabel={t('claim.expand')}
+      collapsedSummary={summary}
+      className="claim-section"
+    >
       <div className={timeline.length > 0 ? 'claim-status' : 'claim-status only'}>
         {active ? (
           <>

@@ -83,6 +83,7 @@ function NavLink({
       to={item.to}
       className={active ? 'nav-item active' : 'nav-item'}
       aria-current={active ? 'page' : undefined}
+      title={item.label}
       onClick={onNavigate}
     >
       <span className="nav-icon-wrap">
@@ -115,6 +116,7 @@ export function AppLayout({
   const { pathname, search } = useLocation()
   const unread = useUnreadCount(pathname)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [navCollapsed, setNavCollapsed] = useState(false)
   const isArchived = new URLSearchParams(search).get('view') === 'archived'
   const closeMenu = useCallback(() => setMenuOpen(false), [])
 
@@ -197,17 +199,33 @@ export function AppLayout({
     ))
 
   return (
-    <div className="layout">
+    <div className={navCollapsed ? 'layout nav-collapsed' : 'layout'}>
       <a className="skip-link" href="#main-content">
         {t('common:skipToContent')}
       </a>
 
       <aside className="sidebar">
         <div className="sidebar-inner">
-          <Link to="/" className="brand">
-            <Logo />
-            <span>{t('common:appName')}</span>
-          </Link>
+          <div className="sidebar-top">
+            <Link to="/" className="brand" title={t('common:appName')}>
+              <Logo />
+              <span>{t('common:appName')}</span>
+            </Link>
+            <button
+              type="button"
+              className="icon-btn sidebar-toggle"
+              aria-label={navCollapsed ? t('nav:expand') : t('nav:collapse')}
+              aria-expanded={!navCollapsed}
+              title={navCollapsed ? t('nav:expand') : t('nav:collapse')}
+              onClick={() => setNavCollapsed((v) => !v)}
+            >
+              <Icon
+                name={navCollapsed ? 'chevronRight' : 'arrowLeft'}
+                size={14}
+                className="flip-rtl"
+              />
+            </button>
+          </div>
           <nav className="nav" aria-label={t('nav:main')}>
             {renderGroups()}
           </nav>
@@ -217,7 +235,7 @@ export function AppLayout({
               themeScheme={themeScheme}
               onToggleTheme={onToggleTheme}
               onLogout={onLogout}
-              showIdentity
+              showIdentity={!navCollapsed}
             />
           </div>
         </div>
