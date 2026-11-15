@@ -2432,45 +2432,208 @@ a.list-row:hover {
 
 .artifact-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(12.75rem, 1fr));
+  gap: 0.65rem;
   margin: 0;
   padding: 0;
   list-style: none;
+  align-items: stretch;
 }
 
 .artifact-grid > .artifact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
   min-width: 0;
+  min-height: 0;
   max-width: 100%;
-  padding: 0.65rem 0.75rem;
+  height: 100%;
+  padding: 0.55rem 0.6rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-2);
 }
 
-.artifact-card .list-row {
-  align-items: flex-start;
+.artifact-card-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'icon copy actions';
+  gap: 0.25rem 0.4rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.artifact-card-head .row-icon {
+  grid-area: icon;
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
+.artifact-card-copy {
+  grid-area: copy;
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.artifact-card-copy strong {
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+
+.artifact-card-meta {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  gap: 0 0.35rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.artifact-card-meta > * {
+  flex: none;
+  white-space: nowrap;
+}
+
+.artifact-card-meta > * + *::before {
+  margin-inline-end: 0.35rem;
+}
+
+.artifact-card-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-content: flex-start;
+  gap: 0;
+  max-width: 3.5rem;
+}
+
+.artifact-card-actions .icon-btn {
+  width: 1.65rem;
+  height: 1.65rem;
 }
 
 .artifact-card .artifact-body {
+  margin: 0;
   margin-inline-start: 0;
-}
-
-.artifact-card .artifact-preview-frame,
-.artifact-card .artifact-preview,
-.artifact-card .artifact-preview-pdf,
-.artifact-card .artifact-preview-md,
-.artifact-card .artifact-preview-video {
+  min-width: 0;
   max-width: 100%;
-  width: 100%;
 }
 
-.artifact-card .artifact-preview img,
-.artifact-card .artifact-preview-frame img {
-  max-height: 10rem;
+/* Shared media well: absolute children so long text cannot expand the card. */
+.artifact-card .artifact-body:has(
+  .artifact-preview-btn,
+  .artifact-preview-frame,
+  .artifact-preview-audio,
+  .artifact-preview-error
+) {
+  position: relative;
+  flex: 0 0 auto;
   width: 100%;
-  object-fit: cover;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
   border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg) 45%, var(--surface-2));
+}
+
+.artifact-card .artifact-body:has(
+  .artifact-preview-btn,
+  .artifact-preview-frame,
+  .artifact-preview-audio,
+  .artifact-preview-error
+) > * {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.artifact-card .artifact-preview-btn,
+.artifact-card .artifact-preview-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 0;
+  background: transparent;
+}
+
+.artifact-card .artifact-preview-frame.artifact-text-preview {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
+.artifact-card .artifact-preview-btn {
+  padding: 0;
+  border: 0;
+  cursor: zoom-in;
+}
+
+.artifact-card .artifact-preview,
+.artifact-card .artifact-preview-btn .artifact-preview,
+.artifact-card .artifact-preview-frame img,
+.artifact-card .artifact-preview-video {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 0;
+  background: transparent;
+}
+
+.artifact-card .artifact-preview-pdf,
+.artifact-card .artifact-preview-md {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.artifact-card .artifact-preview-md {
+  padding: 0.45rem 0.55rem;
+  overflow: auto;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.artifact-card .artifact-body:has(> .artifact-preview-audio) > .artifact-preview-audio {
+  inset: auto 0.75rem;
+  top: 50%;
+  height: 2.25rem;
+  width: calc(100% - 1.5rem);
+  max-height: 2.25rem;
+  transform: translateY(-50%);
+  overflow: visible;
+}
+
+.artifact-card .artifact-text-preview pre {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  overflow: auto;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.artifact-card .artifact-preview-error,
+.artifact-card .artifact-body > .muted {
+  margin: 0;
+  padding: 0.45rem;
 }
 
 .artifact .list-row {
