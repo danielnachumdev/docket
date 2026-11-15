@@ -5,6 +5,14 @@
   "breadcrumb": "נתיב ניווט",
   "parentFallback": "משימה #{{number}}",
   "lastError": "שגיאה אחרונה",
+  "statusReason": "סיבה",
+  "statusReasonPrompt": {
+    "title": "להוסיף סיבה?",
+    "description": "אופציונלי — מוצג במשימה כל עוד הסטטוס הוא {{status}}.",
+    "label": "סיבה (אופציונלי)",
+    "placeholder": "למשל: ממתין לתשובת ספק",
+    "confirm": "עדכון סטטוס"
+  },
   "archivedNotice": "המשימה הועברה לארכיון {{when}}.",
   "restore": "שחזור",
   "titleLabel": "כותרת המשימה",
@@ -150,7 +158,9 @@
     "event": {
       "created": "יצר/ה את המשימה",
       "statusChangedFromTo": "שינה/תה סטטוס מ{{from}} ל{{to}}",
+      "statusChangedFromToReason": "שינה/תה סטטוס מ{{from}} ל{{to}}: {{reason}}",
       "statusChangedTo": "שינה/תה סטטוס ל{{to}}",
+      "statusChangedToReason": "שינה/תה סטטוס ל{{to}}: {{reason}}",
       "statusChanged": "שינה/תה סטטוס",
       "updatedFields": "עדכן/ה {{fields}}",
       "updated": "עדכן/ה את המשימה",

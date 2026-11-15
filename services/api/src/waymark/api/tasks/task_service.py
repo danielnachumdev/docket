@@ -30,6 +30,7 @@ from waymark.schemas import (
     TaskStatusIn,
     TaskUpdate,
 )
+from waymark.schemas.tasks import PAUSE_STATUSES
 from waymark.task_claims import TaskClaimService
 from waymark.task_links import TaskLinkService
 from waymark.task_outcomes import DoneOutcomeEnforcer, OutcomeSchemaCodec
@@ -215,9 +216,12 @@ class TaskService:
         task.status = body.status
         self._apply_status_timestamps(task, body.status)
         self._apply_status_last_error(task, old=old, body=body)
+        self._apply_status_reason(task, body=body)
         payload: dict[str, Any] = {"from": old, "to": body.status}
         if task.last_error is not None and body.status == "failed":
             payload["last_error"] = task.last_error
+        if task.status_reason is not None and body.status in PAUSE_STATUSES:
+            payload["reason"] = task.status_reason
         if task.outcome_json is not None and body.status == "done":
             payload["outcome"] = True
         event = task_event_recorder.record(
@@ -552,6 +556,8 @@ class TaskService:
         self._apply_status_timestamps(task, new_status)
         if new_status != "failed" and old == "failed":
             task.last_error = None
+        if new_status not in PAUSE_STATUSES:
+            task.status_reason = None
         payload: dict[str, Any] = {"from": old, "to": new_status}
         if task.outcome_json is not None and new_status == "done":
             payload["outcome"] = True
@@ -591,6 +597,16 @@ class TaskService:
             return
         if body.status != "failed" and old == "failed":
             task.last_error = None
+
+    def _apply_status_reason(self, task: Task, *, body: TaskStatusIn) -> None:
+        if body.status not in PAUSE_STATUSES:
+            task.status_reason = None
+            return
+        if body.reason is None:
+            task.status_reason = None
+            return
+        text = body.reason.strip()
+        task.status_reason = text or None
 
     def _unique_refs(self, task_ids: list[str]) -> list[str]:
         seen: set[str] = set()

@@ -18,9 +18,15 @@ function PromptDialog({
   const [value, setValue] = useState(options.initialValue ?? '')
   const trimmed = value.trim()
 
+  const allowEmpty = Boolean(options.allowEmpty)
+
   function onSubmit(e: FormEvent) {
     e.preventDefault()
-    if (trimmed) onDone(trimmed)
+    if (trimmed) {
+      onDone(trimmed)
+      return
+    }
+    if (allowEmpty) onDone('')
   }
 
   return (
@@ -41,7 +47,7 @@ function PromptDialog({
           <button type="button" className="btn ghost" onClick={() => onDone(null)}>
             {t('cancel')}
           </button>
-          <button type="submit" className="btn primary" disabled={!trimmed}>
+          <button type="submit" className="btn primary" disabled={!allowEmpty && !trimmed}>
             {options.confirmLabel ?? t('save')}
           </button>
         </div>

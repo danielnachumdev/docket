@@ -36,9 +36,17 @@ function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
     case 'status_changed': {
       if (!payload?.to) return e('statusChanged')
       const to = statusLabel(String(payload.to))
-      return payload.from
-        ? e('statusChangedFromTo', { from: statusLabel(String(payload.from)), to })
-        : e('statusChangedTo', { to })
+      const reason = text(payload.reason)
+      if (payload.from) {
+        return reason
+          ? e('statusChangedFromToReason', {
+              from: statusLabel(String(payload.from)),
+              to,
+              reason,
+            })
+          : e('statusChangedFromTo', { from: statusLabel(String(payload.from)), to })
+      }
+      return reason ? e('statusChangedToReason', { to, reason }) : e('statusChangedTo', { to })
     }
     case 'updated': {
       const fields = Object.keys(payload ?? {}).map((k) =>

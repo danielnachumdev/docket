@@ -54,6 +54,7 @@ class TaskResponseMapper:
             claimed_by_token_name=task.claimed_by_token_name,
             claim_expires_at=task.claim_expires_at,
             last_error=task.last_error,
+            status_reason=task.status_reason,
             require_artifact_on_done=bool(task.require_artifact_on_done),
             outcome_schema_json=task.outcome_schema_json,
             outcome_json=task.outcome_json,

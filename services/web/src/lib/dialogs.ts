@@ -15,6 +15,8 @@ export type PromptOptions = {
   initialValue?: string
   confirmLabel?: string
   maxLength?: number
+  /** When true, confirm is enabled with an empty value and resolves to "". */
+  allowEmpty?: boolean
 }
 
 type DialogsApi = {

@@ -4,6 +4,7 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _STATUS_PATTERN = "^(backlog|in_progress|blocked|on_hold|failed|done|cancelled)$"
+PAUSE_STATUSES = frozenset({"blocked", "on_hold"})
 
 
 class TaskCreate(BaseModel):
@@ -36,6 +37,8 @@ class TaskUpdate(BaseModel):
 class TaskStatusIn(BaseModel):
     status: str = Field(pattern=_STATUS_PATTERN)
     last_error: str | None = Field(default=None, max_length=4000)
+    # Optional note when moving to blocked / on_hold (ignored for other statuses).
+    reason: str | None = Field(default=None, max_length=4000)
     outcome: dict[str, Any] | None = None
 
 
@@ -89,6 +92,7 @@ class TaskOut(BaseModel):
     claimed_by_token_name: str | None = None
     claim_expires_at: datetime | None
     last_error: str | None
+    status_reason: str | None = None
     require_artifact_on_done: bool = False
     outcome_schema_json: str | None = None
     outcome_json: str | None = None

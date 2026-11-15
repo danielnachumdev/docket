@@ -10,7 +10,7 @@ import { Menu, type MenuItem } from '../components/Menu'
 import { Section } from '../components/Section'
 import { UserBidiText } from '../components/UserBidiText'
 import { isMixedBidi, userBidiAttrs } from '../lib/bidi'
-import { useConfirm } from '../lib/dialogs'
+import { useConfirm, usePrompt } from '../lib/dialogs'
 import { useToast } from '../lib/toast'
 import { usePageTitle } from '../lib/usePageTitle'
 import {
@@ -19,6 +19,7 @@ import {
   formatDateTime,
   formatRelative,
   isClosed,
+  isPauseStatus,
   parseDate,
   priorityLabel,
   statusLabel,
@@ -98,6 +99,7 @@ export function TaskDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const prompt = usePrompt()
   const toast = useToast()
   const { status } = useAuth()
   const taskId = id ?? ''
@@ -244,7 +246,7 @@ export function TaskDetailPage() {
     setDraft((prev) => (prev ? { ...prev, [key]: value } : prev))
   }
 
-  function changeStatus(next: string) {
+  async function changeStatus(next: string) {
     if (!detail) return
     if (next === 'done') {
       const needsDialog =
@@ -254,15 +256,29 @@ export function TaskDetailPage() {
         return
       }
     }
+    let reason: string | undefined
+    if (isPauseStatus(next)) {
+      const entered = await prompt({
+        title: t('statusReasonPrompt.title'),
+        description: t('statusReasonPrompt.description', { status: statusLabel(next) }),
+        label: t('statusReasonPrompt.label'),
+        placeholder: t('statusReasonPrompt.placeholder'),
+        confirmLabel: t('statusReasonPrompt.confirm'),
+        maxLength: 4000,
+        allowEmpty: true,
+      })
+      if (entered === null) return
+      reason = entered || undefined
+    }
     void run(async () => {
-      await api.setStatus(taskId, next)
+      await api.setStatus(taskId, next, reason !== undefined ? { reason } : undefined)
       await load()
     }, t('errors.status'))
   }
 
   function confirmDone(outcome?: Record<string, unknown>) {
     void run(async () => {
-      await api.setStatus(taskId, 'done', outcome)
+      await api.setStatus(taskId, 'done', outcome !== undefined ? { outcome } : undefined)
       setCompleteOpen(false)
       await load()
     }, t('errors.status'))
@@ -419,6 +435,13 @@ export function TaskDetailPage() {
           <strong>{t('lastError')}</strong>
           {': '}
           {task.last_error}
+        </Alert>
+      )}
+      {task.status_reason && isPauseStatus(task.status) && (
+        <Alert tone="warning">
+          <strong>{t('statusReason')}</strong>
+          {': '}
+          {task.status_reason}
         </Alert>
       )}
       {task.archived_at && (

@@ -48,6 +48,7 @@ export type Task = {
   claimed_by_token_name: string | null
   claim_expires_at: string | null
   last_error: string | null
+  status_reason: string | null
   require_artifact_on_done: boolean
   outcome_schema_json: string | null
   outcome_json: string | null
@@ -484,10 +485,23 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  setStatus: (id: string, status: string, outcome?: Record<string, unknown>) =>
+  setStatus: (
+    id: string,
+    status: string,
+    options?: {
+      outcome?: Record<string, unknown>
+      reason?: string
+      last_error?: string
+    },
+  ) =>
     request<Task>(`/api/tasks/${id}/status`, {
       method: 'POST',
-      body: JSON.stringify(outcome === undefined ? { status } : { status, outcome }),
+      body: JSON.stringify({
+        status,
+        ...(options?.outcome !== undefined ? { outcome: options.outcome } : {}),
+        ...(options?.reason !== undefined ? { reason: options.reason } : {}),
+        ...(options?.last_error !== undefined ? { last_error: options.last_error } : {}),
+      }),
     }),
   archive: (id: string) => request<Task>(`/api/tasks/${id}/archive`, { method: 'POST' }),
   unarchive: (id: string) =>

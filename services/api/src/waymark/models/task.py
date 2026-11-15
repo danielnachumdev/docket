@@ -64,6 +64,8 @@ class Task(Base):
     )
     # Last claim/release/heartbeat conflict or agent-reported failure message.
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Optional human reason while status is pause-like (blocked / on_hold).
+    status_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_by_token_id: Mapped[int | None] = mapped_column(
         ForeignKey("api_tokens.id", ondelete="SET NULL"), nullable=True

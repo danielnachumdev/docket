@@ -11,6 +11,14 @@ export const STATUSES = [
 ] as const
 export type Status = (typeof STATUSES)[number]
 
+/** Pause-like statuses that accept an optional status reason. */
+export const PAUSE_STATUSES = ['blocked', 'on_hold'] as const
+export type PauseStatus = (typeof PAUSE_STATUSES)[number]
+
+export function isPauseStatus(status: string): status is PauseStatus {
+  return (PAUSE_STATUSES as readonly string[]).includes(status)
+}
+
 export const PRIORITIES = [1, 2, 3, 4] as const
 
 export function statusLabel(status: string) {

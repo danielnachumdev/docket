@@ -15,6 +15,7 @@ import {
   PRIORITIES,
   STATUSES,
   isClosed,
+  isPauseStatus,
   priorityLabel,
   statusLabel,
   type Status,
@@ -208,7 +209,7 @@ function TaskRow({
 }
 
 export function TaskListPage() {
-  const { t } = useTranslation(['tasks', 'common', 'domain'])
+  const { t } = useTranslation(['tasks', 'common', 'domain', 'detail'])
   const [searchParams, setSearchParams] = useSearchParams()
   const archived = searchParams.get('view') === 'archived'
   const layout = searchParams.get('layout') === 'kanban' ? 'kanban' : 'list'
@@ -387,16 +388,39 @@ export function TaskListPage() {
     applyStatus(task, next)
   }
 
-  function applyStatus(task: Task, next: Status) {
+  async function applyStatus(task: Task, next: Status) {
+    let reason: string | undefined
+    if (isPauseStatus(next)) {
+      const entered = await prompt({
+        title: t('detail:statusReasonPrompt.title'),
+        description: t('detail:statusReasonPrompt.description', {
+          status: statusLabel(next),
+        }),
+        label: t('detail:statusReasonPrompt.label'),
+        placeholder: t('detail:statusReasonPrompt.placeholder'),
+        confirmLabel: t('detail:statusReasonPrompt.confirm'),
+        maxLength: 4000,
+        allowEmpty: true,
+      })
+      if (entered === null) return
+      reason = entered || undefined
+    }
+    const statusReason = isPauseStatus(next) ? (reason ?? null) : null
     setPinned((prev) => new Set(prev).add(task.id))
     setTasks(
       (prev) =>
-        prev?.map((t) => (t.id === task.id ? { ...t, status: next, unread: true } : t)) ?? null,
+        prev?.map((t) =>
+          t.id === task.id
+            ? { ...t, status: next, status_reason: statusReason, unread: true }
+            : t,
+        ) ?? null,
     )
-    api.setStatus(task.id, next).catch((err: Error) => {
-      setError(err.message)
-      void load()
-    })
+    api
+      .setStatus(task.id, next, reason !== undefined ? { reason } : undefined)
+      .catch((err: Error) => {
+        setError(err.message)
+        void load()
+      })
   }
 
   function toggleUnread(task: Task) {
