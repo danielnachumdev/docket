@@ -134,7 +134,8 @@ class ArtifactCreate(BaseModel):
     kind: str = Field(pattern="^(link|text|file|json)$")
     title: str = Field(min_length=1, max_length=300)
     content_text: str | None = None
-    # Base64-encoded bytes for kind=file (and optional blob replace on update).
+    # Base64-encoded bytes for kind=file, optional screenshot on kind=link,
+    # and blob replace on update.
     content_base64: str | None = None
     content_type: str | None = Field(default=None, max_length=120)
 
@@ -144,6 +145,8 @@ class ArtifactUpdate(BaseModel):
     content_text: str | None = None
     content_base64: str | None = None
     content_type: str | None = Field(default=None, max_length=120)
+    # Drop stored blob (link screenshot). Mutually exclusive with content_base64.
+    clear_blob: bool = False
 
 
 class ArtifactOut(BaseModel):

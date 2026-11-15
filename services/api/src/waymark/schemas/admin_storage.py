@@ -24,12 +24,13 @@ class StorageTaskOut(BaseModel):
 
 
 class StorageOverviewOut(BaseModel):
-    """Owner storage overview. stored_bytes = blob size for kind=file only."""
+    """Owner storage overview. stored_bytes = blob size (files + link screenshots)."""
 
     size_note: str = Field(
         default=(
-            "stored_bytes counts blob storage for kind=file artifacts; "
-            "text, link, and json kinds contribute 0 (content lives in SQLite)."
+            "stored_bytes counts blob storage for kind=file artifacts and optional "
+            "screenshots on kind=link; text and json kinds contribute 0 "
+            "(content lives in SQLite)."
         )
     )
     artifact_count: int

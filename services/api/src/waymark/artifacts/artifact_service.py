@@ -219,11 +219,25 @@ class ArtifactService:
     ) -> tuple[str | None, str | None, str | None, int]:
         if body.kind == "file":
             return self._store_file_payload(task_id, body)
-        if body.kind == "link" and not (body.content_text or "").strip():
+        if body.kind == "link":
+            return self._prepare_link_payload(task_id, body)
+        return None, body.content_type, body.content_text, 0
+
+    def _prepare_link_payload(
+        self, task_id: int, body: ArtifactCreate
+    ) -> tuple[str | None, str | None, str | None, int]:
+        if not (body.content_text or "").strip():
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "link artifacts require content_text URL"
             )
-        return None, body.content_type, body.content_text, 0
+        if not body.content_base64:
+            return None, body.content_type, body.content_text, 0
+        data = self._decode_base64(body.content_base64, required=True)
+        content_type = body.content_type or "image/png"
+        self._require_image_content_type(content_type)
+        key = self._new_storage_key(task_id)
+        self._storage.put(key, data, content_type=content_type)
+        return key, content_type, body.content_text, len(data)
 
     def _store_file_payload(
         self, task_id: int, body: ArtifactCreate
@@ -235,32 +249,75 @@ class ArtifactService:
         return key, content_type, body.content_text, len(data)
 
     def _apply_update(self, artifact: Artifact, body: ArtifactUpdate) -> dict:
+        if body.clear_blob and body.content_base64 is not None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "cannot clear_blob and set content_base64 together",
+            )
         changes: dict = {}
         if body.title is not None:
             artifact.title = body.title.strip()
             changes["title"] = artifact.title
-        if body.content_type is not None:
+        if body.content_type is not None and body.content_base64 is None:
+            if artifact.kind == "link" and artifact.storage_key:
+                self._require_image_content_type(body.content_type)
             artifact.content_type = body.content_type
             changes["content_type"] = artifact.content_type
         if body.content_text is not None:
+            if artifact.kind == "link" and not body.content_text.strip():
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    "link artifacts require content_text URL",
+                )
             artifact.content_text = body.content_text
             changes["content_text"] = True
-        if body.content_base64 is not None:
+        if body.clear_blob:
+            self._clear_blob(artifact)
+            changes["content_cleared"] = True
+            changes["byte_size"] = 0
+        elif body.content_base64 is not None:
             self._replace_blob(artifact, body)
             changes["content_replaced"] = True
             changes["byte_size"] = artifact.byte_size
         return changes
 
+    def _clear_blob(self, artifact: Artifact) -> None:
+        if artifact.kind != "link":
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "clear_blob is only supported for link artifacts",
+            )
+        storage_key = artifact.storage_key
+        artifact.storage_key = None
+        artifact.byte_size = 0
+        if storage_key:
+            self._storage.delete(storage_key)
+
     def _replace_blob(self, artifact: Artifact, body: ArtifactUpdate) -> None:
         data = self._decode_base64(body.content_base64, required=True)
         key = artifact.storage_key or self._new_storage_key(artifact.task_id)
-        content_type = body.content_type or artifact.content_type or "application/octet-stream"
+        if artifact.kind == "link":
+            content_type = body.content_type or artifact.content_type or "image/png"
+            self._require_image_content_type(content_type)
+        else:
+            content_type = (
+                body.content_type or artifact.content_type or "application/octet-stream"
+            )
         self._storage.put(key, data, content_type=content_type)
         artifact.storage_key = key
         artifact.content_type = content_type
         artifact.byte_size = len(data)
-        if artifact.kind != "file" and artifact.kind in {"text", "json"}:
+        if artifact.kind in {"text", "json"}:
             artifact.content_text = None
+
+    def _require_image_content_type(self, content_type: str) -> None:
+        media = content_type.split(";", 1)[0].strip().lower()
+        if media.startswith("image/"):
+            return
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "link screenshots require an image content_type",
+        )
 
     def _read_content(self, artifact: Artifact) -> ArtifactContent:
         filename = artifact.title or f"artifact-{artifact.id}"
