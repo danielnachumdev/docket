@@ -16,7 +16,16 @@
     <script>
       try {
         const saved = localStorage.getItem('waymark.theme')
-        const builtins = ['light', 'dark', 'lilac', 'sage', 'sky', 'sand', 'dusk']
+        const builtins = [
+          'light',
+          'dark',
+          'lilac',
+          'sage',
+          'sky',
+          'sand',
+          'dusk',
+          'slate',
+        ]
         const theme = saved === 'pastel' ? 'lilac' : saved
         document.documentElement.dataset.theme = builtins.includes(theme)
           ? theme

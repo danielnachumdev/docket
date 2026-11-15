@@ -272,6 +272,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         sky: 'Sky',
         sand: 'Sand',
         dusk: 'Dusk',
+        slate: 'Slate',
       }
       const nameBase =
         pack.custom?.name ??

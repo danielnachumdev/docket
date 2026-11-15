@@ -2,8 +2,8 @@
 
 /** OS / CSS color-scheme footing (customs always use one of these). */
 export type ColorScheme = 'light' | 'dark'
-/** Soft builtins: pastel light packs + soft dark (dusk). */
-export type SoftBuiltinId = 'lilac' | 'sage' | 'sky' | 'sand' | 'dusk'
+/** Soft builtins: pastel light packs + soft darks (dusk, slate). */
+export type SoftBuiltinId = 'lilac' | 'sage' | 'sky' | 'sand' | 'dusk' | 'slate'
 export type BuiltinThemeId = ColorScheme | SoftBuiltinId
 /** Active theme id: builtin or custom (`c_…`). */
 export type ThemeId = string
@@ -15,6 +15,7 @@ export const BUILTIN_THEME_IDS: BuiltinThemeId[] = [
   'sky',
   'sand',
   'dusk',
+  'slate',
 ]
 /** Accent swatches shown on soft builtin chips. */
 export const BUILTIN_SWATCH: Partial<Record<BuiltinThemeId, string>> = {
@@ -23,13 +24,14 @@ export const BUILTIN_SWATCH: Partial<Record<BuiltinThemeId, string>> = {
   sky: '#6e93c4',
   sand: '#d5bdaf',
   dusk: '#b892a8',
+  slate: '#7a92a8',
 }
 export const CUSTOM_THEME_ID_RE = /^c_[a-z0-9]{8,24}$/
 export const MAX_CUSTOM_THEMES = 20
 export const MAX_THEME_NAME_LEN = 48
 export const CUSTOM_THEMES_STORAGE_KEY = 'waymark.customThemes'
 
-const DARK_FOOTED: ReadonlySet<BuiltinThemeId> = new Set(['dark', 'dusk'])
+const DARK_FOOTED: ReadonlySet<BuiltinThemeId> = new Set(['dark', 'dusk', 'slate'])
 
 export function colorSchemeOf(builtin: BuiltinThemeId): ColorScheme {
   return DARK_FOOTED.has(builtin) ? 'dark' : 'light'
@@ -660,6 +662,47 @@ export const DUSK_THEME: ThemeTokens = {
   'shadow-lg': '0 14px 36px rgb(8 6 14 / 0.55)',
 }
 
+/**
+ * Builtin Slate — cool charcoal + steel blue.
+ * Clean, professional soft dark: no pink/mauve, no OLED black.
+ */
+export const SLATE_THEME: ThemeTokens = {
+  bg: '#15181d',
+  surface: '#1c2128',
+  'surface-2': '#242a33',
+  'surface-hover': '#282e38',
+  border: '#343b47',
+  'border-strong': '#454d5c',
+  text: '#e2e6eb',
+  'text-2': '#b0b8c4',
+  muted: '#87919f',
+  accent: '#7a92a8',
+  'accent-hover': '#8fa6bb',
+  'accent-soft': '#1e2832',
+  'accent-text': '#12151a',
+  danger: '#c97f84',
+  'danger-soft': '#2a1e20',
+  warning: '#c0a06a',
+  'warning-soft': '#282218',
+  success: '#6fa38a',
+  'success-soft': '#1a2720',
+  'st-backlog': '#8e97a6',
+  'st-in_progress': '#6fa38a',
+  'st-blocked': '#c97f84',
+  'st-on_hold': '#c0a06a',
+  'st-failed': '#c5cbd4',
+  'st-done': '#7a92a8',
+  'st-cancelled': '#8f8cba',
+  p1: '#c97f84',
+  p2: '#c49a6c',
+  p3: '#7a92a8',
+  p4: '#6f7888',
+  'shadow-sm': '0 1px 2px rgb(6 10 16 / 0.35)',
+  shadow: '0 1px 3px rgb(6 10 16 / 0.4), 0 4px 14px rgb(6 10 16 / 0.28)',
+  'shadow-md': '0 8px 22px rgb(6 10 16 / 0.45)',
+  'shadow-lg': '0 14px 36px rgb(6 10 16 / 0.55)',
+}
+
 export const BUILTIN_THEMES: Record<BuiltinThemeId, ThemeTokens> = {
   light: LIGHT_THEME,
   dark: DARK_THEME,
@@ -668,6 +711,7 @@ export const BUILTIN_THEMES: Record<BuiltinThemeId, ThemeTokens> = {
   sky: SKY_THEME,
   sand: SAND_THEME,
   dusk: DUSK_THEME,
+  slate: SLATE_THEME,
 }
 
 export type CustomTheme = {
@@ -690,7 +734,8 @@ export function isBuiltinThemeId(id: string): id is BuiltinThemeId {
     id === 'sage' ||
     id === 'sky' ||
     id === 'sand' ||
-    id === 'dusk'
+    id === 'dusk' ||
+    id === 'slate'
   )
 }
 
