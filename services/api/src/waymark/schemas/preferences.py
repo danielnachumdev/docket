@@ -4,12 +4,14 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 ColorScheme = Literal["light", "dark"]
-BuiltinThemeId = Literal["light", "dark", "lilac", "sage", "sky", "sand"]
+BuiltinThemeId = Literal[
+    "light", "dark", "lilac", "sage", "sky", "sand", "dusk", "slate"
+]
 LocalePreference = Literal["en", "he"]
 
 ALLOWED_COLOR_SCHEMES: frozenset[str] = frozenset({"light", "dark"})
 ALLOWED_BUILTIN_THEMES: frozenset[str] = frozenset(
-    {"light", "dark", "lilac", "sage", "sky", "sand"}
+    {"light", "dark", "lilac", "sage", "sky", "sand", "dusk", "slate"}
 )
 # Retired builtin ids remapped on decode
 _THEME_ID_ALIASES: dict[str, str] = {"pastel": "lilac"}

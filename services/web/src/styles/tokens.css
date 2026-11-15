@@ -281,6 +281,90 @@
   --shadow-lg: 0 14px 36px rgb(90 70 55 / 0.14);
 }
 
+/* Soft dark — twilight charcoal + dusty mauve (eye-friendly, not OLED black). */
+:root[data-theme='dusk'] {
+  color-scheme: dark;
+  --bg: #18161c;
+  --surface: #211f27;
+  --surface-2: #2a2731;
+  --surface-hover: #2e2b36;
+  --border: #3c3846;
+  --border-strong: #4e4a5a;
+  --text: #e6e2ec;
+  --text-2: #b8b2c4;
+  --muted: #8f889c;
+  --accent: #b892a8;
+  --accent-hover: #c9a5b8;
+  --accent-soft: #2c2430;
+  --accent-text: #1a161c;
+  --danger: #d48992;
+  --danger-soft: #2c1e22;
+  --warning: #c4a574;
+  --warning-soft: #2a2418;
+  --success: #7eae98;
+  --success-soft: #1c2822;
+
+  --st-backlog: #9a93a8;
+  --st-in_progress: #7eae98;
+  --st-blocked: #d48992;
+  --st-on_hold: #c4a574;
+  --st-failed: #c8c2d0;
+  --st-done: #8fa3c4;
+  --st-cancelled: #a894c0;
+
+  --p1: #d48992;
+  --p2: #d4a07c;
+  --p3: #8fa3c4;
+  --p4: #7a7488;
+
+  --shadow-sm: 0 1px 2px rgb(8 6 14 / 0.35);
+  --shadow: 0 1px 3px rgb(8 6 14 / 0.4), 0 4px 14px rgb(8 6 14 / 0.28);
+  --shadow-md: 0 8px 22px rgb(8 6 14 / 0.45);
+  --shadow-lg: 0 14px 36px rgb(8 6 14 / 0.55);
+}
+
+/* Soft dark — cool charcoal + steel blue (clean / professional). */
+:root[data-theme='slate'] {
+  color-scheme: dark;
+  --bg: #15181d;
+  --surface: #1c2128;
+  --surface-2: #242a33;
+  --surface-hover: #282e38;
+  --border: #343b47;
+  --border-strong: #454d5c;
+  --text: #e2e6eb;
+  --text-2: #b0b8c4;
+  --muted: #87919f;
+  --accent: #7a92a8;
+  --accent-hover: #8fa6bb;
+  --accent-soft: #1e2832;
+  --accent-text: #12151a;
+  --danger: #c97f84;
+  --danger-soft: #2a1e20;
+  --warning: #c0a06a;
+  --warning-soft: #282218;
+  --success: #6fa38a;
+  --success-soft: #1a2720;
+
+  --st-backlog: #8e97a6;
+  --st-in_progress: #6fa38a;
+  --st-blocked: #c97f84;
+  --st-on_hold: #c0a06a;
+  --st-failed: #c5cbd4;
+  --st-done: #7a92a8;
+  --st-cancelled: #8f8cba;
+
+  --p1: #c97f84;
+  --p2: #c49a6c;
+  --p3: #7a92a8;
+  --p4: #6f7888;
+
+  --shadow-sm: 0 1px 2px rgb(6 10 16 / 0.35);
+  --shadow: 0 1px 3px rgb(6 10 16 / 0.4), 0 4px 14px rgb(6 10 16 / 0.28);
+  --shadow-md: 0 8px 22px rgb(6 10 16 / 0.45);
+  --shadow-lg: 0 14px 36px rgb(6 10 16 / 0.55);
+}
+
 /* Touch devices: bigger hit areas for icon buttons and controls. */
 @media (pointer: coarse) {
   :root {
