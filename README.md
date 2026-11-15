@@ -15,6 +15,10 @@ You get:
 - Sharing and invites so more than one person (or agent owner) can operate on the same tasks
 - History, watches, webhooks, and export when you need an audit trail
 
+![Tasks list with demo data](docs/images/tasks.png)
+
+![Task detail with artifacts and sharing](docs/images/task-detail.png)
+
 ## How it fits together
 
 ```text
