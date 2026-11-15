@@ -104,6 +104,7 @@ ROUTES=()
 ROUTES+=("tasks:/")
 ROUTES+=("notifications:/notifications")
 ROUTES+=("artifacts:/artifacts")
+ROUTES+=("progress:/progress")
 ROUTES+=("people:/people")
 ROUTES+=("account:/account")
 if [[ -n "$DETAIL_ID" ]]; then
