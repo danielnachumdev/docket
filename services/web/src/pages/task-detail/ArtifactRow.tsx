@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type Artifact } from '../../api'
 import { Icon } from '../../components/Icon'
@@ -14,6 +14,15 @@ function isUrl(value: string | null) {
   return value != null && /^https?:\/\//i.test(value.trim())
 }
 
+async function fileToBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]!)
+  }
+  return btoa(binary)
+}
+
 type Props = {
   artifact: Artifact
   busy: boolean
@@ -26,10 +35,13 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
   const { t } = useTranslation('artifacts')
   const confirm = useConfirm()
   const [textFullView, setTextFullView] = useState(false)
+  const screenshotInputRef = useRef<HTMLInputElement>(null)
   const kindKey = `kind.${a.kind}`
   const kindLabel = t(kindKey, { defaultValue: humanize(a.kind) })
   const sizeBytes = artifactDisplayBytes(a)
   const showTextBody = Boolean(a.content_text && a.kind !== 'file' && a.kind !== 'link')
+  const isLink = a.kind === 'link'
+  const hasScreenshot = Boolean(isLink && a.storage_key)
 
   async function onDelete() {
     const ok = await confirm({
@@ -43,6 +55,39 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
       await api.deleteArtifact(a.task_id, a.id)
       await onDeleted()
     }, t('errors.delete'))
+  }
+
+  async function onRemoveScreenshot() {
+    const ok = await confirm({
+      title: t('removeScreenshotTitle'),
+      description: t('removeScreenshotBody', { title: a.title }),
+      confirmLabel: t('removeScreenshot'),
+      danger: true,
+    })
+    if (!ok) return
+    await run(async () => {
+      await api.updateArtifact(a.task_id, a.id, { clear_blob: true })
+      await onDeleted()
+    }, t('errors.removeScreenshot'))
+  }
+
+  async function onScreenshotSelected(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    e.target.value = ''
+    if (!file) return
+    if (file.type && !file.type.startsWith('image/')) {
+      await run(async () => {
+        throw new Error(t('errors.screenshotImage'))
+      }, t('errors.screenshot'))
+      return
+    }
+    await run(async () => {
+      await api.updateArtifact(a.task_id, a.id, {
+        content_base64: await fileToBase64(file),
+        content_type: file.type || 'image/png',
+      })
+      await onDeleted()
+    }, t('errors.screenshot'))
   }
 
   return (
@@ -62,7 +107,7 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
           </span>
         </span>
         <span className="row-actions">
-          {a.kind === 'link' && isUrl(a.content_text) && (
+          {isLink && isUrl(a.content_text) && (
             <a
               className="icon-btn"
               href={a.content_text!.trim()}
@@ -73,6 +118,44 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
             >
               <Icon name="external" />
             </a>
+          )}
+          {a.can_modify && isLink && (
+            <>
+              <input
+                ref={screenshotInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                tabIndex={-1}
+                onChange={(e) => void onScreenshotSelected(e)}
+              />
+              <button
+                type="button"
+                className="icon-btn"
+                disabled={busy}
+                aria-label={
+                  hasScreenshot
+                    ? t('replaceScreenshotNamed', { title: a.title })
+                    : t('attachScreenshotNamed', { title: a.title })
+                }
+                title={hasScreenshot ? t('replaceScreenshot') : t('attachScreenshot')}
+                onClick={() => screenshotInputRef.current?.click()}
+              >
+                <Icon name="paperclip" />
+              </button>
+              {hasScreenshot && (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  disabled={busy}
+                  aria-label={t('removeScreenshotNamed', { title: a.title })}
+                  title={t('removeScreenshot')}
+                  onClick={() => void onRemoveScreenshot()}
+                >
+                  <Icon name="x" />
+                </button>
+              )}
+            </>
           )}
           {(a.storage_key || a.content_text) && (
             <button
@@ -114,7 +197,7 @@ export function ArtifactRow({ artifact: a, busy, run, onDeleted, context }: Prop
           </div>
         </details>
       )}
-      {a.kind === 'link' && a.content_text && !isUrl(a.content_text) && (
+      {isLink && a.content_text && !isUrl(a.content_text) && (
         <UserBidiText
           text={a.content_text}
           as="p"

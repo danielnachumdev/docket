@@ -54,6 +54,22 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
           content_base64: await fileToBase64(file),
           content_type: file.type || 'application/octet-stream',
         })
+      } else if (kind === 'link') {
+        if (!title.trim()) throw new Error(t('errors.needTitle'))
+        if (file && file.type && !file.type.startsWith('image/')) {
+          throw new Error(t('errors.screenshotImage'))
+        }
+        await api.addArtifact(taskId, {
+          kind: 'link',
+          title: title.trim(),
+          content_text: text,
+          ...(file
+            ? {
+                content_base64: await fileToBase64(file),
+                content_type: file.type || 'image/png',
+              }
+            : {}),
+        })
       } else {
         if (!title.trim()) throw new Error(t('errors.needTitle'))
         await api.addArtifact(taskId, { kind, title: title.trim(), content_text: text })
@@ -99,7 +115,10 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
                 role="radio"
                 aria-checked={kind === k}
                 className={kind === k ? 'active' : ''}
-                onClick={() => setKind(k)}
+                onClick={() => {
+                  setKind(k)
+                  setFile(null)
+                }}
               >
                 <Icon name={artifactKindIcon(k)} />
                 {t(`kind.${k}`)}
@@ -128,17 +147,28 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
               />
             </label>
           ) : kind === 'link' ? (
-            <label className="field">
-              <span>{t('url')}</span>
-              <input
-                type="url"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={t('urlPlaceholder')}
-                required
-                {...userBidiAttrs(text)}
-              />
-            </label>
+            <>
+              <label className="field">
+                <span>{t('url')}</span>
+                <input
+                  type="url"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={t('urlPlaceholder')}
+                  required
+                  {...userBidiAttrs(text)}
+                />
+              </label>
+              <label className="dropzone">
+                <Icon name="file" size={20} />
+                <span>{file ? file.name : t('screenshotOptional')}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            </>
           ) : (
             <label className="field">
               <span>{t('content')}</span>

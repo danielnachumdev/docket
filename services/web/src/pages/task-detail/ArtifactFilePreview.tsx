@@ -71,7 +71,18 @@ function PreviewBody({
 }
 
 export function ArtifactFilePreview({ taskId, artifact }: Props) {
-  if (artifact.kind !== 'file' || !hasContent(artifact)) return null
+  if (!hasContent(artifact)) return null
+  if (artifact.kind === 'link') {
+    if (!artifact.storage_key) return null
+    const kind = getArtifactPreviewKind(artifact)
+    if (kind !== 'image') return null
+    return (
+      <div className="artifact-body">
+        <PreviewBody kind="image" taskId={taskId} artifact={artifact} />
+      </div>
+    )
+  }
+  if (artifact.kind !== 'file') return null
   const kind = getArtifactPreviewKind(artifact)
   if (!kind) return null
   return (

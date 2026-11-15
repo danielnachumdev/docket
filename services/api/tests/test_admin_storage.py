@@ -124,6 +124,7 @@ def test_admin_storage_totals_and_uploader_breakdown() -> None:
     body = overview.json()
 
     assert "blob storage for kind=file" in body["size_note"]
+    assert "screenshots on kind=link" in body["size_note"]
     assert body["artifact_count"] == 4
     assert body["stored_bytes"] == len(b"file-bytes-aaa") + len(b"bigger-file-payload!!")
 

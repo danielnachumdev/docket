@@ -523,6 +523,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  updateArtifact: (
+    id: string,
+    artifactId: number,
+    body: {
+      title?: string
+      content_text?: string
+      content_base64?: string
+      content_type?: string
+      clear_blob?: boolean
+    },
+  ) =>
+    request<Artifact>(`/api/tasks/${id}/artifacts/${artifactId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
   deleteArtifact: (id: string, artifactId: number) =>
     request<void>(`/api/tasks/${id}/artifacts/${artifactId}`, { method: 'DELETE' }),
   downloadArtifactContent: async (id: string, artifactId: number, filename: string) => {

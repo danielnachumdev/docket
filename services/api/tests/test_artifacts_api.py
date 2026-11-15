@@ -302,6 +302,8 @@ def test_artifact_link_and_missing() -> None:
         },
     )
     assert link.status_code == 201
+    assert link.json()["storage_key"] is None
+    assert link.json()["byte_size"] == 0
 
     bare_link = client.post(
         f"/api/tasks/{task_id}/artifacts",
@@ -311,6 +313,140 @@ def test_artifact_link_and_missing() -> None:
 
     assert client.get(f"/api/tasks/{task_id}/artifacts/99999").status_code == 404
     assert client.delete(f"/api/tasks/{task_id}/artifacts/99999").status_code == 404
+
+
+def test_link_artifact_optional_screenshot(tmp_path: Path, monkeypatch) -> None:
+    artifact_root = tmp_path / "arts"
+    monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(artifact_root))
+    get_settings.cache_clear()
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+
+    png_bytes = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+    created = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "link",
+            "title": "PR preview",
+            "content_text": "https://example.com/pr/1",
+            "content_base64": base64.b64encode(png_bytes).decode("ascii"),
+            "content_type": "image/png",
+        },
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["kind"] == "link"
+    assert body["content_text"] == "https://example.com/pr/1"
+    assert body["storage_key"]
+    assert body["content_type"] == "image/png"
+    assert body["byte_size"] == len(png_bytes)
+    artifact_id = body["id"]
+
+    stored = artifact_root / body["storage_key"]
+    assert stored.is_file()
+    assert stored.read_bytes() == png_bytes
+
+    content = client.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}/content")
+    assert content.status_code == 200
+    assert content.content == png_bytes
+    assert content.headers["content-type"].startswith("image/png")
+    assert content.headers["content-disposition"].startswith("inline;")
+
+    replaced = base64.b64encode(b"fake-jpeg-bytes").decode("ascii")
+    patched = client.patch(
+        f"/api/tasks/{task_id}/artifacts/{artifact_id}",
+        json={"content_base64": replaced, "content_type": "image/jpeg"},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["content_type"] == "image/jpeg"
+    assert patched.json()["byte_size"] == len(b"fake-jpeg-bytes")
+    assert patched.json()["content_text"] == "https://example.com/pr/1"
+    assert (
+        client.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}/content").content
+        == b"fake-jpeg-bytes"
+    )
+
+    cleared = client.patch(
+        f"/api/tasks/{task_id}/artifacts/{artifact_id}",
+        json={"clear_blob": True},
+    )
+    assert cleared.status_code == 200, cleared.text
+    cleared_body = cleared.json()
+    assert cleared_body["storage_key"] is None
+    assert cleared_body["byte_size"] == 0
+    assert cleared_body["content_text"] == "https://example.com/pr/1"
+    assert not stored.exists()
+    assert (
+        client.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}/content").status_code
+        == 200
+    )
+    assert (
+        client.get(f"/api/tasks/{task_id}/artifacts/{artifact_id}/content").content
+        == b"https://example.com/pr/1"
+    )
+
+    reattach = client.patch(
+        f"/api/tasks/{task_id}/artifacts/{artifact_id}",
+        json={
+            "content_base64": base64.b64encode(png_bytes).decode("ascii"),
+            "content_type": "image/png",
+        },
+    )
+    assert reattach.status_code == 200
+    assert reattach.json()["storage_key"]
+    assert reattach.json()["byte_size"] == len(png_bytes)
+
+
+def test_link_screenshot_rejects_non_image(tmp_path: Path, monkeypatch) -> None:
+    artifact_root = tmp_path / "arts"
+    monkeypatch.setenv("ARTIFACT_LOCAL_ROOT", str(artifact_root))
+    get_settings.cache_clear()
+
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = _create_task(client)
+
+    bad_create = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "link",
+            "title": "Docs",
+            "content_text": "https://example.com/docs",
+            "content_base64": base64.b64encode(b"not-an-image").decode("ascii"),
+            "content_type": "text/plain",
+        },
+    )
+    assert bad_create.status_code == 400
+
+    link = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={
+            "kind": "link",
+            "title": "Docs",
+            "content_text": "https://example.com/docs",
+        },
+    )
+    assert link.status_code == 201
+    artifact_id = link.json()["id"]
+
+    bad_patch = client.patch(
+        f"/api/tasks/{task_id}/artifacts/{artifact_id}",
+        json={
+            "content_base64": base64.b64encode(b"still-not").decode("ascii"),
+            "content_type": "application/pdf",
+        },
+    )
+    assert bad_patch.status_code == 400
+
+    both = client.patch(
+        f"/api/tasks/{task_id}/artifacts/{artifact_id}",
+        json={"clear_blob": True, "content_base64": base64.b64encode(b"x").decode()},
+    )
+    assert both.status_code == 400
 
 
 def _create_member_user(email: str, display_name: str, password: str):
