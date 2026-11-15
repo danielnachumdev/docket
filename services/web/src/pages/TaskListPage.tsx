@@ -181,6 +181,13 @@ function TaskRow({
               >
                 <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
               </button>
+              {task.status_reason && isPauseStatus(task.status) && (
+                <UserBidiText
+                  text={task.status_reason}
+                  className={`status-reason status-${task.status}`}
+                  title={t('statusReasonHint', { reason: task.status_reason })}
+                />
+              )}
               <label
                 className={`task-status status-badge status-select status-${task.status}`}
                 title={t('changeStatus')}
