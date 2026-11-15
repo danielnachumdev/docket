@@ -19,6 +19,7 @@ import {
   statusLabel,
   type Status,
 } from '../lib/format'
+import { dueAtIsoForLocalEndOfDay, isOpenDueTodayOrEarlier } from '../lib/localDay'
 import {
   SMART_FILTERS,
   filterLabel,
@@ -57,6 +58,7 @@ type RowProps = {
   onToggleDone: (task: Task) => void
   onToggleSelect: (id: string) => void
   onToggleUnread: (task: Task) => void
+  onDoThisToday: (task: Task) => void
 }
 
 function TaskRow({
@@ -68,12 +70,14 @@ function TaskRow({
   onToggleDone,
   onToggleSelect,
   onToggleUnread,
+  onDoThisToday,
 }: RowProps) {
   const { t } = useTranslation('tasks')
   const closed = isClosed(task.status)
   const done = task.status === 'done'
   const unread = Boolean(task.unread)
   const shared = Boolean(task.shared)
+  const dueToday = isOpenDueTodayOrEarlier(task.status, task.due_at)
   const isSelected = selected.has(task.id)
   const hasParent = parent != null
   const rowClass = [
@@ -143,6 +147,22 @@ function TaskRow({
                 <Icon name="subtasks" size={12} />
                 {t('subtaskOfShort', { number: parent.number })}
               </Link>
+            )}
+            {!closed && (
+              <button
+                type="button"
+                className={
+                  dueToday
+                    ? 'icon-btn ghost do-today-toggle active'
+                    : 'icon-btn ghost do-today-toggle'
+                }
+                aria-label={t('doThisTodayNamed', { title: task.title })}
+                aria-pressed={dueToday}
+                title={dueToday ? t('doThisTodayDone') : t('doThisToday')}
+                onClick={() => onDoThisToday(task)}
+              >
+                <Icon name="calendar" size={14} />
+              </button>
             )}
             <button
               type="button"
@@ -370,6 +390,25 @@ export function TaskListPage() {
       setError(err.message)
       void load()
     })
+  }
+
+  function doThisToday(task: Task) {
+    if (isClosed(task.status)) return
+    const dueAt = dueAtIsoForLocalEndOfDay()
+    setPinned((prev) => new Set(prev).add(task.id))
+    setTasks(
+      (prev) => prev?.map((row) => (row.id === task.id ? { ...row, due_at: dueAt } : row)) ?? null,
+    )
+    api
+      .updateTask(task.id, { due_at: dueAt })
+      .then((updated) => {
+        setTasks((prev) => prev?.map((row) => (row.id === updated.id ? updated : row)) ?? null)
+        toast(t('tasks:doThisTodayToast'))
+      })
+      .catch((err: Error) => {
+        setError(err.message || t('tasks:doThisTodayFailed'))
+        void load()
+      })
   }
 
   function reorderQueue(activeId: string, orderedIds: string[]) {
@@ -717,6 +756,7 @@ export function TaskListPage() {
                   onToggleDone={toggleDone}
                   onToggleSelect={toggleSelect}
                   onToggleUnread={toggleUnread}
+                  onDoThisToday={doThisToday}
                 />
               )
             })}

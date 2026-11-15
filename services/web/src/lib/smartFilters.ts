@@ -1,9 +1,11 @@
 import type { Task } from '../api'
 import i18n from '../i18n'
 import { isClosed, parseDate, statusLabel, type Status } from './format'
+import { isOpenDueTodayOrEarlier } from './localDay'
 
 export const SMART_FILTERS = [
   'my_open',
+  'today',
   'due_soon',
   'on_hold_stale',
   'claimed',
@@ -55,6 +57,8 @@ export function matchesSmartFilter(
         task.owner_user_id === opts.userId &&
         !isClosed(task.status)
       )
+    case 'today':
+      return isOpenDueTodayOrEarlier(task.status, task.due_at, now)
     case 'due_soon': {
       if (isClosed(task.status) || !task.due_at) return false
       const due = parseDate(task.due_at)

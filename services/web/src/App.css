@@ -2060,7 +2060,8 @@ a.list-row:hover {
   color: var(--accent);
 }
 
-.unread-toggle {
+.unread-toggle,
+.do-today-toggle {
   flex: none;
   color: var(--muted);
   opacity: 0;
@@ -2069,20 +2070,36 @@ a.list-row:hover {
 
 .task-row:hover .unread-toggle,
 .unread-toggle.active,
-.unread-toggle:focus-visible {
+.unread-toggle:focus-visible,
+.task-row:hover .do-today-toggle,
+.do-today-toggle.active,
+.do-today-toggle:focus-visible {
   opacity: 1;
 }
 
-.unread-toggle.active {
+.unread-toggle.active,
+.do-today-toggle.active {
   color: var(--accent);
   background: var(--accent-soft);
 }
 
 /* No hover on touch: an invisible tap target would be a trap, so only show the active state. */
 @media (hover: none) {
-  .unread-toggle:not(.active) {
+  .unread-toggle:not(.active),
+  .do-today-toggle:not(.active) {
     display: none;
   }
+}
+
+.do-today-btn {
+  justify-content: flex-start;
+  gap: 0.35rem;
+}
+
+.do-today-btn.active {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--accent-soft);
 }
 
 .task-main:hover .task-title {
