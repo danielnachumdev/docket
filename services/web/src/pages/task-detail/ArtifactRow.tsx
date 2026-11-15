@@ -50,6 +50,7 @@ export function ArtifactRow({
   const showTextBody = Boolean(a.content_text && a.kind !== 'file' && a.kind !== 'link')
   const isLink = a.kind === 'link'
   const hasScreenshot = Boolean(isLink && a.storage_key)
+  const isGrid = layout === 'grid'
 
   async function onDelete() {
     const ok = await confirm({
@@ -98,104 +99,125 @@ export function ArtifactRow({
     }, t('errors.screenshot'))
   }
 
+  const actions = (
+    <span className={isGrid ? 'row-actions artifact-card-actions' : 'row-actions'}>
+      {isLink && isUrl(a.content_text) && (
+        <a
+          className="icon-btn"
+          href={a.content_text!.trim()}
+          target="_blank"
+          rel="noreferrer noopener"
+          aria-label={t('openNamed', { title: a.title })}
+          title={t('openLink')}
+        >
+          <Icon name="external" />
+        </a>
+      )}
+      {a.can_modify && isLink && (
+        <>
+          <input
+            ref={screenshotInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => void onScreenshotSelected(e)}
+          />
+          <button
+            type="button"
+            className="icon-btn"
+            disabled={busy}
+            aria-label={
+              hasScreenshot
+                ? t('replaceScreenshotNamed', { title: a.title })
+                : t('attachScreenshotNamed', { title: a.title })
+            }
+            title={hasScreenshot ? t('replaceScreenshot') : t('attachScreenshot')}
+            onClick={() => screenshotInputRef.current?.click()}
+          >
+            <Icon name="paperclip" />
+          </button>
+          {hasScreenshot && (
+            <button
+              type="button"
+              className="icon-btn"
+              disabled={busy}
+              aria-label={t('removeScreenshotNamed', { title: a.title })}
+              title={t('removeScreenshot')}
+              onClick={() => void onRemoveScreenshot()}
+            >
+              <Icon name="x" />
+            </button>
+          )}
+        </>
+      )}
+      {(a.storage_key || a.content_text) && (
+        <button
+          type="button"
+          className="icon-btn"
+          disabled={busy}
+          aria-label={t('downloadNamed', { title: a.title })}
+          title={t('common:download')}
+          onClick={() =>
+            void run(
+              () => api.downloadArtifactContent(a.task_id, a.id, a.title),
+              t('errors.download'),
+            )
+          }
+        >
+          <Icon name="download" />
+        </button>
+      )}
+      {a.can_modify && (
+        <button
+          type="button"
+          className="icon-btn danger"
+          disabled={busy}
+          aria-label={t('deleteNamed', { title: a.title })}
+          title={t('common:delete')}
+          onClick={() => void onDelete()}
+        >
+          <Icon name="trash" />
+        </button>
+      )}
+    </span>
+  )
+
+  const meta = (
+    <span className={isGrid ? 'muted small meta-line artifact-card-meta' : 'muted small meta-line'}>
+      {context}
+      <span>{kindLabel}</span>
+      {!isGrid && a.content_type && <span className="hide-mobile">{a.content_type}</span>}
+      <span title={t('sizeBytes', { count: sizeBytes })}>{formatBytes(sizeBytes)}</span>
+      <span title={formatDateTime(a.created_at)}>{formatRelative(a.created_at)}</span>
+    </span>
+  )
+
   return (
-    <li id={`artifact-${a.id}`} className={layout === 'grid' ? 'artifact artifact-card' : 'artifact'}>
-      <div className="list-row">
-        <span className="row-icon">
-          <Icon name={artifactKindIcon(a.kind)} />
-        </span>
-        <span className="grow min-0">
-          <UserBidiText text={a.title} as="strong" className="truncate block" />
-          <span className="muted small meta-line">
-            {context}
-            <span>{kindLabel}</span>
-            {a.content_type && <span className="hide-mobile">{a.content_type}</span>}
-            <span title={t('sizeBytes', { count: sizeBytes })}>{formatBytes(sizeBytes)}</span>
-            <span title={formatDateTime(a.created_at)}>{formatRelative(a.created_at)}</span>
+    <li id={`artifact-${a.id}`} className={isGrid ? 'artifact artifact-card' : 'artifact'}>
+      {isGrid ? (
+        <div className="artifact-card-head">
+          <span className="row-icon">
+            <Icon name={artifactKindIcon(a.kind)} />
           </span>
-        </span>
-        <span className="row-actions">
-          {isLink && isUrl(a.content_text) && (
-            <a
-              className="icon-btn"
-              href={a.content_text!.trim()}
-              target="_blank"
-              rel="noreferrer noopener"
-              aria-label={t('openNamed', { title: a.title })}
-              title={t('openLink')}
-            >
-              <Icon name="external" />
-            </a>
-          )}
-          {a.can_modify && isLink && (
-            <>
-              <input
-                ref={screenshotInputRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                tabIndex={-1}
-                onChange={(e) => void onScreenshotSelected(e)}
-              />
-              <button
-                type="button"
-                className="icon-btn"
-                disabled={busy}
-                aria-label={
-                  hasScreenshot
-                    ? t('replaceScreenshotNamed', { title: a.title })
-                    : t('attachScreenshotNamed', { title: a.title })
-                }
-                title={hasScreenshot ? t('replaceScreenshot') : t('attachScreenshot')}
-                onClick={() => screenshotInputRef.current?.click()}
-              >
-                <Icon name="paperclip" />
-              </button>
-              {hasScreenshot && (
-                <button
-                  type="button"
-                  className="icon-btn"
-                  disabled={busy}
-                  aria-label={t('removeScreenshotNamed', { title: a.title })}
-                  title={t('removeScreenshot')}
-                  onClick={() => void onRemoveScreenshot()}
-                >
-                  <Icon name="x" />
-                </button>
-              )}
-            </>
-          )}
-          {(a.storage_key || a.content_text) && (
-            <button
-              type="button"
-              className="icon-btn"
-              disabled={busy}
-              aria-label={t('downloadNamed', { title: a.title })}
-              title={t('common:download')}
-              onClick={() =>
-                void run(
-                  () => api.downloadArtifactContent(a.task_id, a.id, a.title),
-                  t('errors.download'),
-                )
-              }
-            >
-              <Icon name="download" />
-            </button>
-          )}
-          {a.can_modify && (
-            <button
-              type="button"
-              className="icon-btn danger"
-              disabled={busy}
-              aria-label={t('deleteNamed', { title: a.title })}
-              title={t('common:delete')}
-              onClick={() => void onDelete()}
-            >
-              <Icon name="trash" />
-            </button>
-          )}
-        </span>
-      </div>
+          <div className="artifact-card-copy min-0">
+            <UserBidiText text={a.title} as="strong" className="truncate block" />
+            {meta}
+          </div>
+          {actions}
+        </div>
+      ) : (
+        <div className="list-row">
+          <span className="row-icon">
+            <Icon name={artifactKindIcon(a.kind)} />
+          </span>
+          <span className="grow min-0">
+            <UserBidiText text={a.title} as="strong" className="truncate block" />
+            {meta}
+          </span>
+          {actions}
+        </div>
+      )}
       {showTextBody && a.content_text && (
         <details className="artifact-body">
           <summary>{t('showContent')}</summary>
