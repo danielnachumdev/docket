@@ -32,90 +32,56 @@ import { useAction } from '../lib/useAction'
 import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
 import { TaskKanbanBoard } from './TaskKanbanBoard'
 
-type TaskNode = Task & { children: TaskNode[] }
 type StatusChip = 'active' | 'all' | (typeof STATUSES)[number]
 
-function nestTasks(tasks: Task[]): TaskNode[] {
-  const byId = new Map<string, TaskNode>()
-  for (const t of tasks) {
-    byId.set(t.id, { ...t, children: [] })
-  }
-  const roots: TaskNode[] = []
-  for (const node of byId.values()) {
-    const parent = node.parent_task_id != null ? byId.get(node.parent_task_id) : undefined
-    if (parent) parent.children.push(node)
-    else roots.push(node)
-  }
-  const sortNodes = (nodes: TaskNode[]) => {
-    nodes.sort((a, b) => a.rank - b.rank || a.number - b.number)
-    for (const n of nodes) sortNodes(n.children)
-  }
-  sortNodes(roots)
-  return roots
+function sortByRank(tasks: Task[]): Task[] {
+  return [...tasks].sort((a, b) => a.rank - b.rank || a.number - b.number)
 }
 
-function filterTree(
-  nodes: TaskNode[],
+function filterFlat(
+  tasks: Task[],
   filter: FilterKey,
   query: string,
   pinned: Set<string>,
   userId: number | null,
-): TaskNode[] {
-  const out: TaskNode[] = []
-  for (const node of nodes) {
-    const children = filterTree(node.children, filter, query, pinned, userId)
-    if (
-      children.length > 0 ||
-      matchesFilterKey(node, filter, { userId, query, pinned })
-    ) {
-      out.push({ ...node, children })
-    }
-  }
-  return out
-}
-
-function collectIds(nodes: TaskNode[]): string[] {
-  const ids: string[] = []
-  for (const node of nodes) {
-    ids.push(node.id)
-    ids.push(...collectIds(node.children))
-  }
-  return ids
+): Task[] {
+  return tasks.filter((task) => matchesFilterKey(task, filter, { userId, query, pinned }))
 }
 
 type RowProps = {
-  task: TaskNode
-  totalChildren: Map<string, Task[]>
-  collapsed: Set<string>
+  task: Task
+  parent: Task | null
+  childCount: number
+  childDone: number
   selected: Set<string>
-  onToggleCollapse: (id: string) => void
   onToggleDone: (task: Task) => void
   onToggleSelect: (id: string) => void
   onToggleUnread: (task: Task) => void
-  onReorderSiblings: (activeId: string, orderedIds: string[]) => void
 }
 
 function TaskRow({
   task,
-  totalChildren,
-  collapsed,
+  parent,
+  childCount,
+  childDone,
   selected,
-  onToggleCollapse,
   onToggleDone,
   onToggleSelect,
   onToggleUnread,
-  onReorderSiblings,
 }: RowProps) {
   const { t } = useTranslation('tasks')
   const closed = isClosed(task.status)
   const done = task.status === 'done'
   const unread = Boolean(task.unread)
   const shared = Boolean(task.shared)
-  const kids = totalChildren.get(task.id) ?? []
-  const kidsDone = kids.filter((k) => k.status === 'done').length
-  const isCollapsed = collapsed.has(task.id)
   const isSelected = selected.has(task.id)
-  const childIds = task.children.map((child) => child.id)
+  const hasParent = parent != null
+  const rowClass = [
+    closed ? 'task-row closed' : 'task-row',
+    hasParent ? 'has-parent' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <SortableSiblingItem id={task.id}>
@@ -125,7 +91,7 @@ function TaskRow({
           ref={setNodeRef}
           style={style}
         >
-          <div className={closed ? 'task-row closed' : 'task-row'}>
+          <div className={rowClass}>
             {dragHandle}
             <input
               type="checkbox"
@@ -134,19 +100,6 @@ function TaskRow({
               onChange={() => onToggleSelect(task.id)}
               aria-label={t('selectTask', { title: task.title })}
             />
-            {task.children.length > 0 ? (
-              <button
-                type="button"
-                className="icon-btn ghost expand"
-                aria-label={isCollapsed ? t('expandSubtasks') : t('collapseSubtasks')}
-                aria-expanded={!isCollapsed}
-                onClick={() => onToggleCollapse(task.id)}
-              >
-                <Icon name={isCollapsed ? 'chevronRight' : 'chevronDown'} size={14} />
-              </button>
-            ) : (
-              <span className="expand-spacer" />
-            )}
             <button
               type="button"
               className={`check status-${task.status}`}
@@ -172,15 +125,25 @@ function TaskRow({
               <span className="task-meta">
                 <PriorityBadge priority={task.priority} />
                 <DueBadge due={task.due_at} closed={closed} />
-                {kids.length > 0 && (
+                {childCount > 0 && (
                   <span className="meta-item" title={t('subtasksDone')}>
                     <Icon name="subtasks" size={13} />
-                    {kidsDone}/{kids.length}
+                    {childDone}/{childCount}
                   </span>
                 )}
                 <span className="meta-item mono">#{task.number}</span>
               </span>
             </Link>
+            {hasParent && (
+              <Link
+                to={`/tasks/${parent.id}`}
+                className="parent-chip"
+                title={t('subtaskOf', { number: parent.number, title: parent.title })}
+              >
+                <Icon name="subtasks" size={12} />
+                {t('subtaskOfShort', { number: parent.number })}
+              </Link>
+            )}
             <button
               type="button"
               className={
@@ -201,28 +164,6 @@ function TaskRow({
               <StatusBadge status={task.status} />
             </span>
           </div>
-          {task.children.length > 0 && !isCollapsed && (
-            <SortableSiblingList
-              ids={childIds}
-              className="task-children"
-              onReorder={onReorderSiblings}
-            >
-              {task.children.map((child) => (
-                <TaskRow
-                  key={child.id}
-                  task={child}
-                  totalChildren={totalChildren}
-                  collapsed={collapsed}
-                  selected={selected}
-                  onToggleCollapse={onToggleCollapse}
-                  onToggleDone={onToggleDone}
-                  onToggleSelect={onToggleSelect}
-                  onToggleUnread={onToggleUnread}
-                  onReorderSiblings={onReorderSiblings}
-                />
-              ))}
-            </SortableSiblingList>
-          )}
         </li>
       )}
     </SortableSiblingItem>
@@ -241,7 +182,6 @@ export function TaskListPage() {
   const [activeSavedId, setActiveSavedId] = useState<number | null>(null)
   const [savedViews, setSavedViews] = useState<SavedView[]>([])
   const [query, setQuery] = useState('')
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   // Tasks toggled in this view stay visible so a mis-click can be undone.
   const [pinned, setPinned] = useState<Set<string>>(() => new Set())
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
@@ -294,17 +234,14 @@ export function TaskListPage() {
     loadViews().catch((err: Error) => setError(err.message))
   }, [archived, load, loadViews, setError])
 
-  const tree = useMemo(() => nestTasks(tasks ?? []), [tasks])
+  const ranked = useMemo(() => sortByRank(tasks ?? []), [tasks])
   const visible = useMemo(
-    () => filterTree(tree, filter, query.trim().toLowerCase(), pinned, userId),
-    [tree, filter, query, pinned, userId],
+    () => filterFlat(ranked, filter, query.trim().toLowerCase(), pinned, userId),
+    [ranked, filter, query, pinned, userId],
   )
-  const visibleIds = useMemo(() => collectIds(visible), [visible])
-  const boardTasks = useMemo(() => {
-    if (tasks == null) return []
-    const byId = new Map(tasks.map((t) => [t.id, t]))
-    return visibleIds.map((id) => byId.get(id)).filter((t): t is Task => t != null)
-  }, [tasks, visibleIds])
+  const visibleIds = useMemo(() => visible.map((task) => task.id), [visible])
+  const boardTasks = visible
+  const byId = useMemo(() => new Map((tasks ?? []).map((t) => [t.id, t])), [tasks])
   const childrenById = useMemo(() => {
     const map = new Map<string, Task[]>()
     for (const t of tasks ?? []) {
@@ -435,7 +372,7 @@ export function TaskListPage() {
     })
   }
 
-  function reorderSiblings(activeId: string, orderedIds: string[]) {
+  function reorderQueue(activeId: string, orderedIds: string[]) {
     const ranks = ranksForOrder(orderedIds)
     setTasks(
       (prev) =>
@@ -445,15 +382,6 @@ export function TaskListPage() {
     api.reorderTask(activeId, body).catch((err: Error) => {
       setError(err.message)
       void load()
-    })
-  }
-
-  function toggleCollapse(id: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
     })
   }
 
@@ -770,24 +698,28 @@ export function TaskListPage() {
             </label>
           </div>
           <SortableSiblingList
-            ids={visible.map((task) => task.id)}
+            ids={visibleIds}
             className="task-tree"
-            onReorder={reorderSiblings}
+            onReorder={reorderQueue}
           >
-            {visible.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                totalChildren={childrenById}
-                collapsed={collapsed}
-                selected={selected}
-                onToggleCollapse={toggleCollapse}
-                onToggleDone={toggleDone}
-                onToggleSelect={toggleSelect}
-                onToggleUnread={toggleUnread}
-                onReorderSiblings={reorderSiblings}
-              />
-            ))}
+            {visible.map((task) => {
+              const kids = childrenById.get(task.id) ?? []
+              const parent =
+                task.parent_task_id != null ? (byId.get(task.parent_task_id) ?? null) : null
+              return (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  parent={parent}
+                  childCount={kids.length}
+                  childDone={kids.filter((k) => k.status === 'done').length}
+                  selected={selected}
+                  onToggleDone={toggleDone}
+                  onToggleSelect={toggleSelect}
+                  onToggleUnread={toggleUnread}
+                />
+              )
+            })}
           </SortableSiblingList>
         </>
       )}

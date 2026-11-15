@@ -50,6 +50,8 @@
   "kanbanDropHere": "Drop tasks here",
   "shared": "Shared",
   "subtasksDone": "Subtasks done",
+  "subtaskOf": "Subtask of #{{number}} · {{title}}",
+  "subtaskOfShort": "of #{{number}}",
   "expandSubtasks": "Expand subtasks",
   "collapseSubtasks": "Collapse subtasks",
   "selectTask": "Select “{{title}}”",

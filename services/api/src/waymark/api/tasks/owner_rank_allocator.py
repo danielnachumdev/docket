@@ -4,8 +4,8 @@ RANK_GAP = 1000.0
 _MIN_GAP = 1e-6
 
 
-class SiblingRankAllocator:
-    """Fractional ranks within a sibling list (lower rank = higher in queue)."""
+class OwnerRankAllocator:
+    """Fractional ranks on an owner-wide work queue (lower rank = do first)."""
 
     def append_rank(self, max_rank: float | None) -> float:
         if max_rank is None:

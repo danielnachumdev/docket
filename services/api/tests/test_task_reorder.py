@@ -59,11 +59,9 @@ def test_reorder_before_after_and_end() -> None:
     assert any(e["type"] == "reordered" for e in detail["events"])
 
 
-def test_reorder_rejects_both_anchors_and_cross_parent() -> None:
+def test_reorder_rejects_both_anchors_and_self() -> None:
     client = TestClient(create_app())
     bootstrap_owner(client)
-    parent = _create(client, "Parent")
-    child = _create(client, "Child", parent_task_id=parent["id"])
     root = _create(client, "Root")
     other_root = _create(client, "Other")
 
@@ -73,13 +71,6 @@ def test_reorder_rejects_both_anchors_and_cross_parent() -> None:
     )
     assert both.status_code == 422
 
-    cross = client.post(
-        f"/api/tasks/{child['id']}/reorder",
-        json={"after_task_id": root["id"]},
-    )
-    assert cross.status_code == 400
-    assert "sibling" in cross.json()["detail"].lower()
-
     self_ref = client.post(
         f"/api/tasks/{root['id']}/reorder",
         json={"before_task_id": root["id"]},
@@ -87,7 +78,56 @@ def test_reorder_rejects_both_anchors_and_cross_parent() -> None:
     assert self_ref.status_code == 400
 
 
-def test_reorder_subtasks_are_sibling_scoped() -> None:
+def test_reorder_child_before_unrelated_root() -> None:
+    """Rank is owner-global: a child may sit before a root with a different parent."""
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    parent = _create(client, "Parent")
+    child = _create(client, "Child", parent_task_id=parent["id"])
+    root = _create(client, "Root")
+
+    res = client.post(
+        f"/api/tasks/{child['id']}/reorder",
+        json={"before_task_id": root["id"]},
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["rank"] < root["rank"]
+
+    listed = [t["id"] for t in client.get("/api/tasks").json()]
+    assert listed.index(child["id"]) < listed.index(root["id"])
+    assert listed == [parent["id"], child["id"], root["id"]]
+
+
+def test_list_order_follows_global_rank_across_parents() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    parent = _create(client, "Parent")
+    child = _create(client, "Child", parent_task_id=parent["id"])
+    root = _create(client, "Root")
+
+    # Child first, then root, then parent — crosses hierarchy.
+    assert (
+        client.post(
+            f"/api/tasks/{child['id']}/reorder",
+            json={"before_task_id": parent["id"]},
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/api/tasks/{root['id']}/reorder",
+            json={"after_task_id": child["id"]},
+        ).status_code
+        == 200
+    )
+
+    listed = client.get("/api/tasks").json()
+    assert [t["id"] for t in listed] == [child["id"], root["id"], parent["id"]]
+    ranks = [t["rank"] for t in listed]
+    assert ranks == sorted(ranks)
+
+
+def test_reorder_subtasks_sort_by_global_rank_in_detail() -> None:
     client = TestClient(create_app())
     bootstrap_owner(client)
     parent = _create(client, "Parent")
@@ -98,6 +138,17 @@ def test_reorder_subtasks_are_sibling_scoped() -> None:
     client.post(f"/api/tasks/{c['id']}/reorder", json={"before_task_id": a["id"]})
     detail = client.get(f"/api/tasks/{parent['id']}").json()
     assert [t["id"] for t in detail["children"]] == [c["id"], a["id"], b["id"]]
+
+
+def test_create_subtask_appends_on_owner_queue() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    parent = _create(client, "Parent")
+    root = _create(client, "Root")
+    child = _create(client, "Child", parent_task_id=parent["id"])
+    assert parent["rank"] < root["rank"] < child["rank"]
+    listed = [t["id"] for t in client.get("/api/tasks").json()]
+    assert listed == [parent["id"], root["id"], child["id"]]
 
 
 def test_reorder_rebalances_when_gap_collapses() -> None:

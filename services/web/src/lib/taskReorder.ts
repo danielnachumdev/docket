@@ -1,4 +1,4 @@
-/** Build reorder API body after moving activeId within ordered sibling ids. */
+/** Build reorder API body after moving activeId within an ordered queue. */
 export function reorderBodyAfterMove(
   orderedIds: string[],
   activeId: string,

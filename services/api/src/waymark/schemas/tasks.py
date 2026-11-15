@@ -52,7 +52,7 @@ class TaskBulkUpdate(BaseModel):
 
 
 class TaskReorder(BaseModel):
-    """Place a task among siblings. At most one of before/after; neither = end."""
+    """Place a task in the owner's global work queue. At most one of before/after; neither = end."""
 
     before_task_id: str | None = None
     after_task_id: str | None = None
