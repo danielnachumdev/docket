@@ -4,6 +4,9 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from waymark.api.tasks.personal_task_number_allocator import (
+    PersonalTaskNumberAllocator,
+)
 from waymark.auth.principal import Principal
 from waymark.auth.rbac import RbacService
 from waymark.auth.task_access_service import TaskAccessService
@@ -19,6 +22,7 @@ class TaskShareService:
         self._db = db
         self._access = TaskAccessService(db)
         self._rbac = RbacService(db)
+        self._numbers = PersonalTaskNumberAllocator(db)
 
     def list_shares(self, principal: Principal, task_ref: str) -> list[TaskShareOut]:
         task = self._access.get_task(principal, task_ref, "tasks:read")
@@ -154,10 +158,13 @@ class TaskShareService:
                 role_id=role_id,
                 scope_type="task",
                 scope_task_id=task_id,
+                viewer_task_number=self._numbers.next_number(user_id),
             )
             self._db.add(membership)
         else:
             membership.role_id = role_id
+            if membership.viewer_task_number is None:
+                membership.viewer_task_number = self._numbers.next_number(user_id)
 
         self._db.flush()
         return membership

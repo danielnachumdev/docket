@@ -26,6 +26,7 @@ class ArtifactLibraryService:
             q=query.q,
             sort=query.sort,
             mine_user_id=mine_user_id,
+            viewer_user_id=principal.user_id,
             offset=query.offset,
             limit=query.limit,
         )
@@ -33,6 +34,7 @@ class ArtifactLibraryService:
             task_ids,
             q=query.q,
             mine_user_id=mine_user_id,
+            viewer_user_id=principal.user_id,
         )
         return ArtifactLibraryPage(
             rows=rows,

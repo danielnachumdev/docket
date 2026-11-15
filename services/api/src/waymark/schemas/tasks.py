@@ -69,7 +69,7 @@ class TaskClaimIn(BaseModel):
 
 
 class TaskOut(BaseModel):
-    """API task identity: `id` is short public_id (SOT); `number` is per-owner #."""
+    """API task identity: `id` is short public_id (SOT); `number` is per-viewer #."""
 
     model_config = ConfigDict(from_attributes=True)
 

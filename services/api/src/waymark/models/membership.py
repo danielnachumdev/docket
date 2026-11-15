@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from waymark.db import Base
@@ -16,6 +16,11 @@ class Membership(Base):
             "scope_task_id",
             name="uq_membership_scope",
         ),
+        UniqueConstraint(
+            "user_id",
+            "viewer_task_number",
+            name="uq_membership_viewer_task_number",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -26,6 +31,8 @@ class Membership(Base):
     scope_task_id: Mapped[int | None] = mapped_column(
         ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True
     )
+    # Sharee's personal display # (null for global memberships).
+    viewer_task_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
