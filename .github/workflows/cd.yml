@@ -144,6 +144,7 @@ jobs:
           push: true
           build-args: |
             WAYMARK_VERSION=${{ steps.ver.outputs.version }}
+            WAYMARK_BUILD_ID=${{ needs.changes.outputs.sha }}
           tags: |
             ${{ env.API_IMAGE }}:${{ needs.changes.outputs.sha }}
             ${{ env.API_IMAGE }}:main
@@ -157,6 +158,8 @@ jobs:
           context: services/web
           file: services/web/Dockerfile
           push: true
+          build-args: |
+            WAYMARK_BUILD_ID=${{ needs.changes.outputs.sha }}
           tags: |
             ${{ env.WEB_IMAGE }}:${{ needs.changes.outputs.sha }}
             ${{ env.WEB_IMAGE }}:main

@@ -22,6 +22,8 @@ FROM python:3.12.10-slim-bookworm AS runtime
 WORKDIR /app
 
 ARG WAYMARK_VERSION=
+# Same value stamped into waymark-web; waymark-deploy fails the combine build if they differ.
+ARG WAYMARK_BUILD_ID=
 
 RUN groupadd --system --gid 1000 waymark \
     && useradd --system --uid 1000 --gid waymark --home /app --shell /usr/sbin/nologin waymark \
@@ -30,12 +32,15 @@ RUN groupadd --system --gid 1000 waymark \
 
 COPY --from=build --chown=waymark:waymark /app /app
 COPY --chown=waymark:waymark entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh \
+    && printf '%s' "${WAYMARK_BUILD_ID}" >/app/WAYMARK_BUILD_ID \
+    && chown waymark:waymark /app/WAYMARK_BUILD_ID
 
 ENV PATH="/app/.venv/bin:$PATH" \
     DATABASE_URL=sqlite:////data/waymark.db \
     PYTHONUNBUFFERED=1 \
-    WAYMARK_VERSION=${WAYMARK_VERSION}
+    WAYMARK_VERSION=${WAYMARK_VERSION} \
+    WAYMARK_BUILD_ID=${WAYMARK_BUILD_ID}
 
 USER waymark
 EXPOSE 8000
