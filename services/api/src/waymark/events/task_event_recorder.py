@@ -46,18 +46,35 @@ class TaskEventRecorder:
             payload_json=json.dumps(payload) if payload is not None else None,
         )
         db.add(event)
-        self._mark_unread_if_needed(db, task_id=task_id, event_type=event_type)
+        self._mark_unread_if_needed(
+            db,
+            task_id=task_id,
+            event_type=event_type,
+            actor_user_id=actor_user_id,
+            actor_token_id=actor_token_id,
+        )
         return event
 
     def _mark_unread_if_needed(
-        self, db: Session, *, task_id: int, event_type: str
+        self,
+        db: Session,
+        *,
+        task_id: int,
+        event_type: str,
+        actor_user_id: int,
+        actor_token_id: int | None,
     ) -> None:
         if event_type not in _UNREAD_EVENT_TYPES:
             return
         task = db.get(Task, task_id)
-        if task is None or task.unread:
+        if task is None:
             return
         task.unread = True
+        # Session actors skip themselves on display; API tokens mark unread for all.
+        if actor_token_id is not None:
+            task.unread_except_user_id = None
+        else:
+            task.unread_except_user_id = actor_user_id
 
     def _actor_ids(self, actor: Principal | User) -> tuple[int, int | None]:
         if isinstance(actor, Principal):

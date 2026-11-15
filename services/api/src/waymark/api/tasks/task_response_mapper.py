@@ -60,7 +60,7 @@ class TaskResponseMapper:
             completed_at=task.completed_at,
             cancelled_at=task.cancelled_at,
             archived_at=task.archived_at,
-            unread=bool(task.unread),
+            unread=self.unread_for(task, viewer_user_id=viewer_user_id),
             shared=task.id in self._shared_ids,
             created_at=task.created_at,
             updated_at=task.updated_at,
@@ -85,6 +85,15 @@ class TaskResponseMapper:
         if cached is not None:
             return cached
         return task.owner_task_number
+
+    def unread_for(self, task: Task, *, viewer_user_id: int | None) -> bool:
+        """Viewer-aware unread: shared bit minus session actor exclusion."""
+        if not task.unread:
+            return False
+        except_id = task.unread_except_user_id
+        if except_id is None or viewer_user_id is None:
+            return True
+        return except_id != viewer_user_id
 
     def prefetch_viewer_numbers(
         self, viewer_user_id: int, internal_ids: Iterable[int]

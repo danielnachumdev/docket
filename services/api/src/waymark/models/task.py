@@ -82,8 +82,11 @@ class Task(Base):
     archived_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    # Shared (user-independent) unread indicator for the task list.
+    # Shared "has unread activity" bit for the task list. Display is viewer-aware:
+    # when unread is true and unread_except_user_id == viewer, that viewer sees read
+    # (they caused the activity via a session). API-token actors clear the except.
     unread: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    unread_except_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
