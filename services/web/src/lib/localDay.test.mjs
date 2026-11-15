@@ -4,9 +4,9 @@ import {
   dueAtIsoForLocalEndOfDay,
   endOfLocalDay,
   isOpenDueTodayOrEarlier,
-} from './localDay.ts'
+} from './localDay.mjs'
 
-function localIso(y: number, m: number, d: number, h = 12, min = 0): string {
+function localIso(y, m, d, h = 12, min = 0) {
   return new Date(y, m - 1, d, h, min, 0, 0).toISOString()
 }
 

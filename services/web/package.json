@@ -8,7 +8,7 @@
     "build": "npm run check:locales && tsc -b && vite build",
     "check:locales": "node scripts/check-locale-keys.mjs",
     "lint": "oxlint",
-    "test": "node --experimental-strip-types --test src/lib/localDay.test.ts",
+    "test": "node --test src/lib/localDay.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
