@@ -6,6 +6,7 @@ import { ArtifactAudioPreview } from './ArtifactAudioPreview'
 import { ArtifactImagePreview } from './ArtifactImagePreview'
 import { ArtifactMarkdownPreview } from './ArtifactMarkdownPreview'
 import { ArtifactPdfPreview } from './ArtifactPdfPreview'
+import { ArtifactPlainTextPreview } from './ArtifactPlainTextPreview'
 import { ArtifactVideoPreview } from './ArtifactVideoPreview'
 
 type ArtifactLike = {
@@ -53,6 +54,14 @@ function PreviewBody({
     case 'markdown':
       return (
         <ArtifactMarkdownPreview
+          taskId={taskId}
+          artifactId={artifact.id}
+          title={artifact.title}
+        />
+      )
+    case 'text':
+      return (
+        <ArtifactPlainTextPreview
           taskId={taskId}
           artifactId={artifact.id}
           title={artifact.title}
