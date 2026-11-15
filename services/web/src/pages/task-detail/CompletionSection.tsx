@@ -9,6 +9,7 @@ type Props = {
   onRequireArtifact: (value: boolean) => void
   onSchemaText: (value: string) => void
   recordedOutcome: string | null
+  variant?: 'card' | 'plain'
 }
 
 export function CompletionSection({
@@ -17,10 +18,11 @@ export function CompletionSection({
   onRequireArtifact,
   onSchemaText,
   recordedOutcome,
+  variant = 'card',
 }: Props) {
   const { t } = useTranslation('detail')
   return (
-    <Section icon="target" title={t('completion.title')} className="stack">
+    <Section icon="target" title={t('completion.title')} className="stack" variant={variant}>
       <label className="switch">
         <input
           type="checkbox"

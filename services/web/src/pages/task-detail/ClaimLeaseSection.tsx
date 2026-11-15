@@ -44,9 +44,10 @@ function describeClaimEvent(t: TFunction, event: TaskEvent, payload: Payload | n
 type Props = {
   task: Task
   events: TaskEvent[]
+  variant?: 'card' | 'plain'
 }
 
-export function ClaimLeaseSection({ task, events }: Props) {
+export function ClaimLeaseSection({ task, events, variant = 'card' }: Props) {
   const { t } = useTranslation('detail')
   const nowMs = Date.now()
   const active = leaseActive(task, nowMs)
@@ -65,6 +66,7 @@ export function ClaimLeaseSection({ task, events }: Props) {
     <Section
       icon="key"
       title={t('claim.title')}
+      variant={variant}
       count={timeline.length}
       collapsible
       defaultCollapsed

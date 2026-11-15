@@ -146,6 +146,7 @@ type Props = {
   events: TaskEvent[]
   actorName: (event: TaskEvent) => string
   actorUserLabel: (event: TaskEvent) => string
+  variant?: 'card' | 'plain'
 }
 
 const EXPANDED_SESSION_KEY = 'waymark.activitySectionExpanded'
@@ -166,7 +167,12 @@ function writeExpandedPreference(expanded: boolean) {
   }
 }
 
-export function ActivitySection({ events, actorName, actorUserLabel }: Props) {
+export function ActivitySection({
+  events,
+  actorName,
+  actorUserLabel,
+  variant = 'card',
+}: Props) {
   const { t } = useTranslation('detail')
   const [expanded, setExpanded] = useState(readExpandedPreference)
   const ordered = [...events].sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id)
@@ -183,6 +189,7 @@ export function ActivitySection({ events, actorName, actorUserLabel }: Props) {
     <Section
       icon="activity"
       title={t('activity.title')}
+      variant={variant}
       count={events.length}
       action={
         <button

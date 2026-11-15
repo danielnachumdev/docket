@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type Task, type TaskDetail, type TaskEvent, type TaskShare } from '../api'
@@ -80,6 +87,11 @@ function draftFrom(task: Task): Draft {
   }
 }
 
+const DETAIL_RAIL_DEFAULT_PX = 352
+const DETAIL_RAIL_MIN_PX = 256
+const DETAIL_RAIL_MAX_PX = 640
+const DETAIL_RAIL_COLLAPSED = '4rem'
+
 function descendantIds(taskId: string, all: Task[]): Set<string> {
   const ids = new Set<string>()
   const walk = (id: string) => {
@@ -111,7 +123,47 @@ export function TaskDetailPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [sideCollapsed, setSideCollapsed] = useState(false)
+  const [railWidthPx, setRailWidthPx] = useState(DETAIL_RAIL_DEFAULT_PX)
   const { busy, error, setError, run } = useAction()
+
+  const detailGridStyle = useMemo(
+    () =>
+      ({
+        '--detail-rail-w': sideCollapsed ? DETAIL_RAIL_COLLAPSED : `${railWidthPx}px`,
+      }) as CSSProperties,
+    [railWidthPx, sideCollapsed],
+  )
+
+  const onRailResizeStart = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (sideCollapsed) return
+      e.preventDefault()
+      const handle = e.currentTarget
+      handle.setPointerCapture(e.pointerId)
+      const startX = e.clientX
+      const startW = railWidthPx
+
+      const onMove = (ev: globalThis.PointerEvent) => {
+        const next = Math.min(
+          DETAIL_RAIL_MAX_PX,
+          Math.max(DETAIL_RAIL_MIN_PX, startW + (ev.clientX - startX)),
+        )
+        setRailWidthPx(next)
+      }
+
+      const onUp = (ev: globalThis.PointerEvent) => {
+        handle.releasePointerCapture(ev.pointerId)
+        handle.removeEventListener('pointermove', onMove)
+        handle.removeEventListener('pointerup', onUp)
+        handle.removeEventListener('pointercancel', onUp)
+      }
+
+      handle.addEventListener('pointermove', onMove)
+      handle.addEventListener('pointerup', onUp)
+      handle.addEventListener('pointercancel', onUp)
+    },
+    [railWidthPx, sideCollapsed],
+  )
 
   const load = useCallback(async () => {
     const [data, all, shareRows] = await Promise.all([
@@ -519,7 +571,10 @@ export function TaskDetailPage() {
         </div>
       </header>
 
-      <div className={sideCollapsed ? 'detail-grid side-collapsed' : 'detail-grid'}>
+      <div
+        className={sideCollapsed ? 'detail-grid side-collapsed' : 'detail-grid'}
+        style={detailGridStyle}
+      >
         <div className="detail-main">
           <Section icon="text" title={t('notes')} headingId="notes-label">
             <div className="notes">
@@ -546,16 +601,24 @@ export function TaskDetailPage() {
 
         <aside
           className={sideCollapsed ? 'detail-rail collapsed' : 'detail-rail'}
-          aria-label={t('details')}
+          aria-label={t('sidePanel')}
         >
+          {!sideCollapsed && (
+            <div
+              className="detail-rail-resize-handle"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t('resizeSide')}
+              title={t('resizeSide')}
+              onPointerDown={onRailResizeStart}
+            />
+          )}
           <div className="detail-rail-inner">
-            <div className="detail-rail-top">
-              {!sideCollapsed && (
-                <span className="detail-rail-label muted small">{t('details')}</span>
-              )}
+            <div className="detail-rail-chrome">
+              {!sideCollapsed && <span className="detail-rail-label">{t('sidePanel')}</span>}
               <button
                 type="button"
-                className="icon-btn detail-side-toggle"
+                className="icon-btn sidebar-toggle detail-rail-toggle"
                 aria-label={sideCollapsed ? t('expandSide') : t('collapseSide')}
                 aria-expanded={!sideCollapsed}
                 title={sideCollapsed ? t('expandSide') : t('collapseSide')}
@@ -571,7 +634,7 @@ export function TaskDetailPage() {
             {!sideCollapsed && (
               <>
             <div className="detail-side detail-props">
-              <Section icon="flag" title={t('status')} headingId="status-label">
+              <Section icon="flag" title={t('status')} headingId="status-label" variant="plain">
                 <div className="status-picker" role="radiogroup" aria-labelledby="status-label">
                   {STATUSES.map((s) => (
                     <button
@@ -590,7 +653,7 @@ export function TaskDetailPage() {
                 </div>
               </Section>
 
-              <Section icon="sliders" title={t('details')} className="stack">
+              <Section icon="sliders" title={t('fields')} className="stack" variant="plain">
                 <label className="field">
                   <span>{t('priority')}</span>
                   <select
@@ -690,8 +753,9 @@ export function TaskDetailPage() {
                 subtasks={detail.children}
                 onChanged={load}
                 compact
+                variant="plain"
               />
-              <ClaimLeaseSection task={task} events={detail.events} />
+              <ClaimLeaseSection task={task} events={detail.events} variant="plain" />
             </div>
 
             <div className="detail-side detail-related">
@@ -700,19 +764,28 @@ export function TaskDetailPage() {
                 links={detail.links ?? []}
                 tasksById={tasksById}
                 onChanged={load}
+                variant="plain"
               />
-              <SharingSection taskId={taskId} shares={shares} isOwner={isOwner} onChanged={load} />
+              <SharingSection
+                taskId={taskId}
+                shares={shares}
+                isOwner={isOwner}
+                onChanged={load}
+                variant="plain"
+              />
               <CompletionSection
                 requireArtifact={draft.requireArtifact}
                 schemaText={draft.outcomeSchema}
                 onRequireArtifact={(value) => update('requireArtifact', value)}
                 onSchemaText={(value) => update('outcomeSchema', value)}
                 recordedOutcome={task.outcome_json}
+                variant="plain"
               />
               <ActivitySection
                 events={detail.events}
                 actorName={actorName}
                 actorUserLabel={actorUserLabel}
+                variant="plain"
               />
             </div>
               </>

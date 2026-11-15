@@ -1582,6 +1582,33 @@ a.app-version-compact:hover {
   padding-block: 0.1rem 0.15rem;
 }
 
+.section-plain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.section-plain .card-header {
+  min-height: auto;
+}
+
+.section-plain .card-header h2 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.detail-side .section-plain:not(:first-child) {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
 .subtle-panel {
   padding: 0.9rem;
   border-radius: var(--radius);
@@ -2312,7 +2339,7 @@ a.list-row:hover {
 }
 
 .detail-grid {
-  --detail-rail-w: minmax(18rem, 24rem);
+  --detail-rail-w: 22rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--detail-rail-w);
   grid-template-areas: 'main rail';
@@ -2338,10 +2365,39 @@ a.list-row:hover {
 }
 
 .detail-rail {
+  position: relative;
   grid-area: rail;
   border-inline-start: 1px solid var(--border);
   background: var(--surface);
   min-width: 0;
+}
+
+.detail-rail-resize-handle {
+  position: absolute;
+  z-index: 3;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 0.45rem;
+  margin-inline-start: -0.22rem;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.detail-rail-resize-handle::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.detail-rail-resize-handle:hover::after,
+.detail-rail-resize-handle:focus-visible::after {
+  background: var(--accent);
 }
 
 .detail-rail-inner {
@@ -2349,19 +2405,26 @@ a.list-row:hover {
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
   max-height: 100dvh;
-  padding: 1.1rem 0.85rem 1.25rem;
+  padding: 0 0.85rem 1.25rem;
   overflow-y: auto;
 }
 
-.detail-rail-top {
+.detail-rail-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 0.35rem;
   min-width: 0;
+  margin-inline: -0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .detail-rail-label {
@@ -2370,9 +2433,8 @@ a.list-row:hover {
   letter-spacing: -0.01em;
 }
 
-.detail-side-toggle {
+.detail-rail-toggle {
   flex: none;
-  color: var(--muted);
 }
 
 .detail-rail.collapsed .detail-rail-inner {
@@ -2380,9 +2442,12 @@ a.list-row:hover {
   padding-inline: 0.45rem;
 }
 
-.detail-rail.collapsed .detail-rail-top {
+.detail-rail.collapsed .detail-rail-chrome {
   flex-direction: column;
   gap: 0.35rem;
+  margin-inline: -0.45rem;
+  padding-inline: 0.45rem;
+  border-bottom: none;
 }
 
 .detail-rail.collapsed .detail-rail-label {
@@ -2391,7 +2456,13 @@ a.list-row:hover {
 
 .detail-props,
 .detail-related {
+  display: grid;
+  gap: 0;
   min-width: 0;
+}
+
+.detail-side {
+  gap: 0;
 }
 
 .subtasks-side .inline-form {
@@ -3692,6 +3763,10 @@ fieldset.field > legend {
   .detail-rail:not(.collapsed) {
     border-inline-start: none;
     border-block-end: 1px solid var(--border);
+  }
+
+  .detail-rail-resize-handle {
+    display: none;
   }
 
   .detail-side {
