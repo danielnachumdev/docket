@@ -13,6 +13,8 @@ type Props = {
   isOwner: boolean
   onChanged: () => Promise<void>
   variant?: 'card' | 'plain'
+  /** Render as a disclosure; collapsed on first render when true. */
+  defaultCollapsed?: boolean
 }
 
 export function SharingSection({
@@ -21,6 +23,7 @@ export function SharingSection({
   isOwner,
   onChanged,
   variant = 'card',
+  defaultCollapsed,
 }: Props) {
   const { t } = useTranslation(['detail', 'tasks'])
   const listId = useId()
@@ -57,7 +60,14 @@ export function SharingSection({
   }
 
   return (
-    <Section icon="users" title={t('sharing.title')} count={shares.length} variant={variant}>
+    <Section
+      icon="users"
+      title={t('sharing.title')}
+      count={shares.length}
+      variant={variant}
+      collapsible={defaultCollapsed != null}
+      defaultCollapsed={defaultCollapsed}
+    >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {shares.length === 0 ? (
         <p className="muted small">{t('sharing.onlyYou')}</p>

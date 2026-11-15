@@ -19,9 +19,11 @@ type Props = {
   tasksById: Map<string, Task>
   onChanged: () => Promise<void>
   variant?: 'card' | 'plain'
+  /** Render as a disclosure; collapsed on first render when true. */
+  defaultCollapsed?: boolean
 }
 
-export function LinksSection({ taskId, links, tasksById, onChanged, variant = 'card' }: Props) {
+export function LinksSection({ taskId, links, tasksById, onChanged, variant = 'card', defaultCollapsed }: Props) {
   const [kind, setKind] = useState<LinkKind>('related')
   const [target, setTarget] = useState('')
   const { t } = useTranslation('detail')
@@ -41,7 +43,14 @@ export function LinksSection({ taskId, links, tasksById, onChanged, variant = 'c
   }
 
   return (
-    <Section icon="link" title={t('links.title')} count={links.length} variant={variant}>
+    <Section
+      icon="link"
+      title={t('links.title')}
+      count={links.length}
+      variant={variant}
+      collapsible={defaultCollapsed != null}
+      defaultCollapsed={defaultCollapsed}
+    >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {links.length > 0 && (
         <ul className="list">

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type UserStats } from '../api'
-import { Alert, Skeleton } from '../components/Feedback'
+import { Alert } from '../components/Feedback'
+import { StatsSkeleton } from '../components/Skeleton'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeading } from '../components/SectionHeading'
 import { StatCard, StatGrid } from '../components/StatCard'
@@ -68,7 +69,7 @@ export function ProgressPage() {
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
       {stats == null ? (
-        <Skeleton rows={6} />
+        <StatsSkeleton groups={3} perGroup={4} />
       ) : (
         <>
           <SectionHeading title={t('throughputTitle')} />

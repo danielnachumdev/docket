@@ -4,7 +4,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, type SavedView, type Task } from '../api'
 import { useAuth } from '../auth'
 import { DueBadge, PriorityBadge } from '../components/Badges'
-import { Alert, EmptyState, Skeleton } from '../components/Feedback'
+import { Alert, EmptyState } from '../components/Feedback'
+import { Skeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
 import { SortableSiblingItem, SortableSiblingList } from '../components/SortableSiblingList'
@@ -137,66 +138,68 @@ function TaskRow({
                 <span className="meta-item mono">#{task.number}</span>
               </span>
             </Link>
-            {hasParent && (
-              <Link
-                to={`/tasks/${parent.id}`}
-                className="parent-chip"
-                title={t('subtaskOf', { number: parent.number, title: parent.title })}
-              >
-                <Icon name="subtasks" size={12} />
-                {t('subtaskOfShort', { number: parent.number })}
-              </Link>
-            )}
-            {!closed && (
+            <div className="task-row-end">
+              {hasParent && (
+                <Link
+                  to={`/tasks/${parent.id}`}
+                  className="parent-chip"
+                  title={t('subtaskOf', { number: parent.number, title: parent.title })}
+                >
+                  <Icon name="subtasks" size={12} />
+                  {t('subtaskOfShort', { number: parent.number })}
+                </Link>
+              )}
+              {!closed && (
+                <button
+                  type="button"
+                  className={
+                    dueToday
+                      ? 'icon-btn ghost do-today-toggle active'
+                      : 'icon-btn ghost do-today-toggle'
+                  }
+                  aria-label={t('doThisTodayNamed', { title: task.title })}
+                  aria-pressed={dueToday}
+                  title={dueToday ? t('doThisTodayDone') : t('doThisToday')}
+                  onClick={() => onDoThisToday(task)}
+                >
+                  <Icon name="calendar" size={14} />
+                </button>
+              )}
               <button
                 type="button"
                 className={
-                  dueToday
-                    ? 'icon-btn ghost do-today-toggle active'
-                    : 'icon-btn ghost do-today-toggle'
+                  unread ? 'icon-btn ghost unread-toggle active' : 'icon-btn ghost unread-toggle'
                 }
-                aria-label={t('doThisTodayNamed', { title: task.title })}
-                aria-pressed={dueToday}
-                title={dueToday ? t('doThisTodayDone') : t('doThisToday')}
-                onClick={() => onDoThisToday(task)}
+                aria-label={
+                  unread
+                    ? t('markReadNamed', { title: task.title })
+                    : t('markUnreadNamed', { title: task.title })
+                }
+                aria-pressed={unread}
+                title={unread ? t('markRead') : t('markUnread')}
+                onClick={() => onToggleUnread(task)}
               >
-                <Icon name="calendar" size={14} />
+                <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
               </button>
-            )}
-            <button
-              type="button"
-              className={
-                unread ? 'icon-btn ghost unread-toggle active' : 'icon-btn ghost unread-toggle'
-              }
-              aria-label={
-                unread
-                  ? t('markReadNamed', { title: task.title })
-                  : t('markUnreadNamed', { title: task.title })
-              }
-              aria-pressed={unread}
-              title={unread ? t('markRead') : t('markUnread')}
-              onClick={() => onToggleUnread(task)}
-            >
-              <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
-            </button>
-            <label
-              className={`task-status status-badge status-select status-${task.status}`}
-              title={t('changeStatus')}
-            >
-              <span className="status-dot" aria-hidden="true" />
-              <select
-                value={task.status}
-                onChange={(e) => onStatusChange(task, e.target.value as Status)}
-                aria-label={t('changeStatusNamed', { title: task.title })}
+              <label
+                className={`task-status status-badge status-select status-${task.status}`}
+                title={t('changeStatus')}
               >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {statusLabel(s)}
-                  </option>
-                ))}
-              </select>
-              <Icon name="chevronDown" size={12} />
-            </label>
+                <span className="status-dot" aria-hidden="true" />
+                <select
+                  value={task.status}
+                  onChange={(e) => onStatusChange(task, e.target.value as Status)}
+                  aria-label={t('changeStatusNamed', { title: task.title })}
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {statusLabel(s)}
+                    </option>
+                  ))}
+                </select>
+                <Icon name="chevronDown" size={12} />
+              </label>
+            </div>
           </div>
         </li>
       )}
@@ -219,6 +222,7 @@ export function TaskListPage() {
   // Tasks toggled in this view stay visible so a mis-click can be undone.
   const [pinned, setPinned] = useState<Set<string>>(() => new Set())
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [selectMode, setSelectMode] = useState(false)
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState(3)
   const { busy, error, setError, run } = useAction()
@@ -324,6 +328,7 @@ export function TaskListPage() {
 
   const selectedCount = selected.size
   useKeyboardShortcut('Escape', () => setSelected(new Set()), selectedCount > 0)
+  const selecting = selectMode || selectedCount > 0
   const allVisibleSelected =
     visibleIds.length > 0 && visibleIds.every((id) => selected.has(id))
 
@@ -487,6 +492,15 @@ export function TaskListPage() {
     setSelected(new Set())
   }
 
+  function toggleSelectMode() {
+    if (selecting) {
+      clearSelection()
+      setSelectMode(false)
+    } else {
+      setSelectMode(true)
+    }
+  }
+
   function applyBulk(patch: { status?: string; priority?: number }) {
     const taskIds = [...selected]
     if (taskIds.length === 0) return
@@ -542,6 +556,18 @@ export function TaskListPage() {
     setQuery('')
     selectFilter(archived ? 'all' : 'active')
   }
+
+  const selectModeButton = (
+    <button
+      type="button"
+      className="btn ghost small select-mode-btn"
+      aria-pressed={selecting}
+      onClick={toggleSelectMode}
+    >
+      <Icon name={selecting ? 'x' : 'check'} size={14} />
+      {selecting ? t('tasks:selectModeDone') : t('tasks:selectMode')}
+    </button>
+  )
 
   return (
     <main
@@ -715,11 +741,12 @@ export function TaskListPage() {
             <Icon name="plus" size={14} />
             {t('tasks:saveView')}
           </button>
+          {layout === 'list' && visibleIds.length > 0 && selectModeButton}
         </div>
       )}
 
       {tasks == null ? (
-        <Skeleton rows={5} />
+        <Skeleton rows={6} leading="check" trailing />
       ) : visible.length === 0 ? (
         <EmptyState
           icon={tasks.length > 0 ? 'search' : archived ? 'archive' : 'inbox'}
@@ -758,7 +785,7 @@ export function TaskListPage() {
         <TaskKanbanBoard tasks={boardTasks} onStatusChange={applyStatus} />
       ) : (
         <>
-          <div className="select-bar">
+          <div className={selecting ? 'select-bar selecting' : 'select-bar'}>
             <label className="select-all">
               <input
                 type="checkbox"
@@ -772,10 +799,11 @@ export function TaskListPage() {
                   : t('tasks:selectTasks')}
               </span>
             </label>
+            {archived && selectModeButton}
           </div>
           <SortableSiblingList
             ids={visibleIds}
-            className="task-tree"
+            className={selecting ? 'task-tree selecting' : 'task-tree'}
             onReorder={reorderQueue}
           >
             {visible.map((task) => {

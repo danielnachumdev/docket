@@ -19,13 +19,18 @@
   gap: 0.5rem;
 }
 
+/* Phones: the heading keeps a readable minimum width; actions wrap below it
+   rather than squeezing it into a sliver. */
 @media (max-width: 640px) {
-  .page-header .segmented {
-    width: 100%;
+  .page-header {
+    align-items: center;
   }
 
-  .page-header .segmented button {
-    flex: 1;
-    justify-content: center;
+  .page-header > :first-child {
+    flex: 1 1 10rem;
+  }
+
+  .page-header p {
+    font-size: 0.9rem;
   }
 }

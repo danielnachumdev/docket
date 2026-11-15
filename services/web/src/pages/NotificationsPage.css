@@ -55,3 +55,34 @@ a.notification-link:hover {
 .notif-title.unread {
   font-weight: 600;
 }
+
+@media (max-width: 640px) {
+  .notification-link {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'kind time'
+      'body body';
+    gap: 0.3rem 0.75rem;
+    padding-inline-end: 0.85rem;
+  }
+
+  .notification-link .tag {
+    grid-area: kind;
+    justify-self: start;
+    margin-top: 0;
+  }
+
+  .notification-link > .grow {
+    grid-area: body;
+  }
+
+  .notif-time {
+    grid-area: time;
+    justify-self: end;
+  }
+
+  .notification-link .unread-dot {
+    top: 1.05rem;
+  }
+}

@@ -38,6 +38,8 @@
   "emptyNoMatchHint": "נסו מסנן או מונח חיפוש אחר.",
   "selectAllVisible": "בחירת כל המשימות הגלויות",
   "selectTasks": "בחירת משימות",
+  "selectMode": "בחירה",
+  "selectModeDone": "סיום",
   "selectedCount": "{{count}} נבחרו",
   "bulkActions": "פעולות קבוצתיות",
   "bulkStatus": "סטטוס קבוצתי",

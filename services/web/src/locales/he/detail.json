@@ -199,7 +199,9 @@
     "requireArtifact": "דרישת קובץ מצורף לסימון כהושלמה",
     "schema": "סכמת JSON לתוצאה (אופציונלי)",
     "schemaHint": "כשמוגדרת סכמה, השלמת המשימה דורשת תוצאת JSON תואמת.",
-    "recordedOutcome": "תוצאה שנרשמה"
+    "recordedOutcome": "תוצאה שנרשמה",
+    "summaryArtifact": "נדרש קובץ מצורף",
+    "summarySchema": "הוגדרה סכמת תוצאה"
   },
   "complete": {
     "title": "סימון המשימה כהושלמה",

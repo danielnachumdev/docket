@@ -243,22 +243,10 @@ export function AppLayout({
       </aside>
 
       <header className="mobile-bar">
-        <div className="mobile-bar-start">
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label={t('nav:openMenu')}
-            aria-haspopup="dialog"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen(true)}
-          >
-            <Icon name="menu" />
-          </button>
-          <Link to="/" className="brand">
-            <Logo />
-            <span>{t('common:appName')}</span>
-          </Link>
-        </div>
+        <Link to="/" className="brand">
+          <Logo />
+          <span>{t('common:appName')}</span>
+        </Link>
         <ProfileMenu
           user={user}
           themeScheme={themeScheme}

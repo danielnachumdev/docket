@@ -131,7 +131,7 @@
   align-items: start;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .theme-studio-grid {
     grid-template-columns: 1fr;
   }

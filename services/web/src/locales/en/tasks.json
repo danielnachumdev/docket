@@ -37,6 +37,8 @@
   "emptyNoMatchHint": "Try a different filter or search term.",
   "selectAllVisible": "Select all visible tasks",
   "selectTasks": "Select tasks",
+  "selectMode": "Select",
+  "selectModeDone": "Done",
   "selectedCount": "{{count}} selected",
   "bulkActions": "Bulk actions",
   "bulkStatus": "Bulk status",

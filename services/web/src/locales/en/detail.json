@@ -199,7 +199,9 @@
     "requireArtifact": "Require artifact to mark done",
     "schema": "Outcome JSON Schema (optional)",
     "schemaHint": "When a schema is set, completing the task requires a matching JSON outcome.",
-    "recordedOutcome": "Recorded outcome"
+    "recordedOutcome": "Recorded outcome",
+    "summaryArtifact": "Artifact required",
+    "summarySchema": "Outcome schema set"
   },
   "complete": {
     "title": "Mark task done",

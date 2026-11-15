@@ -20,6 +20,14 @@
   letter-spacing: -0.01em;
 }
 
+/* Mouse/touch shortcut only; the chevron button stays the keyboard control. */
+.section-toggle-title {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
 .card-collapsed-summary {
   margin: 0;
   padding-block: 0.1rem 0.15rem;

@@ -10,8 +10,10 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type Task, type TaskDetail, type TaskEvent, type TaskShare } from '../api'
 import { useAuth } from '../auth'
+import { useMediaQuery } from '../lib/useMediaQuery'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
-import { Alert, Skeleton } from '../components/Feedback'
+import { Alert } from '../components/Feedback'
+import { DetailSkeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
 import { Menu, type MenuItem } from '../components/Menu'
 import { Section } from '../components/Section'
@@ -125,6 +127,7 @@ export function TaskDetailPage() {
   const [completeOpen, setCompleteOpen] = useState(false)
   const [sideCollapsed, setSideCollapsed] = useState(false)
   const [railWidthPx, setRailWidthPx] = useState(DETAIL_RAIL_DEFAULT_PX)
+  const railStacked = useMediaQuery('(max-width: 1100px)')
   const { busy, error, setError, run } = useAction()
 
   const detailGridStyle = useMemo(
@@ -415,7 +418,7 @@ export function TaskDetailPage() {
   if (!detail || !draft) {
     return (
       <main className="page">
-        <Skeleton rows={6} />
+        <DetailSkeleton />
       </main>
     )
   }
@@ -616,7 +619,9 @@ export function TaskDetailPage() {
           )}
           <div className="detail-rail-inner">
             <div className="detail-rail-chrome">
-              {!sideCollapsed && <span className="detail-rail-label">{t('sidePanel')}</span>}
+              {(!sideCollapsed || railStacked) && (
+                <span className="detail-rail-label">{t('sidePanel')}</span>
+              )}
               <button
                 type="button"
                 className="icon-btn sidebar-toggle detail-rail-toggle"
@@ -626,7 +631,15 @@ export function TaskDetailPage() {
                 onClick={() => setSideCollapsed((v) => !v)}
               >
                 <Icon
-                  name={sideCollapsed ? 'chevronLeft' : 'arrowRight'}
+                  name={
+                    railStacked
+                      ? sideCollapsed
+                        ? 'chevronRight'
+                        : 'chevronDown'
+                      : sideCollapsed
+                        ? 'chevronLeft'
+                        : 'arrowRight'
+                  }
                   size={14}
                   className="flip-rtl"
                 />
@@ -635,7 +648,7 @@ export function TaskDetailPage() {
             {!sideCollapsed && (
               <>
             <div className="detail-side detail-props">
-              <Section icon="sliders" title={t('fields')} className="stack" variant="plain">
+              <Section icon="sliders" title={t('fields')} className="stack detail-fields" variant="plain">
                 <label className="field">
                   <span>{t('status')}</span>
                   <select
@@ -754,6 +767,7 @@ export function TaskDetailPage() {
                 onChanged={load}
                 compact
                 variant="plain"
+                defaultCollapsed={railStacked}
               />
               <ClaimLeaseSection task={task} events={detail.events} variant="plain" />
             </div>
@@ -765,6 +779,7 @@ export function TaskDetailPage() {
                 tasksById={tasksById}
                 onChanged={load}
                 variant="plain"
+                defaultCollapsed={railStacked}
               />
               <SharingSection
                 taskId={taskId}
@@ -772,6 +787,7 @@ export function TaskDetailPage() {
                 isOwner={isOwner}
                 onChanged={load}
                 variant="plain"
+                defaultCollapsed={railStacked}
               />
               <CompletionSection
                 requireArtifact={draft.requireArtifact}
@@ -780,6 +796,7 @@ export function TaskDetailPage() {
                 onSchemaText={(value) => update('outcomeSchema', value)}
                 recordedOutcome={task.outcome_json}
                 variant="plain"
+                defaultCollapsed={railStacked}
               />
               <ActivitySection
                 events={detail.events}
