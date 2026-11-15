@@ -634,26 +634,25 @@ export function TaskDetailPage() {
             {!sideCollapsed && (
               <>
             <div className="detail-side detail-props">
-              <Section icon="flag" title={t('status')} headingId="status-label" variant="plain">
-                <div className="status-picker" role="radiogroup" aria-labelledby="status-label">
-                  {STATUSES.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      role="radio"
-                      aria-checked={task.status === s}
-                      className={`status-option status-${s}${task.status === s ? ' active' : ''}`}
-                      disabled={busy}
-                      onClick={() => task.status !== s && changeStatus(s)}
-                    >
-                      <span className="status-dot" aria-hidden="true" />
-                      {statusLabel(s)}
-                    </button>
-                  ))}
-                </div>
-              </Section>
-
               <Section icon="sliders" title={t('fields')} className="stack" variant="plain">
+                <label className="field">
+                  <span>{t('status')}</span>
+                  <select
+                    value={task.status}
+                    disabled={busy}
+                    aria-label={t('status')}
+                    onChange={(e) => {
+                      const next = e.target.value
+                      if (next !== task.status) changeStatus(next)
+                    }}
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {statusLabel(s)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <label className="field">
                   <span>{t('priority')}</span>
                   <select
