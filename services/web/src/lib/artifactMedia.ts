@@ -1,6 +1,6 @@
 import type { IconName } from '../components/Icon'
 
-export type ArtifactPreviewKind = 'image' | 'pdf' | 'audio' | 'video' | 'markdown'
+export type ArtifactPreviewKind = 'image' | 'pdf' | 'audio' | 'video' | 'markdown' | 'text'
 
 const KIND_ICONS: Record<string, IconName> = {
   text: 'text',
@@ -48,6 +48,8 @@ const VIDEO_EXTENSIONS = new Set(['.m4v', '.mov', '.mp4', '.ogv', '.webm'])
 
 const MARKDOWN_EXTENSIONS = new Set(['.markdown', '.md'])
 
+const TEXT_EXTENSIONS = new Set(['.log', '.txt'])
+
 const MEDIA_BY_EXTENSION: Record<string, string> = {
   '.aac': 'audio/aac',
   '.flac': 'audio/flac',
@@ -66,6 +68,8 @@ const MEDIA_BY_EXTENSION: Record<string, string> = {
   '.pdf': 'application/pdf',
   '.md': 'text/markdown',
   '.markdown': 'text/markdown',
+  '.txt': 'text/plain',
+  '.log': 'text/plain',
   '.avif': 'image/avif',
   '.bmp': 'image/bmp',
   '.gif': 'image/gif',
@@ -111,5 +115,6 @@ export function getArtifactPreviewKind(artifact: ArtifactRef): ArtifactPreviewKi
   ) {
     return 'markdown'
   }
+  if (type.startsWith('text/') || (ext != null && TEXT_EXTENSIONS.has(ext))) return 'text'
   return null
 }
