@@ -92,15 +92,16 @@ class CommentRefResolver:
                 status.HTTP_400_BAD_REQUEST,
                 f"Unknown or inaccessible task ref {token.raw}",
             )
+        number = self._viewer_number(principal.user_id, target)
         return {
             "kind": "task",
             "raw": token.raw,
             "start": token.start,
             "end": token.end,
             "task_id": target.public_id,
-            "number": target.owner_task_number,
+            "number": number,
             "title": target.title,
-            "label": f"#{target.owner_task_number}",
+            "label": f"#{number}",
         }
 
     def _resolve_artifact(self, task: Task, token: RawCommentToken) -> dict[str, Any]:
@@ -141,13 +142,41 @@ class CommentRefResolver:
 
     def _lookup_task_ref(self, principal: Principal, value: str) -> Task | None:
         if value.isdigit():
-            return self._db.scalar(
+            number = int(value)
+            owned = self._db.scalar(
                 select(Task).where(
                     Task.owner_user_id == principal.user_id,
-                    Task.owner_task_number == int(value),
+                    Task.owner_task_number == number,
+                )
+            )
+            if owned is not None:
+                return owned
+            return self._db.scalar(
+                select(Task)
+                .join(
+                    Membership,
+                    Membership.scope_task_id == Task.id,
+                )
+                .where(
+                    Membership.user_id == principal.user_id,
+                    Membership.scope_type == "task",
+                    Membership.viewer_task_number == number,
                 )
             )
         return self._db.scalar(select(Task).where(Task.public_id == value))
+
+    def _viewer_number(self, viewer_user_id: int, task: Task) -> int:
+        if task.owner_user_id == viewer_user_id:
+            return task.owner_task_number
+        shared = self._db.scalar(
+            select(Membership.viewer_task_number).where(
+                Membership.user_id == viewer_user_id,
+                Membership.scope_type == "task",
+                Membership.scope_task_id == task.id,
+                Membership.viewer_task_number.is_not(None),
+            )
+        )
+        return int(shared) if shared is not None else task.owner_task_number
 
     def _people_on_task(self, task: Task) -> list[User]:
         owner = self._db.get(User, task.owner_user_id)

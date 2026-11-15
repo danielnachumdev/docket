@@ -14,24 +14,32 @@ from waymark.schemas import (
 
 
 class TaskResponseMapper:
-    """Maps ORM rows to API schemas using public_id as the task SOT."""
+    """Maps ORM rows to API schemas using public_id as the task SOT.
+
+    `number` is viewer-scoped: owners see owner_task_number; sharees see
+    membership.viewer_task_number when present.
+    """
 
     def __init__(self, db: Session) -> None:
         self._db = db
         self._public_by_internal: dict[int, str] = {}
         self._shared_ids: set[int] = set()
         self._shared_checked: set[int] = set()
+        self._viewer_numbers: dict[tuple[int, int], int] = {}
+        self._viewer_numbers_checked: set[tuple[int, int]] = set()
 
     def remember(self, tasks: Iterable[Task]) -> None:
         for task in tasks:
             self._public_by_internal[task.id] = task.public_id
 
-    def task_out(self, task: Task) -> TaskOut:
+    def task_out(self, task: Task, *, viewer_user_id: int | None = None) -> TaskOut:
         self.remember([task])
         self.prefetch_shared([task.id])
+        if viewer_user_id is not None:
+            self.prefetch_viewer_numbers(viewer_user_id, [task.id])
         return TaskOut(
             id=task.public_id,
-            number=task.owner_task_number,
+            number=self.number_for(task, viewer_user_id=viewer_user_id),
             owner_user_id=task.owner_user_id,
             parent_task_id=self.public_id(task.parent_task_id),
             external_id=task.external_id,
@@ -58,11 +66,53 @@ class TaskResponseMapper:
             updated_at=task.updated_at,
         )
 
-    def tasks_out(self, tasks: list[Task]) -> list[TaskOut]:
+    def tasks_out(
+        self, tasks: list[Task], *, viewer_user_id: int | None = None
+    ) -> list[TaskOut]:
         self.remember(tasks)
         self.prefetch([t.parent_task_id for t in tasks if t.parent_task_id])
         self.prefetch_shared(t.id for t in tasks)
-        return [self.task_out(task) for task in tasks]
+        if viewer_user_id is not None:
+            self.prefetch_viewer_numbers(viewer_user_id, [t.id for t in tasks])
+        return [
+            self.task_out(task, viewer_user_id=viewer_user_id) for task in tasks
+        ]
+
+    def number_for(self, task: Task, *, viewer_user_id: int | None) -> int:
+        if viewer_user_id is None or task.owner_user_id == viewer_user_id:
+            return task.owner_task_number
+        cached = self._viewer_numbers.get((viewer_user_id, task.id))
+        if cached is not None:
+            return cached
+        return task.owner_task_number
+
+    def prefetch_viewer_numbers(
+        self, viewer_user_id: int, internal_ids: Iterable[int]
+    ) -> None:
+        missing = {
+            i
+            for i in internal_ids
+            if (viewer_user_id, i) not in self._viewer_numbers_checked
+        }
+        if not missing:
+            return
+        rows = self._db.execute(
+            select(Membership.scope_task_id, Membership.viewer_task_number).where(
+                Membership.user_id == viewer_user_id,
+                Membership.scope_type == "task",
+                Membership.scope_task_id.in_(missing),
+                Membership.viewer_task_number.is_not(None),
+            )
+        ).all()
+        for scope_task_id, viewer_task_number in rows:
+            if scope_task_id is None or viewer_task_number is None:
+                continue
+            self._viewer_numbers[(viewer_user_id, int(scope_task_id))] = int(
+                viewer_task_number
+            )
+        self._viewer_numbers_checked.update(
+            (viewer_user_id, task_id) for task_id in missing
+        )
 
     def prefetch_shared(self, internal_ids: Iterable[int]) -> None:
         missing = {i for i in internal_ids if i not in self._shared_checked}

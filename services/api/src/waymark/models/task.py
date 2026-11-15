@@ -39,7 +39,7 @@ class Task(Base):
     public_id: Mapped[str] = mapped_column(
         String(PUBLIC_ID_LENGTH), default=new_task_public_id, nullable=False
     )
-    # Per-owner display enumeration ("my task #N"); not globally unique.
+    # Owner's personal display # (owners see this; sharees use membership.viewer_task_number).
     owner_task_number: Mapped[int] = mapped_column(Integer, nullable=False)
     owner_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     parent_task_id: Mapped[int | None] = mapped_column(

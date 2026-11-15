@@ -193,11 +193,20 @@ class ArtifactsApi:
             if can_modify is not None
             else service.can_modify(principal, artifact, task)
         )
+        if task is None:
+            task = service.resolve_task(artifact)
+        if task is not None:
+            mapper.remember([task])
+            mapper.prefetch_viewer_numbers(principal.user_id, [task.id])
         return mapper.artifact_out(
             artifact,
             can_modify=allowed,
             task_title=task.title if task is not None else None,
-            task_number=task.owner_task_number if task is not None else None,
+            task_number=(
+                mapper.number_for(task, viewer_user_id=principal.user_id)
+                if task is not None
+                else None
+            ),
         )
 
 

@@ -1,8 +1,8 @@
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import ColumnElement
 
-from waymark.models import Artifact, Task
+from waymark.models import Artifact, Membership, Task
 
 
 class ArtifactGateway:
@@ -49,11 +49,16 @@ class ArtifactGateway:
         q: str,
         sort: str,
         mine_user_id: int | None,
+        viewer_user_id: int | None,
         offset: int,
         limit: int,
     ) -> tuple[list[tuple[Artifact, Task]], int]:
         filters = self._library_filters(
-            task_ids, kind=kind, q=q, mine_user_id=mine_user_id
+            task_ids,
+            kind=kind,
+            q=q,
+            mine_user_id=mine_user_id,
+            viewer_user_id=viewer_user_id,
         )
         total = self._db.scalar(
             select(func.count(Artifact.id))
@@ -79,9 +84,14 @@ class ArtifactGateway:
         *,
         q: str,
         mine_user_id: int | None,
+        viewer_user_id: int | None,
     ) -> dict[str, int]:
         filters = self._library_filters(
-            task_ids, kind=None, q=q, mine_user_id=mine_user_id
+            task_ids,
+            kind=None,
+            q=q,
+            mine_user_id=mine_user_id,
+            viewer_user_id=viewer_user_id,
         )
         rows = self._db.execute(
             select(Artifact.kind, func.count(Artifact.id))
@@ -115,18 +125,21 @@ class ArtifactGateway:
         kind: str | None,
         q: str,
         mine_user_id: int | None,
+        viewer_user_id: int | None,
     ) -> list[ColumnElement[bool]]:
         filters: list[ColumnElement[bool]] = [Artifact.task_id.in_(task_ids)]
         if kind is not None:
             filters.append(Artifact.kind == kind)
         if mine_user_id is not None:
             filters.append(Artifact.created_by_user_id == mine_user_id)
-        search = self._search_filter(q)
+        search = self._search_filter(q, viewer_user_id=viewer_user_id)
         if search is not None:
             filters.append(search)
         return filters
 
-    def _search_filter(self, q: str) -> ColumnElement[bool] | None:
+    def _search_filter(
+        self, q: str, *, viewer_user_id: int | None
+    ) -> ColumnElement[bool] | None:
         if not q:
             return None
         pattern = f"%{q}%"
@@ -137,7 +150,24 @@ class ArtifactGateway:
         ]
         digits = q.lstrip("#").strip()
         if digits.isdigit():
-            clauses.append(Task.owner_task_number == int(digits))
+            number = int(digits)
+            if viewer_user_id is not None:
+                shared_ids = select(Membership.scope_task_id).where(
+                    Membership.user_id == viewer_user_id,
+                    Membership.scope_type == "task",
+                    Membership.viewer_task_number == number,
+                )
+                clauses.append(
+                    or_(
+                        and_(
+                            Task.owner_user_id == viewer_user_id,
+                            Task.owner_task_number == number,
+                        ),
+                        Task.id.in_(shared_ids),
+                    )
+                )
+            else:
+                clauses.append(Task.owner_task_number == number)
         return or_(*clauses)
 
     def _order_by(self, sort: str) -> tuple:

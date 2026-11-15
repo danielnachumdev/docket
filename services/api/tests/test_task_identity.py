@@ -109,14 +109,58 @@ def test_sharing_uses_public_id_not_local_number() -> None:
     detail = client.get(f"/api/tasks/{public_id}")
     assert detail.status_code == 200
     assert detail.json()["task"]["id"] == public_id
+    # Sharee gets a personal # from their own sequence (not the owner's #).
     assert detail.json()["task"]["number"] == 1
 
     own = client.post("/api/tasks", json={"title": "Alex own"})
     assert own.status_code == 201, own.text
     own_body = own.json()
-    assert own_body["number"] == 1
+    assert own_body["number"] == 2
     assert own_body["id"] != public_id
     assert client.get(f"/api/tasks/{own_body['id']}").status_code == 200
+
+
+def test_sharee_number_does_not_collide_with_owner_number() -> None:
+    """Owner #N and sharee's personal # for the same task are independent."""
+    client = TestClient(create_app())
+    _bootstrap(client)
+
+    for title in ("A1", "A2", "A3", "A4"):
+        assert client.post("/api/tasks", json={"title": title}).status_code == 201
+    shared = client.post("/api/tasks", json={"title": "Shared as owner #5"}).json()
+    assert shared["number"] == 5
+    public_id = shared["id"]
+
+    _create_owner_user("alex@example.com", "Alex", "password123")
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    for title in ("B1", "B2", "B3", "B4"):
+        assert client.post("/api/tasks", json={"title": title}).status_code == 201
+    assert client.post("/api/tasks", json={"title": "B5"}).json()["number"] == 5
+
+    client.post("/api/auth/logout")
+    _login(client, "ops@example.com", "password1234")
+    assert (
+        client.post(
+            f"/api/tasks/{public_id}/shares",
+            json={"email": "alex@example.com", "role": "viewer"},
+        ).status_code
+        == 201
+    )
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    listed = client.get("/api/tasks?roots_only=true").json()
+    numbers = sorted(t["number"] for t in listed)
+    assert numbers == [1, 2, 3, 4, 5, 6]
+    shared_row = next(t for t in listed if t["id"] == public_id)
+    assert shared_row["number"] == 6
+    assert shared_row["shared"] is True
+    assert client.get(f"/api/tasks/{public_id}").json()["task"]["number"] == 6
+
+    client.post("/api/auth/logout")
+    _login(client, "ops@example.com", "password1234")
+    assert client.get(f"/api/tasks/{public_id}").json()["task"]["number"] == 5
 
 
 def test_unknown_public_id_is_404_not_enumerable() -> None:

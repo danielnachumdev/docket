@@ -109,12 +109,15 @@ class ArtifactService:
         if changed:
             self._gateway.commit()
 
+    def resolve_task(self, artifact: Artifact) -> Task | None:
+        return self._db.get(Task, artifact.task_id)
+
     def can_modify(
         self, principal: Principal, artifact: Artifact, task: Task | None = None
     ) -> bool:
         if artifact.created_by_user_id != principal.user_id:
             return False
-        row = task or self._db.get(Task, artifact.task_id)
+        row = task or self.resolve_task(artifact)
         if row is None:
             return False
         return self._access.may_access(principal, row, "artifacts:write")

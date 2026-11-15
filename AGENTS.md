@@ -98,7 +98,7 @@ UI copy lives under `services/web/src/locales/{en,he}/` (JSON namespaces registe
 
 - Prefer SQLite-lean schema; avoid heavyweight deps without need.
 - Task history goes in `task_events`; relationships via `parent_task_id` + `task_links`.
-- Public task identity is short `public_id` (API/URLs/sharing); `owner_task_number` is per-owner display `#N`.
+- Public task identity is short `public_id` (API/URLs/sharing); API `number` (`#N`) is **per-viewer** (owner: `owner_task_number`; sharee: `membership.viewer_task_number`).
 - **Work queue order** is sibling-scoped `rank` (lower = do first). List, children, and inbox sort by `rank`. Agents should reorder with `POST /api/tasks/{id}/reorder` (`before_task_id` / `after_task_id`, or neither for end) instead of inventing ranks. `priority` (1–4) remains an urgency badge/filter only.
 - Authorization is RBAC (`permissions` / `roles` / `memberships`); API tokens may downscope via `role_id`.
 - Each service owns its Dockerfile and runtime files under `services/<name>/`.

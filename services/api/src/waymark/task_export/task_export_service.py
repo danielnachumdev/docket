@@ -78,7 +78,9 @@ class TaskExportService:
                 }
             ),
             "task.json": self._json_bytes(
-                self._mapper.task_out(task).model_dump(mode="json")
+                self._mapper.task_out(
+                    task, viewer_user_id=principal.user_id
+                ).model_dump(mode="json")
             ),
             "events.json": self._json_bytes(
                 [self._mapper.event_out(e).model_dump(mode="json") for e in events]
@@ -89,7 +91,9 @@ class TaskExportService:
             "children.json": self._json_bytes(
                 [
                     child.model_dump(mode="json")
-                    for child in self._mapper.tasks_out(children)
+                    for child in self._mapper.tasks_out(
+                        children, viewer_user_id=principal.user_id
+                    )
                 ]
             ),
             "artifacts/index.json": self._json_bytes(artifact_entries),
