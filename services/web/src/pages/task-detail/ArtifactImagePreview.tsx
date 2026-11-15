@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useArtifactObjectUrl } from '../../lib/useArtifactObjectUrl'
+import { ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
 
 type Props = {
@@ -13,16 +14,7 @@ type Props = {
 export function ArtifactImagePreview({ taskId, artifactId, title, contentType }: Props) {
   const { t } = useTranslation('artifacts')
   const { src, error } = useArtifactObjectUrl({ taskId, artifactId, title, contentType })
-  const [lightbox, setLightbox] = useState(false)
-
-  useEffect(() => {
-    if (!lightbox) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setLightbox(false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [lightbox])
+  const [fullView, setFullView] = useState(false)
 
   if (error) {
     return <p className="muted small artifact-preview-error">{error}</p>
@@ -36,22 +28,16 @@ export function ArtifactImagePreview({ taskId, artifactId, title, contentType }:
       <button
         type="button"
         className="artifact-preview-btn"
-        onClick={() => setLightbox(true)}
+        onClick={() => setFullView(true)}
         aria-label={t('enlargeNamed', { title })}
         title={t('enlarge')}
       >
         <img className="artifact-preview" src={src} alt={title} />
       </button>
-      {lightbox && (
-        <div
-          className="artifact-lightbox"
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
-          onClick={() => setLightbox(false)}
-        >
-          <img src={src} alt={title} onClick={(e) => e.stopPropagation()} />
-        </div>
+      {fullView && (
+        <ArtifactFullView title={title} onClose={() => setFullView(false)} bodyClassName="artifact-fullview-media">
+          <img src={src} alt={title} className="artifact-fullview-img" />
+        </ArtifactFullView>
       )}
     </>
   )

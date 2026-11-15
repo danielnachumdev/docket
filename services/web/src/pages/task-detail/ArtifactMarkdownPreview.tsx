@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import i18n from '../../i18n'
 import { userBidiAttrs } from '../../lib/bidi'
+import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
 
 type Props = {
@@ -21,6 +22,7 @@ marked.setOptions({ gfm: true, breaks: false })
 
 export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [fullView, setFullView] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -55,10 +57,25 @@ export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
     return <PreviewLoading />
   }
 
+  const mdProps = {
+    ...userBidiAttrs(state.source, 'artifact-preview-md'),
+    dangerouslySetInnerHTML: { __html: state.html },
+  }
+
   return (
-    <div
-      {...userBidiAttrs(state.source, 'artifact-preview-md')}
-      dangerouslySetInnerHTML={{ __html: state.html }}
-    />
+    <>
+      <div className="artifact-preview-frame">
+        <ArtifactEnlargeButton title={title} onClick={() => setFullView(true)} />
+        <div {...mdProps} />
+      </div>
+      {fullView && (
+        <ArtifactFullView title={title} onClose={() => setFullView(false)} bodyClassName="artifact-fullview-md">
+          <div
+            {...userBidiAttrs(state.source, 'artifact-preview-md')}
+            dangerouslySetInnerHTML={{ __html: state.html }}
+          />
+        </ArtifactFullView>
+      )}
+    </>
   )
 }
