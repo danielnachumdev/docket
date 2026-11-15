@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities'
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from './Icon'
+import './SortableSiblingList.css'
 
 type ListProps = {
   ids: string[]

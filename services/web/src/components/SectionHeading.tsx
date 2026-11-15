@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import './SectionHeading.css'
 
 export function SectionHeading({
   title,

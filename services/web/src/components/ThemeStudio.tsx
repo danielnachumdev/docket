@@ -15,6 +15,7 @@ import {
   type ThemeTokenKey,
   type ThemeTokens,
 } from '../lib/themeTokens'
+import './ThemeStudio.css'
 
 function builtinLabel(
   id: BuiltinThemeId,
@@ -109,7 +110,7 @@ export function ThemeStudio() {
                 <Icon name={mode === 'light' ? 'sun' : 'moon'} size={14} />
               )}
               {builtinLabel(mode, t)}
-              <span className="theme-preset-badge">{t('auth:themeBuiltin')}</span>
+              <span className="tag caps">{t('auth:themeBuiltin')}</span>
             </button>
           ))}
           {customThemes.map((custom) => (
@@ -132,7 +133,7 @@ export function ThemeStudio() {
           ))}
           <button
             type="button"
-            className="theme-add-btn"
+            className="theme-add"
             onClick={() => addCustomTheme(theme)}
           >
             <Icon name="plus" size={14} />
@@ -145,7 +146,7 @@ export function ThemeStudio() {
 
       {editable && activeCustom ? (
         <div className="theme-custom-bar">
-          <label className="theme-name-field">
+          <label className="field theme-name-field">
             <span>{t('auth:themeName')}</span>
             <input
               type="text"
@@ -171,7 +172,7 @@ export function ThemeStudio() {
             </button>
             <button
               type="button"
-              className="btn ghost danger-text"
+              className="btn ghost danger"
               onClick={() => deleteCustomTheme(activeCustom.id)}
             >
               {t('auth:themeDelete')}

@@ -8,6 +8,7 @@ import { ArtifactMarkdownPreview } from './ArtifactMarkdownPreview'
 import { ArtifactPdfPreview } from './ArtifactPdfPreview'
 import { ArtifactPlainTextPreview } from './ArtifactPlainTextPreview'
 import { ArtifactVideoPreview } from './ArtifactVideoPreview'
+import './ArtifactFilePreview.css'
 
 type ArtifactLike = {
   id: number

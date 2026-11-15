@@ -6,6 +6,7 @@ import i18n from '../../i18n'
 import { userBidiAttrs } from '../../lib/bidi'
 import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
+import './ArtifactMarkdownPreview.css'
 
 type Props = {
   taskId: string

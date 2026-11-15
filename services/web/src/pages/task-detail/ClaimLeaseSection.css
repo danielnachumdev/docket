@@ -1,0 +1,23 @@
+.claim-section .card-header {
+  min-height: 1.5rem;
+}
+
+.claim-status {
+  margin: 0 0 0.55rem;
+}
+
+.claim-status p {
+  margin: 0 0 0.15rem;
+}
+
+.claim-status.only {
+  margin: 0;
+}
+
+.claim-timeline {
+  margin-top: 0.15rem;
+}
+
+.detail-side .claim-section .claim-timeline .event-body {
+  font-size: 0.8rem;
+}

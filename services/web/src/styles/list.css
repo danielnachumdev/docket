@@ -1,0 +1,84 @@
+.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list > li + li {
+  border-top: 1px solid var(--border);
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.55rem 0;
+  color: inherit;
+}
+
+a.list-row:hover {
+  color: inherit;
+}
+
+.list-row.link {
+  margin: 0 -0.5rem;
+  padding: 0.55rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.list-row.link:hover {
+  background: var(--surface-hover);
+}
+
+.list-row.closed .grow,
+.list-row.revoked .grow {
+  color: var(--muted);
+}
+
+.list-row.closed .grow {
+  text-decoration: line-through;
+  text-decoration-color: var(--border-strong);
+}
+
+.row-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.row-title {
+  display: block;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-row .meta-line {
+  margin-top: 0.1rem;
+}
+
+.card.list > .list-row {
+  padding-block: 0.7rem;
+}
+
+.row-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.card.list {
+  gap: 0;
+  padding-block: 0.25rem;
+  padding-inline: 1.1rem;
+}

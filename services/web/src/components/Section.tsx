@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from 'react'
 import { Icon, type IconName } from './Icon'
+import './Section.css'
 
 type Props = {
   icon: IconName

@@ -8,6 +8,7 @@ import { artifactKindIcon } from '../../lib/artifactMedia'
 import { userBidiAttrs } from '../../lib/bidi'
 import { useAction } from '../../lib/useAction'
 import { ArtifactRow } from './ArtifactRow'
+import './ArtifactsSection.css'
 
 const KINDS = ['text', 'link', 'file'] as const
 type Kind = (typeof KINDS)[number]

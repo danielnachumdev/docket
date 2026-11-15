@@ -1,0 +1,26 @@
+.section-plain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.section-plain .card-header {
+  min-height: auto;
+}
+
+.section-plain .card-header h2 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.card-collapsed-summary {
+  margin: 0;
+  padding-block: 0.1rem 0.15rem;
+}

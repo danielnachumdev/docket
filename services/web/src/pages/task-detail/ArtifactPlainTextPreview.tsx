@@ -3,6 +3,7 @@ import { api } from '../../api'
 import i18n from '../../i18n'
 import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
+import './ArtifactPlainTextPreview.css'
 
 type Props = {
   taskId: string

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { dueState, formatDateTime, formatRelative, priorityLabel, statusLabel } from '../lib/format'
 import { Icon } from './Icon'
+import './Badges.css'
 
 export function StatusBadge({ status }: { status: string }) {
   return (

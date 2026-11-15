@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { LOCALES, resolveLocaleCode } from '../i18n'
 import { usePreferences } from '../preferences'
+import './LanguageSwitcher.css'
 
 type Props = {
   className?: string

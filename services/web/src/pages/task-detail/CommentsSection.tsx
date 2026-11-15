@@ -27,6 +27,7 @@ import { userBidiAttrs } from '../../lib/bidi'
 import { useConfirm } from '../../lib/dialogs'
 import { formatDateTime, formatRelative } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
+import './CommentsSection.css'
 
 type TriggerKind = '@' | '#' | '&' | '~'
 
@@ -384,14 +385,14 @@ export function CommentsSection({
             </ul>
           )}
           <div className="inline-form">
-            <button type="submit" className="btn" disabled={busy || !body.trim()}>
+            <button type="submit" className="btn primary small" disabled={busy || !body.trim()}>
               <Icon name="plus" />
               {editingId != null ? t('commentSave') : t('commentSubmit')}
             </button>
             {editingId != null && (
               <button
                 type="button"
-                className="btn ghost"
+                className="btn ghost small"
                 disabled={busy}
                 onClick={() => {
                   setEditingId(null)

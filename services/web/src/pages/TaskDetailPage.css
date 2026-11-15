@@ -1,0 +1,324 @@
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.breadcrumb a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.breadcrumb a:hover {
+  color: var(--text);
+}
+
+.detail-header {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.detail-title-row .title-input {
+  flex: 1;
+}
+
+.title-input {
+  padding: 0.15rem 0.4rem;
+  margin: 0 -0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  resize: none;
+  field-sizing: content;
+}
+
+.title-input:hover {
+  border-color: var(--border);
+}
+
+.title-input:focus {
+  background: var(--surface);
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+}
+
+.detail-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  padding-top: 0.3rem;
+}
+
+.detail-grid {
+  --detail-rail-w: 22rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--detail-rail-w);
+  grid-template-areas: 'main rail';
+  align-items: stretch;
+  gap: 0;
+  /* Bleed the rail to the page edge so collapsed state is a full strip. */
+  margin-inline-end: calc(-1 * clamp(1.25rem, 2.2vw, 2.75rem));
+}
+
+.detail-grid.side-collapsed {
+  --detail-rail-w: 4rem;
+}
+
+.detail-main,
+.detail-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  min-width: 0;
+}
+
+.detail-main {
+  grid-area: main;
+  padding-inline-end: 1.25rem;
+}
+
+.detail-rail {
+  position: relative;
+  grid-area: rail;
+  align-self: stretch;
+  min-width: 0;
+  min-height: calc(100dvh - 1.75rem);
+  margin-block: -1.75rem -4rem;
+  border-inline-start: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.detail-rail-resize-handle {
+  position: absolute;
+  z-index: 3;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 0.45rem;
+  margin-inline-start: -0.22rem;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.detail-rail-resize-handle::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.detail-rail-resize-handle:hover::after,
+.detail-rail-resize-handle:focus-visible::after {
+  background: var(--accent);
+}
+
+.detail-rail-inner {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  padding: 1.75rem 0.85rem 1.25rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.detail-rail-chrome {
+  z-index: 2;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-width: 0;
+  margin-inline: -0.85rem;
+  margin-block-start: -0.35rem;
+  padding: 0.35rem 0.85rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.detail-rail-label {
+  min-width: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.detail-rail-toggle {
+  flex: none;
+}
+
+.detail-rail.collapsed .detail-rail-inner {
+  align-items: stretch;
+  padding-inline: 0.45rem;
+}
+
+.detail-rail.collapsed .detail-rail-chrome {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  margin-inline: -0.45rem;
+  padding-inline: 0.45rem;
+  border-bottom: none;
+}
+
+.detail-rail.collapsed .detail-rail-label {
+  display: none;
+}
+
+.detail-rail.collapsed .detail-rail-toggle {
+  width: 100%;
+  justify-content: center;
+}
+
+.detail-props,
+.detail-related {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.detail-side {
+  gap: 0;
+}
+
+.notes {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.notes textarea {
+  padding: 0.6rem 0.7rem;
+  border-color: transparent;
+  background: var(--surface-2);
+  font-size: 0.95rem;
+  field-sizing: content;
+  min-height: 6rem;
+}
+
+.notes textarea:focus {
+  background: var(--surface);
+}
+
+.do-today-btn {
+  justify-content: flex-start;
+  gap: 0.35rem;
+}
+
+.do-today-btn.active {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--accent-soft);
+}
+
+.btn.watching {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.detail-side .section-plain:not(:first-child) {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1100px) {
+  .detail-grid {
+    --detail-rail-w: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'rail'
+      'main';
+    row-gap: 1rem;
+    margin-inline-end: 0;
+  }
+
+  .detail-grid.side-collapsed {
+    --detail-rail-w: 4rem;
+    grid-template-columns: minmax(0, 1fr) var(--detail-rail-w);
+    grid-template-areas: 'main rail';
+    margin-inline-end: calc(-1 * var(--page-pad-x));
+  }
+
+  .detail-main {
+    padding-inline-end: 0;
+  }
+
+  .detail-grid.side-collapsed .detail-main {
+    padding-inline-end: 0.75rem;
+  }
+
+  .detail-rail:not(.collapsed) {
+    min-height: 0;
+    margin-block: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+
+  .detail-rail:not(.collapsed) .detail-rail-inner {
+    position: static;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    padding-top: 0.75rem;
+  }
+
+  .detail-rail-resize-handle {
+    display: none;
+  }
+
+  .detail-side {
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    column-gap: 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .title-input {
+    font-size: 1.35rem;
+  }
+
+  .detail-title-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+  }
+
+  .detail-actions {
+    justify-content: flex-end;
+    padding-top: 0;
+  }
+
+  .detail-side {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

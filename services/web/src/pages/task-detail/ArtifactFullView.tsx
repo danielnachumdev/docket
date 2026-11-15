@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../components/Icon'
+import './ArtifactFullView.css'
 
 type Props = {
   title: string

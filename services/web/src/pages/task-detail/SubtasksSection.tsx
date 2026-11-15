@@ -12,6 +12,7 @@ import { userBidiAttrs } from '../../lib/bidi'
 import { PRIORITIES, isClosed, priorityLabel } from '../../lib/format'
 import { ranksForOrder, reorderBodyAfterMove } from '../../lib/taskReorder'
 import { useAction } from '../../lib/useAction'
+import './SubtasksSection.css'
 
 type Props = {
   taskId: string

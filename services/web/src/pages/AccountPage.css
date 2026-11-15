@@ -1,0 +1,42 @@
+.account-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.account-identity .user-meta strong {
+  font-size: 1rem;
+}
+
+.pref-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.35rem 0;
+}
+
+.pref-row + .pref-row {
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.pref-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.pref-row .lang-switcher {
+  width: auto;
+}
+
+.pref-row .lang-select {
+  min-width: 9rem;
+}

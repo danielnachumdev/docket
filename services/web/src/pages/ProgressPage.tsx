@@ -4,6 +4,7 @@ import { api, type UserStats } from '../api'
 import { Alert, Skeleton } from '../components/Feedback'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeading } from '../components/SectionHeading'
+import { StatCard, StatGrid } from '../components/StatCard'
 import { formatDateTime } from '../lib/format'
 
 type WindowDays = 7 | 30
@@ -16,15 +17,6 @@ function formatDelta(n: number): string {
 function formatRate(rate: number | null, empty: string): string {
   if (rate == null) return empty
   return `${Math.round(rate * 100)}%`
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="stat">
-      <span className="muted small">{label}</span>
-      <strong>{value}</strong>
-    </div>
-  )
 }
 
 export function ProgressPage() {
@@ -80,26 +72,26 @@ export function ProgressPage() {
       ) : (
         <>
           <SectionHeading title={t('throughputTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('completed')} value={stats.throughput.completed} />
-            <Stat label={t('priorCompleted')} value={stats.throughput.prior_completed} />
-            <Stat label={t('delta')} value={formatDelta(stats.throughput.delta)} />
-          </div>
+          <StatGrid>
+            <StatCard label={t('completed')} value={stats.throughput.completed} />
+            <StatCard label={t('priorCompleted')} value={stats.throughput.prior_completed} />
+            <StatCard label={t('delta')} value={formatDelta(stats.throughput.delta)} />
+          </StatGrid>
 
           <SectionHeading title={t('completionTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('done')} value={stats.completion_rate.done} />
-            <Stat label={t('failedTerminal')} value={stats.completion_rate.failed} />
-            <Stat label={t('cancelled')} value={stats.completion_rate.cancelled} />
-            <Stat
+          <StatGrid>
+            <StatCard label={t('done')} value={stats.completion_rate.done} />
+            <StatCard label={t('failedTerminal')} value={stats.completion_rate.failed} />
+            <StatCard label={t('cancelled')} value={stats.completion_rate.cancelled} />
+            <StatCard
               label={t('rate')}
               value={formatRate(stats.completion_rate.rate, t('rateEmpty'))}
             />
-          </div>
+          </StatGrid>
 
           <SectionHeading title={t('cycleTitle')} />
-          <div className="stat-grid">
-            <Stat
+          <StatGrid>
+            <StatCard
               label={t('medianHours')}
               value={
                 stats.cycle_time.median_hours == null
@@ -107,67 +99,67 @@ export function ProgressPage() {
                   : stats.cycle_time.median_hours
               }
             />
-            <Stat label={t('sampleSize')} value={stats.cycle_time.sample_size} />
-          </div>
+            <StatCard label={t('sampleSize')} value={stats.cycle_time.sample_size} />
+          </StatGrid>
 
           <SectionHeading title={t('wipTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('open')} value={stats.wip.open} />
-            <Stat label={t('older7')} value={stats.wip.open_older_than_7d} />
-            <Stat label={t('older30')} value={stats.wip.open_older_than_30d} />
-          </div>
+          <StatGrid>
+            <StatCard label={t('open')} value={stats.wip.open} />
+            <StatCard label={t('older7')} value={stats.wip.open_older_than_7d} />
+            <StatCard label={t('older30')} value={stats.wip.open_older_than_30d} />
+          </StatGrid>
 
           <SectionHeading title={t('healthTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('blocked')} value={stats.blocked.count} />
-            <Stat label={t('failedNow')} value={stats.failed.count} />
-            <Stat label={t('failedInWindow')} value={stats.failed.in_window} />
-          </div>
+          <StatGrid>
+            <StatCard label={t('blocked')} value={stats.blocked.count} />
+            <StatCard label={t('failedNow')} value={stats.failed.count} />
+            <StatCard label={t('failedInWindow')} value={stats.failed.in_window} />
+          </StatGrid>
 
           <SectionHeading title={t('priorityTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('p1p2Open')} value={stats.priority.p1_p2_open} />
-            <Stat label={t('p1p2Done')} value={stats.priority.p1_p2_done_in_window} />
-          </div>
+          <StatGrid>
+            <StatCard label={t('p1p2Open')} value={stats.priority.p1_p2_open} />
+            <StatCard label={t('p1p2Done')} value={stats.priority.p1_p2_done_in_window} />
+          </StatGrid>
 
           <SectionHeading title={t('streakTitle')} />
-          <div className="stat-grid">
-            <Stat
+          <StatGrid>
+            <StatCard
               label={t('currentStreak')}
               value={t('days', { count: stats.streak.current_days })}
             />
-            <Stat
+            <StatCard
               label={t('activeDays')}
               value={t('days', { count: stats.streak.active_days_in_window })}
             />
-          </div>
+          </StatGrid>
 
           <SectionHeading title={t('actorTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('agentCompletions')} value={stats.actor_mix.agent_completions} />
-            <Stat label={t('humanCompletions')} value={stats.actor_mix.human_completions} />
-          </div>
+          <StatGrid>
+            <StatCard label={t('agentCompletions')} value={stats.actor_mix.agent_completions} />
+            <StatCard label={t('humanCompletions')} value={stats.actor_mix.human_completions} />
+          </StatGrid>
 
           <SectionHeading title={t('claimsTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('claimsActive')} value={stats.claims.active} />
-            <Stat label={t('claimsExpired')} value={stats.claims.expired} />
-          </div>
+          <StatGrid>
+            <StatCard label={t('claimsActive')} value={stats.claims.active} />
+            <StatCard label={t('claimsExpired')} value={stats.claims.expired} />
+          </StatGrid>
 
           <SectionHeading title={t('outcomesTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('withOutcome')} value={stats.outcomes.with_outcome} />
-            <Stat label={t('withoutOutcome')} value={stats.outcomes.without_outcome} />
-          </div>
+          <StatGrid>
+            <StatCard label={t('withOutcome')} value={stats.outcomes.with_outcome} />
+            <StatCard label={t('withoutOutcome')} value={stats.outcomes.without_outcome} />
+          </StatGrid>
 
           <SectionHeading title={t('sharedTitle')} />
-          <div className="stat-grid">
-            <Stat label={t('ownedCompletions')} value={stats.shared.owned_completions} />
-            <Stat
+          <StatGrid>
+            <StatCard label={t('ownedCompletions')} value={stats.shared.owned_completions} />
+            <StatCard
               label={t('sharedCompletions')}
               value={stats.shared.shared_with_me_completions}
             />
-          </div>
+          </StatGrid>
         </>
       )}
     </main>

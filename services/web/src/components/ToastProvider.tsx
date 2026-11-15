@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ToastContext, type ToastOptions } from '../lib/toast'
 import { Icon } from './Icon'
+import './ToastProvider.css'
 
 type Toast = ToastOptions & { id: number }
 

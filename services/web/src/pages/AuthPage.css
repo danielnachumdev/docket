@@ -1,0 +1,67 @@
+.auth-lang {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-lang .lang-select {
+  width: auto;
+  min-width: 8rem;
+}
+
+/* ---------- Auth ---------- */
+
+.auth-page {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 1.5rem;
+  background:
+    radial-gradient(60rem 30rem at 50% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    var(--bg);
+}
+
+.auth-card {
+  display: grid;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 24rem;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-header {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.auth-header .logo {
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 12px;
+}
+
+.auth-header h1 {
+  font-size: 1.4rem;
+}
+
+.auth-header p {
+  font-size: 0.9rem;
+}
+
+.auth-card .btn.primary {
+  height: 2.5rem;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .auth-card {
+    padding: 1.5rem;
+  }
+}

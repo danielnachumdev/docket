@@ -1,0 +1,20 @@
+.contact-row {
+  align-items: flex-start;
+}
+
+.nick-tag {
+  margin-top: 0.3rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--mono);
+}
+
+.contact-nick-form {
+  margin-top: 0.35rem;
+  max-width: 100%;
+}
+
+.contact-nick-form > input {
+  min-width: 0;
+  max-width: 12rem;
+}

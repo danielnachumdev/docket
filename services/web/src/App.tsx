@@ -18,7 +18,6 @@ import { TaskListPage } from './pages/TaskListPage'
 import { StoragePage } from './pages/StoragePage'
 import { TokensPage } from './pages/TokensPage'
 import { WebhooksPage } from './pages/WebhooksPage'
-import './App.css'
 
 function Shell() {
   const { status, loading, logout } = useAuth()

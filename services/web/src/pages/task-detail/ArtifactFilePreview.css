@@ -1,0 +1,23 @@
+.artifact-preview-frame {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.artifact-preview-frame .artifact-enlarge-btn {
+  position: absolute;
+  top: 0.35rem;
+  inset-inline-end: 0.35rem;
+  z-index: 1;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.artifact-preview-frame .artifact-enlarge-btn:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.artifact-preview-error {
+  margin: 0;
+}

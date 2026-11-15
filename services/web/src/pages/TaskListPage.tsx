@@ -33,6 +33,7 @@ import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
 import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
 import { TaskKanbanBoard } from './TaskKanbanBoard'
+import './TaskListPage.css'
 
 type StatusChip = 'active' | 'all' | (typeof STATUSES)[number]
 
@@ -83,12 +84,7 @@ function TaskRow({
   const dueToday = isOpenDueTodayOrEarlier(task.status, task.due_at)
   const isSelected = selected.has(task.id)
   const hasParent = parent != null
-  const rowClass = [
-    closed ? 'task-row closed' : 'task-row',
-    hasParent ? 'has-parent' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
+  const rowClass = closed ? 'task-row closed' : 'task-row'
 
   return (
     <SortableSiblingItem id={task.id}>

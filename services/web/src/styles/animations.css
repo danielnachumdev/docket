@@ -1,0 +1,45 @@
+@keyframes pop {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+@keyframes check-pop {
+  0% {
+    scale: 0.7;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--st-done) 45%, transparent);
+  }
+  60% {
+    scale: 1.15;
+  }
+  100% {
+    scale: 1;
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in-start {
+  from {
+    translate: -100% 0;
+  }
+}
+
+@keyframes slide-in-start-rtl {
+  from {
+    translate: 100% 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}

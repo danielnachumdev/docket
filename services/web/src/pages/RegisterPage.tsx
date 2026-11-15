@@ -7,6 +7,7 @@ import { Logo } from '../components/AppLayout'
 import { Alert, Skeleton } from '../components/Feedback'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { useAction } from '../lib/useAction'
+import './AuthPage.css'
 
 export function RegisterPage() {
   const { t } = useTranslation(['auth', 'common'])

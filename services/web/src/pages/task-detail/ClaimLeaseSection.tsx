@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { Task, TaskEvent } from '../../api'
 import { Section } from '../../components/Section'
 import { formatDateTime, formatRelative, parseDate } from '../../lib/format'
+import './ClaimLeaseSection.css'
 
 const CLAIM_EVENT_TYPES = new Set(['claimed', 'claim_renewed', 'released'])
 

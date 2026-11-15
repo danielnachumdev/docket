@@ -9,6 +9,7 @@ import { UserBidiText } from '../components/UserBidiText'
 import { formatDateTime, formatRelative, humanize } from '../lib/format'
 import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
+import './NotificationsPage.css'
 
 function notifyChanged() {
   window.dispatchEvent(new Event('waymark:notifications'))
@@ -92,7 +93,7 @@ export function NotificationsPage() {
             const inner = (
               <>
                 {unreadItem && <span className="unread-dot" aria-hidden="true" />}
-                <span className={`notif-kind kind-${n.kind}`}>
+                <span className={n.kind === 'mentioned' ? 'tag caps accent' : 'tag caps'}>
                   {t(`kind.${n.kind}`, { defaultValue: humanize(n.kind) })}
                 </span>
                 <span className="grow min-0">

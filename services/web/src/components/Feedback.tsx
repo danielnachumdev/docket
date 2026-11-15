@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon, type IconName } from './Icon'
+import './Feedback.css'
 
 export type Tone = 'danger' | 'warning' | 'info' | 'success'
 

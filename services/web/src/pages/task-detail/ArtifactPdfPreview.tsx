@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useArtifactObjectUrl } from '../../lib/useArtifactObjectUrl'
 import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
+import './ArtifactPdfPreview.css'
 
 type Props = {
   taskId: string
