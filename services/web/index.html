@@ -16,12 +16,13 @@
     <script>
       try {
         const saved = localStorage.getItem('waymark.theme')
-        document.documentElement.dataset.theme =
-          saved === 'light' || saved === 'dark'
-            ? saved
-            : matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light'
+        const builtins = ['light', 'dark', 'lilac', 'sage', 'sky', 'sand', 'dusk']
+        const theme = saved === 'pastel' ? 'lilac' : saved
+        document.documentElement.dataset.theme = builtins.includes(theme)
+          ? theme
+          : matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light'
         // Keep in sync with LOCALES dirs in src/i18n/locales.ts (avoids FOUC).
         const locale = localStorage.getItem('waymark.locale')
         const code = (locale || navigator.language || 'en').toLowerCase().split('-')[0]

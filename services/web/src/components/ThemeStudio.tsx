@@ -26,6 +26,7 @@ function builtinLabel(
   if (id === 'sage') return t('common:themeSage')
   if (id === 'sky') return t('common:themeSky')
   if (id === 'sand') return t('common:themeSand')
+  if (id === 'dusk') return t('common:themeDusk')
   return t('common:themeLight')
 }
 import { usePreferences } from '../preferences'

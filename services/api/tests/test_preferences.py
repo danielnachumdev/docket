@@ -153,7 +153,7 @@ def test_preferences_soft_builtins_and_pastel_alias() -> None:
     client = TestClient(create_app())
     bootstrap_owner(client)
 
-    for theme_id in ("lilac", "sage", "sky", "sand"):
+    for theme_id in ("lilac", "sage", "sky", "sand", "dusk"):
         res = client.patch("/api/me/preferences", json={"theme": theme_id})
         assert res.status_code == 200, res.text
         assert res.json()["theme"] == theme_id
