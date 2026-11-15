@@ -2343,8 +2343,10 @@ a.list-row:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--detail-rail-w);
   grid-template-areas: 'main rail';
-  align-items: start;
+  align-items: stretch;
   gap: 0;
+  /* Bleed the rail to the page edge so collapsed state is a full strip. */
+  margin-inline-end: calc(-1 * clamp(1.25rem, 2.2vw, 2.75rem));
 }
 
 .detail-grid.side-collapsed {
@@ -2367,9 +2369,12 @@ a.list-row:hover {
 .detail-rail {
   position: relative;
   grid-area: rail;
+  align-self: stretch;
+  min-width: 0;
+  min-height: calc(100dvh - 1.75rem);
+  margin-block: -1.75rem -4rem;
   border-inline-start: 1px solid var(--border);
   background: var(--surface);
-  min-width: 0;
 }
 
 .detail-rail-resize-handle {
@@ -2406,14 +2411,16 @@ a.list-row:hover {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  height: 100dvh;
+  min-height: 100dvh;
   max-height: 100dvh;
-  padding: 0 0.85rem 1.25rem;
+  padding: 1.75rem 0.85rem 1.25rem;
+  overflow-x: hidden;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .detail-rail-chrome {
-  position: sticky;
-  top: 0;
   z-index: 2;
   display: flex;
   flex-shrink: 0;
@@ -2422,7 +2429,8 @@ a.list-row:hover {
   gap: 0.35rem;
   min-width: 0;
   margin-inline: -0.85rem;
-  padding: 0.75rem 0.85rem;
+  margin-block-start: -0.35rem;
+  padding: 0.35rem 0.85rem 0.75rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
@@ -2444,6 +2452,7 @@ a.list-row:hover {
 
 .detail-rail.collapsed .detail-rail-chrome {
   flex-direction: column;
+  justify-content: flex-start;
   gap: 0.35rem;
   margin-inline: -0.45rem;
   padding-inline: 0.45rem;
@@ -2452,6 +2461,11 @@ a.list-row:hover {
 
 .detail-rail.collapsed .detail-rail-label {
   display: none;
+}
+
+.detail-rail.collapsed .detail-rail-toggle {
+  width: 100%;
+  justify-content: center;
 }
 
 .detail-props,
