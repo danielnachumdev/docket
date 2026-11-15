@@ -78,6 +78,24 @@ DEMO_TASKS: list[dict[str, Any]] = [
                     b"# Demo artifact\n\nFabricated file for screenshots.\n"
                 ).decode("ascii"),
             },
+            {
+                "kind": "file",
+                "title": "demo-task-notes.txt",
+                "content_type": "text/plain; charset=utf-8",
+                # Long lines + RTL mix to prove plain-text preview stays contained.
+                "content_base64": base64.b64encode(
+                    (
+                        "Task: shower cleanup (filtered text copy)\n"
+                        "Google Doc path: My Drive > instinct > tasks > "
+                        "demo-very-long-unbroken-token-"
+                        + ("x" * 120)
+                        + "\n"
+                        "משימה: ניקוי מקלחון — שורת טקסט ארוכה לבדיקת גלישה "
+                        "https://docs.example.com/demo/shower-cleanup-notes\n"
+                        "Created: 12.11.2024\n"
+                    ).encode("utf-8")
+                ).decode("ascii"),
+            },
         ],
         "share_with_invitee": True,
         "share_role": "editor",

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { UserBidiText } from '../../components/UserBidiText'
 import i18n from '../../i18n'
 import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
@@ -53,7 +52,10 @@ export function ArtifactPlainTextPreview({ taskId, artifactId, title }: Props) {
     <>
       <div className="artifact-preview-frame artifact-text-preview">
         <ArtifactEnlargeButton title={title} onClick={() => setFullView(true)} />
-        <UserBidiText text={state.text} as="pre" />
+        {/* dir=auto: avoid forcing rtl on mixed files — that lets long LTR runs blow the column. */}
+        <pre className="user-bidi" dir="auto">
+          {state.text}
+        </pre>
       </div>
       {fullView && (
         <ArtifactFullView
@@ -61,7 +63,9 @@ export function ArtifactPlainTextPreview({ taskId, artifactId, title }: Props) {
           onClose={() => setFullView(false)}
           bodyClassName="artifact-fullview-text"
         >
-          <UserBidiText text={state.text} as="pre" />
+          <pre className="user-bidi" dir="auto">
+            {state.text}
+          </pre>
         </ArtifactFullView>
       )}
     </>

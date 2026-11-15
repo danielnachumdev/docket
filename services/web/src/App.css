@@ -2329,6 +2329,11 @@ a.list-row:hover {
   cursor: progress;
 }
 
+.list > .artifact {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .artifact .list-row {
   align-items: center;
 }
@@ -2351,12 +2356,16 @@ a.list-row:hover {
 
 .artifact-body {
   margin-inline-start: 2.7rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .artifact-preview-frame {
   position: relative;
   width: fit-content;
   max-width: 100%;
+  min-width: 0;
 }
 
 .artifact-preview-frame .artifact-enlarge-btn {
@@ -2372,12 +2381,36 @@ a.list-row:hover {
   background: var(--surface);
 }
 
-.artifact-text-preview {
-  width: 100%;
+/* Override fit-content from .artifact-preview-frame. width:0 + min-width:100%
+   forces the frame to the column width so % max-width is definite and long
+   unbroken tokens wrap instead of expanding into the sidebar. */
+.artifact-preview-frame.artifact-text-preview {
+  display: block;
+  width: 0;
+  min-width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
 .artifact-text-preview pre {
-  margin-top: 0.4rem;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0.4rem 0 0;
+  max-height: 22rem;
+  padding: 0.65rem 0.75rem;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  box-sizing: border-box;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .artifact-preview-btn {
