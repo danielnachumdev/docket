@@ -3040,6 +3040,23 @@ details pre {
   margin-top: 0.15rem;
 }
 
+.detail-side .claim-section .claim-timeline .event-body {
+  font-size: 0.8rem;
+}
+
+.detail-side .activity-scroll {
+  max-height: 12rem;
+}
+
+.detail-side .actor-meta {
+  padding: 0.45rem 0.55rem;
+}
+
+.detail-side .actor-meta > div {
+  grid-template-columns: 4.5rem 1fr;
+  gap: 0.35rem;
+}
+
 /* ---------- Dialogs ---------- */
 
 body.dialog-open {
