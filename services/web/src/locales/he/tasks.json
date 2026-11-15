@@ -49,6 +49,7 @@
   "setStatusPlaceholder": "סטטוס…",
   "changeStatus": "שינוי סטטוס",
   "changeStatusNamed": "שינוי הסטטוס של „{{title}}”",
+  "statusReasonHint": "סיבה: {{reason}}",
   "setPriorityPlaceholder": "עדיפות…",
   "kanbanBoard": "לוח קנבן",
   "kanbanColumn": "עמודת {{status}}",

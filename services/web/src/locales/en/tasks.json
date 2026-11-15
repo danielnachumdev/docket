@@ -48,6 +48,7 @@
   "setStatusPlaceholder": "Status…",
   "changeStatus": "Change status",
   "changeStatusNamed": "Change status of “{{title}}”",
+  "statusReasonHint": "Reason: {{reason}}",
   "setPriorityPlaceholder": "Priority…",
   "kanbanBoard": "Kanban board",
   "kanbanColumn": "{{status}} column",

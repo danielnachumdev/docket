@@ -308,6 +308,33 @@
   flex: none;
 }
 
+/* Pause reason: only when the row is wide enough; ellipsis if still tight. */
+.status-reason {
+  display: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 14rem;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--st) 72%, var(--text-2));
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  .status-reason {
+    display: block;
+  }
+}
+
+@media (min-width: 1200px) {
+  .status-reason {
+    max-width: 20rem;
+  }
+}
+
 .task-row-end {
   display: flex;
   flex: none;

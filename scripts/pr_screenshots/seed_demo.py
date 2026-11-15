@@ -106,6 +106,15 @@ DEMO_TASKS: list[dict[str, Any]] = [
         "body": "Shows blocked status chip in the task list.",
         "priority": 1,
         "status": "blocked",
+        "status_reason": "Waiting on ACME API credentials",
+    },
+    {
+        "external_id": "demo:on-hold-budget",
+        "title": "On hold until budget review",
+        "body": "Shows on-hold status reason in the task list.",
+        "priority": 2,
+        "status": "on_hold",
+        "status_reason": "Paused until Q2 budget sign-off",
     },
     {
         "external_id": "demo:shared-review",
@@ -294,12 +303,14 @@ def ensure_task(
         payload["parent_task_id"] = parent_id
     task = client.request("POST", "/api/tasks", payload)
     desired = spec.get("status")
-    if desired and task.get("status") != desired:
-        client.request(
-            "POST",
-            f"/api/tasks/{task['id']}/status",
-            {"status": desired},
-        )
+    reason = spec.get("status_reason")
+    needs_status = desired and task.get("status") != desired
+    needs_reason = reason is not None and task.get("status_reason") != reason
+    if desired and (needs_status or needs_reason):
+        body: dict[str, Any] = {"status": desired}
+        if reason is not None:
+            body["reason"] = reason
+        client.request("POST", f"/api/tasks/{task['id']}/status", body)
         task = client.request("GET", f"/api/tasks/{task['id']}")["task"]
     return task
 
