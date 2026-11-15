@@ -331,16 +331,19 @@ class TaskService:
 
     def mark_read(self, principal: Principal, task_ref: str) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:read")
-        if task.unread:
+        if task.unread or task.unread_except_user_id is not None:
             task.unread = False
+            task.unread_except_user_id = None
             self._gateway.commit()
             self._gateway.refresh(task)
         return self._mapper.task_out(task, viewer_user_id=principal.user_id)
 
     def mark_unread(self, principal: Principal, task_ref: str) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:read")
-        if not task.unread:
+        # Forced visible to everyone including the acting user.
+        if not task.unread or task.unread_except_user_id is not None:
             task.unread = True
+            task.unread_except_user_id = None
             self._gateway.commit()
             self._gateway.refresh(task)
         return self._mapper.task_out(task, viewer_user_id=principal.user_id)
