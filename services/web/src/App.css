@@ -2123,6 +2123,47 @@ a.list-row:hover {
   flex: none;
 }
 
+.status-select {
+  position: relative;
+  gap: 0.3rem;
+  padding-inline-end: 0.4rem;
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+.status-select:hover {
+  background: color-mix(in srgb, var(--st) 22%, transparent);
+}
+
+.status-select:focus-within {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--st) 45%, transparent);
+}
+
+.status-select select {
+  width: auto;
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.status-select select:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.status-select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.status-select .icon {
+  opacity: 0.7;
+}
+
 /* ---------- Task detail ---------- */
 
 .breadcrumb {
@@ -3403,9 +3444,13 @@ fieldset.field > legend {
   }
 
   .hide-mobile,
-  .task-status,
+  .status-select .icon,
   .list-row .priority-badge {
     display: none;
+  }
+
+  .status-select {
+    padding-inline-end: 0.55rem;
   }
 
   .toolbar {

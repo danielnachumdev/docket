@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, type SavedView, type Task } from '../api'
 import { useAuth } from '../auth'
-import { DueBadge, PriorityBadge, StatusBadge } from '../components/Badges'
+import { DueBadge, PriorityBadge } from '../components/Badges'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
 import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
@@ -56,6 +56,7 @@ type RowProps = {
   childDone: number
   selected: Set<string>
   onToggleDone: (task: Task) => void
+  onStatusChange: (task: Task, status: Status) => void
   onToggleSelect: (id: string) => void
   onToggleUnread: (task: Task) => void
   onDoThisToday: (task: Task) => void
@@ -68,6 +69,7 @@ function TaskRow({
   childDone,
   selected,
   onToggleDone,
+  onStatusChange,
   onToggleSelect,
   onToggleUnread,
   onDoThisToday,
@@ -180,9 +182,24 @@ function TaskRow({
             >
               <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
             </button>
-            <span className="task-status">
-              <StatusBadge status={task.status} />
-            </span>
+            <label
+              className={`task-status status-badge status-select status-${task.status}`}
+              title={t('changeStatus')}
+            >
+              <span className="status-dot" aria-hidden="true" />
+              <select
+                value={task.status}
+                onChange={(e) => onStatusChange(task, e.target.value as Status)}
+                aria-label={t('changeStatusNamed', { title: task.title })}
+              >
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {statusLabel(s)}
+                  </option>
+                ))}
+              </select>
+              <Icon name="chevronDown" size={12} />
+            </label>
           </div>
         </li>
       )}
@@ -754,6 +771,7 @@ export function TaskListPage() {
                   childDone={kids.filter((k) => k.status === 'done').length}
                   selected={selected}
                   onToggleDone={toggleDone}
+                  onStatusChange={applyStatus}
                   onToggleSelect={toggleSelect}
                   onToggleUnread={toggleUnread}
                   onDoThisToday={doThisToday}
