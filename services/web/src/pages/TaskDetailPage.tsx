@@ -521,18 +521,6 @@ export function TaskDetailPage() {
 
       <div className={sideCollapsed ? 'detail-grid side-collapsed' : 'detail-grid'}>
         <div className="detail-main">
-          <div className="detail-main-toolbar">
-            <button
-              type="button"
-              className="icon-btn detail-side-toggle"
-              aria-label={sideCollapsed ? t('expandSide') : t('collapseSide')}
-              aria-expanded={!sideCollapsed}
-              title={sideCollapsed ? t('expandSide') : t('collapseSide')}
-              onClick={() => setSideCollapsed((v) => !v)}
-            >
-              <Icon name="columns" size={14} />
-            </button>
-          </div>
           <Section icon="text" title={t('notes')} headingId="notes-label">
             <div className="notes">
               <textarea
@@ -556,9 +544,33 @@ export function TaskDetailPage() {
           <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
         </div>
 
-        {!sideCollapsed && (
-          <>
-            <aside className="detail-side detail-props">
+        <aside
+          className={sideCollapsed ? 'detail-rail collapsed' : 'detail-rail'}
+          aria-label={t('details')}
+        >
+          <div className="detail-rail-inner">
+            <div className="detail-rail-top">
+              {!sideCollapsed && (
+                <span className="detail-rail-label muted small">{t('details')}</span>
+              )}
+              <button
+                type="button"
+                className="icon-btn detail-side-toggle"
+                aria-label={sideCollapsed ? t('expandSide') : t('collapseSide')}
+                aria-expanded={!sideCollapsed}
+                title={sideCollapsed ? t('expandSide') : t('collapseSide')}
+                onClick={() => setSideCollapsed((v) => !v)}
+              >
+                <Icon
+                  name={sideCollapsed ? 'chevronLeft' : 'arrowRight'}
+                  size={14}
+                  className="flip-rtl"
+                />
+              </button>
+            </div>
+            {!sideCollapsed && (
+              <>
+            <div className="detail-side detail-props">
               <Section icon="flag" title={t('status')} headingId="status-label">
                 <div className="status-picker" role="radiogroup" aria-labelledby="status-label">
                   {STATUSES.map((s) => (
@@ -680,9 +692,9 @@ export function TaskDetailPage() {
                 compact
               />
               <ClaimLeaseSection task={task} events={detail.events} />
-            </aside>
+            </div>
 
-            <aside className="detail-side detail-related">
+            <div className="detail-side detail-related">
               <LinksSection
                 taskId={taskId}
                 links={detail.links ?? []}
@@ -702,9 +714,11 @@ export function TaskDetailPage() {
                 actorName={actorName}
                 actorUserLabel={actorUserLabel}
               />
-            </aside>
-          </>
-        )}
+            </div>
+              </>
+            )}
+          </div>
+        </aside>
       </div>
 
       {completeOpen && (
