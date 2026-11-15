@@ -130,6 +130,23 @@
     "emptyUploadersHint": "Upload a file artifact on a task to see usage here.",
     "topTasksTitle": "Largest tasks",
     "task": "Task",
-    "emptyTopTasks": "No tasks with artifacts yet."
+    "emptyTopTasks": "No tasks with artifacts yet.",
+    "backupTitle": "Backup & restore",
+    "backupSubtitle": "Export or replace the full workspace (SQLite database and artifact blobs).",
+    "backupExport": "Export full backup",
+    "backupExportHint": "Downloads a zip with a consistent SQLite snapshot and file artifact bytes. Safe while the server is running.",
+    "backupExportFailed": "Could not export backup",
+    "backupExporting": "Exporting…",
+    "backupImportTitle": "Import / restore",
+    "backupImportWarning": "Restore replaces all instance data (database and artifact blobs in this backup). This cannot be undone. Prefer exporting a backup first.",
+    "backupImportConfirmLabel": "I understand this will permanently replace all workspace data",
+    "backupImportTypeLabel": "Type REPLACE to confirm",
+    "backupImportTypePlaceholder": "REPLACE",
+    "backupImportPick": "Choose backup zip",
+    "backupImportSubmit": "Restore full backup",
+    "backupImporting": "Restoring…",
+    "backupImportFailed": "Could not restore backup",
+    "backupImportSuccess": "Restored {{count}} artifact blobs ({{bytes}}) from backup {{when}}.",
+    "backupNoFile": "Choose a backup zip first"
   }
 }

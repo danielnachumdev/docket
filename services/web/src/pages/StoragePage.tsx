@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
@@ -9,13 +9,15 @@ import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeading } from '../components/SectionHeading'
 import { UserBidiText } from '../components/UserBidiText'
-import { formatBytes } from '../lib/format'
+import { formatBytes, formatDateTime } from '../lib/format'
+import { useToast } from '../lib/toast'
 
 type Props = {
   canAdmin?: boolean
 }
 
 const KIND_ICON: Record<string, IconName> = { file: 'file', link: 'link' }
+const CONFIRM_TOKEN = 'REPLACE'
 
 function kindLabel(kind: string) {
   const key = `storage.kindLabel.${kind}`
@@ -27,8 +29,16 @@ function kindLabel(kind: string) {
 
 export function StoragePage({ canAdmin = false }: Props) {
   const { t } = useTranslation(['integrations', 'common'])
+  const toast = useToast()
+  const fileRef = useRef<HTMLInputElement>(null)
   const [overview, setOverview] = useState<StorageOverview | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [understood, setUnderstood] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const load = useCallback(async () => {
     if (!canAdmin) {
@@ -47,11 +57,66 @@ export function StoragePage({ canAdmin = false }: Props) {
     `${t('storage.bytes')}: ${formatBytes(row.stored_bytes)}`,
   ]
 
+  async function onExport() {
+    setError(null)
+    setSuccess(null)
+    setExporting(true)
+    try {
+      await api.downloadAdminBackup()
+      toast(t('storage.backupExport'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('storage.backupExportFailed'))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function onImport() {
+    setError(null)
+    setSuccess(null)
+    if (!selectedFile) {
+      setError(t('storage.backupNoFile'))
+      return
+    }
+    setImporting(true)
+    try {
+      const result = await api.importAdminBackup(selectedFile, 'replace')
+      const message = t('storage.backupImportSuccess', {
+        count: result.artifacts_restored,
+        bytes: formatBytes(result.artifact_bytes),
+        when: formatDateTime(result.exported_at),
+      })
+      setSuccess(message)
+      toast(message)
+      setUnderstood(false)
+      setConfirmText('')
+      setSelectedFile(null)
+      if (fileRef.current) fileRef.current.value = ''
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('storage.backupImportFailed'))
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const canImport =
+    canAdmin &&
+    understood &&
+    confirmText.trim().toUpperCase() === CONFIRM_TOKEN &&
+    selectedFile != null &&
+    !importing
+
   return (
     <main className="page narrow">
       <PageHeader title={t('storage.title')} subtitle={t('storage.subtitle')} />
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
+      {success && (
+        <Alert tone="success" onDismiss={() => setSuccess(null)}>
+          {success}
+        </Alert>
+      )}
       {!canAdmin && <Alert tone="info">{t('storage.ownerOnlyHint')}</Alert>}
       {canAdmin && <Alert tone="info">{t('storage.sizeNote')}</Alert>}
 
@@ -69,6 +134,63 @@ export function StoragePage({ canAdmin = false }: Props) {
               <span className="muted small">{t('storage.totalBytes')}</span>
               <strong>{formatBytes(overview.stored_bytes)}</strong>
             </div>
+          </div>
+
+          <SectionHeading title={t('storage.backupTitle')} />
+          <p className="muted">{t('storage.backupSubtitle')}</p>
+          <div className="stack tight" style={{ marginBottom: '1.25rem' }}>
+            <p className="muted small">{t('storage.backupExportHint')}</p>
+            <button
+              type="button"
+              className="btn primary"
+              disabled={exporting || importing}
+              onClick={() => void onExport()}
+            >
+              {exporting ? t('storage.backupExporting') : t('storage.backupExport')}
+            </button>
+          </div>
+
+          <Alert tone="warning">{t('storage.backupImportWarning')}</Alert>
+          <div className="card create-form stack" style={{ marginTop: '0.75rem' }}>
+            <strong>{t('storage.backupImportTitle')}</strong>
+            <label className="field">
+              <span>{t('storage.backupImportPick')}</span>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".zip,application/zip"
+                disabled={importing}
+                onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={understood}
+                disabled={importing}
+                onChange={(e) => setUnderstood(e.target.checked)}
+              />
+              <span>{t('storage.backupImportConfirmLabel')}</span>
+            </label>
+            <label className="field">
+              <span>{t('storage.backupImportTypeLabel')}</span>
+              <input
+                type="text"
+                value={confirmText}
+                disabled={importing}
+                autoComplete="off"
+                placeholder={t('storage.backupImportTypePlaceholder')}
+                onChange={(e) => setConfirmText(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn danger-solid"
+              disabled={!canImport}
+              onClick={() => void onImport()}
+            >
+              {importing ? t('storage.backupImporting') : t('storage.backupImportSubmit')}
+            </button>
           </div>
 
           <SectionHeading title={t('storage.byKindTitle')} count={overview.by_kind.length} />
