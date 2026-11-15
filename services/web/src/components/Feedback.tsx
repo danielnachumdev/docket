@@ -63,17 +63,6 @@ export function EmptyState({
   )
 }
 
-export function Skeleton({ rows = 4 }: { rows?: number }) {
-  const { t } = useTranslation('common')
-  return (
-    <div className="skeleton-list" aria-busy="true" aria-label={t('loading')}>
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="skeleton-row" />
-      ))}
-    </div>
-  )
-}
-
 export function Spinner() {
   const { t } = useTranslation('common')
   return <span className="spinner" aria-label={t('loading')} />

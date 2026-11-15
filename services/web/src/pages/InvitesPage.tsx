@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type RegistrationInvite } from '../api'
-import { Alert, EmptyState, Skeleton } from '../components/Feedback'
+import { Alert, EmptyState } from '../components/Feedback'
+import { Skeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
 import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
@@ -110,7 +111,7 @@ export function InvitesPage({ canMint = false }: Props) {
       <SectionHeading title={t('invites.historyTitle')} count={invites?.length} />
 
       {invites == null ? (
-        <Skeleton rows={3} />
+        <Skeleton rows={3} trailing />
       ) : invites.length === 0 ? (
         <EmptyState icon="userPlus" title={t('invites.emptyTitle')}>
           {canMint ? t('invites.emptyHint') : t('invites.ownerOnlyHint')}

@@ -11,6 +11,8 @@ type Props = {
   onSchemaText: (value: string) => void
   recordedOutcome: string | null
   variant?: 'card' | 'plain'
+  /** Render as a disclosure; collapsed on first render when true. */
+  defaultCollapsed?: boolean
 }
 
 export function CompletionSection({
@@ -20,10 +22,25 @@ export function CompletionSection({
   onSchemaText,
   recordedOutcome,
   variant = 'card',
+  defaultCollapsed,
 }: Props) {
   const { t } = useTranslation('detail')
+  const summary = [
+    requireArtifact ? t('completion.summaryArtifact') : null,
+    schemaText.trim() ? t('completion.summarySchema') : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
   return (
-    <Section icon="target" title={t('completion.title')} className="stack" variant={variant}>
+    <Section
+      icon="target"
+      title={t('completion.title')}
+      className="stack"
+      variant={variant}
+      collapsible={defaultCollapsed != null}
+      defaultCollapsed={defaultCollapsed}
+      collapsedSummary={summary || null}
+    >
       <label className="switch">
         <input
           type="checkbox"

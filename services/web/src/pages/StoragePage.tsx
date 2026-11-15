@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
 import { api, type StorageOverview } from '../api'
-import { Alert, EmptyState, Skeleton } from '../components/Feedback'
+import { Alert, EmptyState } from '../components/Feedback'
+import { Skeleton, StatsSkeleton } from '../components/Skeleton'
 import { Icon, type IconName } from '../components/Icon'
 import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
@@ -124,7 +125,10 @@ export function StoragePage({ canAdmin = false }: Props) {
       {canAdmin && <Alert tone="info">{t('storage.sizeNote')}</Alert>}
 
       {!canAdmin ? null : overview == null ? (
-        <Skeleton rows={4} />
+        <>
+          <StatsSkeleton groups={1} perGroup={2} />
+          <Skeleton rows={3} />
+        </>
       ) : (
         <>
           <SectionHeading title={t('storage.totalsTitle')} />

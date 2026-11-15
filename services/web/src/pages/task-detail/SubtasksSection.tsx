@@ -20,6 +20,8 @@ type Props = {
   onChanged: () => Promise<void>
   compact?: boolean
   variant?: 'card' | 'plain'
+  /** Render as a disclosure; collapsed on first render when true. */
+  defaultCollapsed?: boolean
 }
 
 export function SubtasksSection({
@@ -28,6 +30,7 @@ export function SubtasksSection({
   onChanged,
   compact = false,
   variant = 'card',
+  defaultCollapsed,
 }: Props) {
   const { t } = useTranslation(['detail', 'common'])
   const [title, setTitle] = useState('')
@@ -81,6 +84,8 @@ export function SubtasksSection({
       icon="subtasks"
       title={t('subtasks.title')}
       variant={variant}
+      collapsible={defaultCollapsed != null}
+      defaultCollapsed={defaultCollapsed}
       className={compact ? 'subtasks-side' : undefined}
       action={
         rows.length > 0 && (

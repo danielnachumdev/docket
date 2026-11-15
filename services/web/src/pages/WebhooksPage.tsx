@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type Webhook } from '../api'
-import { Alert, EmptyState, Skeleton } from '../components/Feedback'
+import { Alert, EmptyState } from '../components/Feedback'
+import { Skeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
 import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
@@ -168,7 +169,7 @@ export function WebhooksPage() {
       <SectionHeading title={t('webhooks.listTitle')} count={hooks?.length} />
 
       {hooks == null ? (
-        <Skeleton rows={3} />
+        <Skeleton rows={3} trailing />
       ) : hooks.length === 0 ? (
         <EmptyState icon="webhook" title={t('webhooks.emptyTitle')}>
           {t('webhooks.emptyHint')}

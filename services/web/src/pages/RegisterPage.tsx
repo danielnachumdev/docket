@@ -4,7 +4,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { api, type InvitePreview } from '../api'
 import { Logo } from '../components/AppLayout'
-import { Alert, Skeleton } from '../components/Feedback'
+import { Alert } from '../components/Feedback'
+import { FormSkeleton } from '../components/Skeleton'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { useAction } from '../lib/useAction'
 import './AuthPage.css'
@@ -64,7 +65,7 @@ export function RegisterPage() {
         {loadError && <Alert>{loadError}</Alert>}
         {error && <Alert>{error}</Alert>}
 
-        {!loadError && !preview && <Skeleton rows={4} />}
+        {!loadError && !preview && <FormSkeleton fields={3} />}
 
         {preview && (
           <form className="stack" onSubmit={onSubmit}>

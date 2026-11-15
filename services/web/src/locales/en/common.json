@@ -44,5 +44,7 @@
   "bytes": {
     "zero": "0 B"
   },
-  "open": "Open"
+  "open": "Open",
+  "expandSection": "Expand {{title}}",
+  "collapseSection": "Collapse {{title}}"
 }

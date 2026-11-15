@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { api, type Notification } from '../api'
-import { Alert, EmptyState, Skeleton } from '../components/Feedback'
+import { Alert, EmptyState } from '../components/Feedback'
+import { Skeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
 import { UserBidiText } from '../components/UserBidiText'
@@ -72,7 +73,7 @@ export function NotificationsPage() {
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
       {rows == null ? (
-        !loadError && <Skeleton rows={5} />
+        !loadError && <Skeleton rows={5} leading="none" />
       ) : rows.length === 0 ? (
         <EmptyState
           icon="bell"
@@ -105,7 +106,7 @@ export function NotificationsPage() {
                     <UserBidiText text={n.body} className="muted small block clamp-2" />
                   )}
                 </span>
-                <span className="muted small nowrap" title={formatDateTime(n.created_at)}>
+                <span className="notif-time muted small nowrap" title={formatDateTime(n.created_at)}>
                   {formatRelative(n.created_at)}
                 </span>
               </>

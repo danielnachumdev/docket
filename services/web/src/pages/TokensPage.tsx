@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type ApiToken, type Role } from '../api'
-import { Alert, EmptyState, Skeleton } from '../components/Feedback'
+import { Alert, EmptyState } from '../components/Feedback'
+import { Skeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
 import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
@@ -130,7 +131,7 @@ export function TokensPage() {
       />
 
       {tokens == null ? (
-        <Skeleton rows={3} />
+        <Skeleton rows={3} trailing />
       ) : tokens.length === 0 ? (
         <EmptyState icon="key" title={t('tokens.emptyTitle')}>
           {t('tokens.emptyHint')}

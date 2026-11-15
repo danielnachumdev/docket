@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Icon, type IconName } from './Icon'
 import './Section.css'
 
@@ -33,6 +34,7 @@ export function Section({
   collapsedSummary,
   children,
 }: Props) {
+  const { t } = useTranslation('common')
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const bodyId = useId()
   const expanded = !collapsible || !collapsed
@@ -47,7 +49,11 @@ export function Section({
   return (
     <section className={root}>
       <header className="card-header">
-        <h2 id={headingId}>
+        <h2
+          id={headingId}
+          className={collapsible ? 'section-toggle-title' : undefined}
+          onClick={collapsible ? () => setCollapsed((v) => !v) : undefined}
+        >
           <Icon name={icon} />
           {title}
           {count != null && count > 0 && <span className="count">{count}</span>}
@@ -58,7 +64,11 @@ export function Section({
             <button
               type="button"
               className="icon-btn ghost expand"
-              aria-label={expanded ? (collapseLabel ?? 'Collapse') : (expandLabel ?? 'Expand')}
+              aria-label={
+                expanded
+                  ? (collapseLabel ?? t('collapseSection', { title }))
+                  : (expandLabel ?? t('expandSection', { title }))
+              }
               aria-expanded={expanded}
               aria-controls={bodyId}
               onClick={() => setCollapsed((v) => !v)}

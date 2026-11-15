@@ -308,6 +308,17 @@
   flex: none;
 }
 
+.task-row-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.select-mode-btn {
+  display: none;
+}
+
 .status-select {
   position: relative;
   gap: 0.3rem;
@@ -367,7 +378,54 @@
 
   .task-row {
     gap: 0.3rem;
-    padding-inline-end: 0.6rem;
+    padding-inline: 0.15rem 0.6rem;
+  }
+
+  .task-row .drag-handle {
+    width: 1.4rem;
+  }
+
+  /* Selection is an explicit mode on phones so idle rows keep their width. */
+  .select-bar {
+    justify-content: flex-end;
+    min-height: var(--control-h-sm);
+    margin-bottom: -0.5rem;
+    padding-inline-start: 0;
+  }
+
+  .select-bar.selecting {
+    justify-content: space-between;
+    padding-inline-start: calc(1px + 0.15rem + 1.4rem + 0.3rem);
+  }
+
+  .select-bar:not(.selecting) .select-all,
+  .task-tree:not(.selecting) .task-select,
+  .select-bar:not(.selecting):not(:has(.select-mode-btn)) {
+    display: none;
+  }
+
+  .select-mode-btn {
+    display: inline-flex;
+  }
+
+  .views-bar .save-view-btn {
+    margin-inline-start: -0.7rem;
+  }
+
+  .views-bar .select-mode-btn {
+    margin-inline-start: auto;
+  }
+
+  /* Status on top, parent chip under it: uses the row's two lines instead of
+     stealing title width. */
+  .task-row-end {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+  }
+
+  .task-row-end .task-status {
+    order: -1;
   }
 
   .task-title {

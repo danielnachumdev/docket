@@ -209,3 +209,33 @@
   max-width: 100%;
   overflow-x: auto;
 }
+
+/* Single-column cards on phones: a wide, shorter well avoids screens of empty preview. */
+@media (max-width: 640px) {
+  .artifact-body {
+    margin-inline-start: 0;
+  }
+
+  /* Rows with many actions (links) wrap them below instead of truncating the title. */
+  .artifact .list-row {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+
+  .artifact .list-row > .grow {
+    flex: 1 1 10rem;
+  }
+
+  .artifact .list-row > .row-actions {
+    margin-inline-start: auto;
+  }
+
+  .artifact-card .artifact-body:has(
+    .artifact-preview-btn,
+    .artifact-preview-frame,
+    .artifact-preview-audio,
+    .artifact-preview-error
+  ) {
+    aspect-ratio: 16 / 9;
+  }
+}

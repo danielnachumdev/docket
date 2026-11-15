@@ -63,33 +63,6 @@
   }
 }
 
-.skeleton-list {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.skeleton-row {
-  height: 3.5rem;
-  border-radius: var(--radius);
-  background: linear-gradient(
-    90deg,
-    var(--surface-2) 0%,
-    var(--surface-hover) 40%,
-    var(--surface-2) 80%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: -100% 0;
-  }
-}
-
 .spinner {
   width: 1.6rem;
   height: 1.6rem;

@@ -12,3 +12,12 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+/* The page grid gap already separates sections; keep heading and grid paired. */
+@media (max-width: 640px) {
+  .section-head {
+    min-height: 0;
+    margin-top: 0.35rem;
+    margin-bottom: -0.35rem;
+  }
+}
