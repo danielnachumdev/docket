@@ -554,12 +554,6 @@ export function TaskDetailPage() {
             onChanged={load}
           />
           <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
-          <ClaimLeaseSection task={task} events={detail.events} />
-          <ActivitySection
-            events={detail.events}
-            actorName={actorName}
-            actorUserLabel={actorUserLabel}
-          />
         </div>
 
         {!sideCollapsed && (
@@ -685,6 +679,7 @@ export function TaskDetailPage() {
                 onChanged={load}
                 compact
               />
+              <ClaimLeaseSection task={task} events={detail.events} />
             </aside>
 
             <aside className="detail-side detail-related">
@@ -701,6 +696,11 @@ export function TaskDetailPage() {
                 onRequireArtifact={(value) => update('requireArtifact', value)}
                 onSchemaText={(value) => update('outcomeSchema', value)}
                 recordedOutcome={task.outcome_json}
+              />
+              <ActivitySection
+                events={detail.events}
+                actorName={actorName}
+                actorUserLabel={actorUserLabel}
               />
             </aside>
           </>
