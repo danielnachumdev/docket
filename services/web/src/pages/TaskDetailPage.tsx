@@ -18,10 +18,12 @@ import {
   STATUSES,
   formatDateTime,
   formatRelative,
+  isClosed,
   parseDate,
   priorityLabel,
   statusLabel,
 } from '../lib/format'
+import { dueAtIsoForLocalEndOfDay, isOpenDueTodayOrEarlier } from '../lib/localDay'
 import { useAction } from '../lib/useAction'
 import { ActivitySection } from './task-detail/ActivitySection'
 import { ArtifactsSection } from './task-detail/ArtifactsSection'
@@ -303,6 +305,15 @@ export function TaskDetailPage() {
     }, t('errors.read'))
   }
 
+  function doThisToday() {
+    if (!detail || isClosed(detail.task.status)) return
+    void run(async () => {
+      await api.updateTask(taskId, { due_at: dueAtIsoForLocalEndOfDay() })
+      await load()
+      toast(t('doThisTodayToast'))
+    }, t('doThisTodayFailed'))
+  }
+
   async function remove() {
     if (!detail) return
     const ok = await confirm({
@@ -340,6 +351,7 @@ export function TaskDetailPage() {
   }
 
   const task = detail.task
+  const dueToday = isOpenDueTodayOrEarlier(task.status, task.due_at)
   const me = status?.user
   const isOwner = me?.id === task.owner_user_id
   const myShare = shares.find((s) => s.user_id === me?.id)
@@ -567,6 +579,19 @@ export function TaskDetailPage() {
                 )}
               </span>
             </label>
+            {!isClosed(task.status) && (
+              <button
+                type="button"
+                className={dueToday ? 'btn small do-today-btn active' : 'btn small do-today-btn'}
+                disabled={busy}
+                aria-pressed={dueToday}
+                title={dueToday ? t('doThisTodayDone') : t('doThisToday')}
+                onClick={doThisToday}
+              >
+                <Icon name="calendar" size={14} />
+                {dueToday ? t('doThisTodayDone') : t('doThisToday')}
+              </button>
+            )}
             <label className="field">
               <span>{t('parentTask')}</span>
               <select value={draft.parent} onChange={(e) => update('parent', e.target.value)}>
