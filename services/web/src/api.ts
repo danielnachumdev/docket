@@ -130,6 +130,28 @@ export type StorageOverview = {
   top_tasks: StorageTask[]
 }
 
+export type UserStats = {
+  window_days: number
+  generated_at: string
+  throughput: { completed: number; prior_completed: number; delta: number }
+  completion_rate: {
+    done: number
+    failed: number
+    cancelled: number
+    rate: number | null
+  }
+  cycle_time: { sample_size: number; median_hours: number | null }
+  wip: { open: number; open_older_than_7d: number; open_older_than_30d: number }
+  blocked: { count: number }
+  failed: { count: number; in_window: number }
+  priority: { p1_p2_open: number; p1_p2_done_in_window: number }
+  streak: { current_days: number; active_days_in_window: number }
+  actor_mix: { agent_completions: number; human_completions: number }
+  claims: { active: number; expired: number }
+  outcomes: { with_outcome: number; without_outcome: number }
+  shared: { owned_completions: number; shared_with_me_completions: number }
+}
+
 export type BackupImportResult = {
   exported_at: string
   artifacts_restored: number
@@ -364,6 +386,8 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+  getMyStats: (windowDays = 7) =>
+    request<UserStats>(`/api/me/stats?window_days=${windowDays}`),
   listContacts: (q?: string) => {
     const params = new URLSearchParams()
     if (q?.trim()) params.set('q', q.trim())

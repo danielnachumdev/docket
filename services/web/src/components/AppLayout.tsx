@@ -139,6 +139,7 @@ export function AppLayout({
         },
         page('/notifications', t('nav:inbox'), 'bell', unread),
         page('/artifacts', t('nav:artifacts'), 'paperclip'),
+        page('/progress', t('nav:progress'), 'activity'),
         {
           to: '/?view=archived',
           label: t('nav:archived'),

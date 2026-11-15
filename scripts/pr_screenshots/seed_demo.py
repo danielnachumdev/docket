@@ -103,6 +103,20 @@ DEMO_TASKS: list[dict[str, Any]] = [
         "priority": 4,
         "status": "done",
     },
+    {
+        "external_id": "demo:failed-retry",
+        "title": "Failed demo retry",
+        "body": "Failed status for Progress page stats screenshots.",
+        "priority": 2,
+        "status": "failed",
+    },
+    {
+        "external_id": "demo:done-priority",
+        "title": "Shipped P1 demo milestone",
+        "body": "High-priority completion for Progress throughput.",
+        "priority": 1,
+        "status": "done",
+    },
 ]
 
 
