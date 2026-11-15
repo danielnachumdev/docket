@@ -1,0 +1,176 @@
+/* ---------- Utilities ---------- */
+
+/* User-authored text: isolate from chrome; mixed strings use dir=rtl for word
+   order while CSS keeps justification aligned to the UI locale (html[dir]). */
+.user-bidi {
+  unicode-bidi: isolate;
+}
+
+html[dir='ltr'] .user-bidi-mixed {
+  text-align: left;
+}
+
+html[dir='rtl'] .user-bidi-mixed {
+  text-align: right;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.8em;
+}
+
+.block {
+  display: block;
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.min-0 {
+  min-width: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.break {
+  overflow-wrap: anywhere;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.icon {
+  flex: none;
+}
+
+[dir='rtl'] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Inline metadata separated by middle dots; wraps cleanly on narrow screens. */
+.meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.5rem;
+  min-width: 0;
+}
+
+.meta-line > * + *::before {
+  content: '·';
+  margin-inline-end: 0.5rem;
+  color: var(--border-strong);
+}
+
+.status-backlog {
+  --st: var(--st-backlog);
+}
+.status-in_progress {
+  --st: var(--st-in_progress);
+}
+.status-blocked {
+  --st: var(--st-blocked);
+}
+.status-on_hold {
+  --st: var(--st-on_hold);
+}
+.status-failed {
+  --st: var(--st-failed);
+}
+.status-done {
+  --st: var(--st-done);
+}
+.status-cancelled {
+  --st: var(--st-cancelled);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actions.end {
+  justify-content: flex-end;
+}
+
+/* Tone palette shared by alerts and toasts. */
+.tone-danger {
+  --tone: var(--danger);
+  --tone-soft: var(--danger-soft);
+}
+
+.tone-warning {
+  --tone: var(--warning);
+  --tone-soft: var(--warning-soft);
+}
+
+.tone-info {
+  --tone: var(--accent);
+  --tone-soft: var(--accent-soft);
+}
+
+.tone-success {
+  --tone: var(--success);
+  --tone-soft: var(--success-soft);
+}
+
+.danger-text {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.88rem;
+}
+
+.meta-line .danger-text {
+  font-size: inherit;
+}
+
+.strong-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.strong-link:hover {
+  text-decoration: underline;
+}
+
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .hide-mobile {
+    display: none;
+  }
+}

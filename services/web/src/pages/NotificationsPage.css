@@ -1,0 +1,57 @@
+.notification-list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  list-style: none;
+}
+
+.notification-row + .notification-row {
+  border-top: 1px solid var(--border);
+}
+
+.notification-row.unread {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+/* Unread dot sits in a reserved gutter so kind tags align on read rows too. */
+.notification-link {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 0.75rem 1.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.notification-link {
+  transition: background 0.12s;
+}
+
+a.notification-link:hover {
+  color: inherit;
+  background: var(--surface-hover);
+}
+
+.notification-row.unread a.notification-link:hover {
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface));
+}
+
+.notification-link .unread-dot {
+  position: absolute;
+  top: 1.2rem;
+  inset-inline-start: 0.75rem;
+}
+
+.notification-link .tag {
+  flex: none;
+  margin-top: 0.15rem;
+}
+
+.notif-title.unread {
+  font-weight: 600;
+}

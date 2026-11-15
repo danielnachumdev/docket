@@ -19,6 +19,7 @@ import type { Task } from '../api'
 import { DueBadge, PriorityBadge } from '../components/Badges'
 import { UserBidiText } from '../components/UserBidiText'
 import { STATUSES, isClosed, statusLabel, type Status } from '../lib/format'
+import './TaskKanbanBoard.css'
 
 type Props = {
   tasks: Task[]

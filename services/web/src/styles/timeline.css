@@ -1,0 +1,71 @@
+.timeline {
+  position: relative;
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  inset-inline-start: 0.3rem;
+  border-inline-start: 1.5px solid var(--border);
+}
+
+.event {
+  position: relative;
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.35rem 0;
+}
+
+.event-dot {
+  position: relative;
+  flex: none;
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-top: 0.4rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--border-strong);
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.event-created .event-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.event-status_changed .event-dot {
+  background: var(--st-in_progress);
+  box-shadow: 0 0 0 1px var(--st-in_progress);
+}
+
+.event-claimed .event-dot,
+.event-claim_renewed .event-dot {
+  background: var(--st-blocked);
+  box-shadow: 0 0 0 1px var(--st-blocked);
+}
+
+.event-released .event-dot {
+  background: var(--muted);
+  box-shadow: 0 0 0 1px var(--muted);
+}
+
+.event-body {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  font-size: 0.88rem;
+}
+
+.event-body strong {
+  font-weight: 600;
+}
+
+.event-body details {
+  margin: 0 0 0.6rem;
+}

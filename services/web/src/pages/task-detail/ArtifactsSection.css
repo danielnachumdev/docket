@@ -1,0 +1,9 @@
+.artifact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12.75rem, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  align-items: stretch;
+}

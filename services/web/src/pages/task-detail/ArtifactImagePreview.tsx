@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useArtifactObjectUrl } from '../../lib/useArtifactObjectUrl'
 import { ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
+import './ArtifactImagePreview.css'
 
 type Props = {
   taskId: string

@@ -1,0 +1,7 @@
+.lang-switcher {
+  display: block;
+}
+
+.lang-switcher .lang-select {
+  width: 100%;
+}

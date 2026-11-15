@@ -5,6 +5,7 @@ import type { TaskEvent } from '../../api'
 import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
+import './ActivitySection.css'
 
 type Payload = Record<string, unknown>
 

@@ -9,6 +9,7 @@ import { useConfirm } from '../../lib/dialogs'
 import { formatBytes, formatDateTime, formatRelative, humanize } from '../../lib/format'
 import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { ArtifactFilePreview } from './ArtifactFilePreview'
+import './ArtifactRow.css'
 
 function isUrl(value: string | null) {
   return value != null && /^https?:\/\//i.test(value.trim())
@@ -204,7 +205,6 @@ export function ArtifactRow({
             <UserBidiText text={a.title} as="strong" className="truncate block" />
             {meta}
           </div>
-          {actions}
         </div>
       ) : (
         <div className="list-row">
@@ -219,13 +219,12 @@ export function ArtifactRow({
         </div>
       )}
       {showTextBody && a.content_text && (
-        <details className="artifact-body">
-          <summary>{t('showContent')}</summary>
+        <div className="artifact-body">
           <div className="artifact-preview-frame artifact-text-preview">
             <ArtifactEnlargeButton title={a.title} onClick={() => setTextFullView(true)} />
             <UserBidiText text={a.content_text} as="pre" />
           </div>
-        </details>
+        </div>
       )}
       {isLink && a.content_text && !isUrl(a.content_text) && (
         <UserBidiText
@@ -235,6 +234,7 @@ export function ArtifactRow({
         />
       )}
       <ArtifactFilePreview taskId={a.task_id} artifact={a} />
+      {isGrid && actions}
       {textFullView && a.content_text && (
         <ArtifactFullView
           title={a.title}

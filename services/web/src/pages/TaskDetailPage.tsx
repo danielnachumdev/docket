@@ -42,6 +42,7 @@ import { CompletionSection } from './task-detail/CompletionSection'
 import { LinksSection } from './task-detail/LinksSection'
 import { SharingSection } from './task-detail/SharingSection'
 import { SubtasksSection } from './task-detail/SubtasksSection'
+import './TaskDetailPage.css'
 
 type Draft = {
   title: string

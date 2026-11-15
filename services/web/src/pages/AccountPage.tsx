@@ -11,6 +11,7 @@ import { ThemeStudio } from '../components/ThemeStudio'
 import { initials } from '../lib/format'
 import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
+import './AccountPage.css'
 
 export function AccountPage() {
   const { t } = useTranslation(['auth', 'common'])
@@ -41,12 +42,12 @@ export function AccountPage() {
   }
 
   return (
-    <main className="page account-page">
+    <main className="page narrow">
       <PageHeader title={t('common:account')} subtitle={t('auth:accountSubtitle')} />
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
-      <Section icon="users" title={t('auth:profile')}>
+      <Section icon="user" title={t('auth:profile')}>
         <form className="stack" onSubmit={onSubmit}>
           <div className="account-identity">
             <span className="avatar large" aria-hidden="true">
@@ -102,7 +103,7 @@ export function AccountPage() {
         </div>
       </Section>
 
-      <Section icon="sliders" title={t('auth:themeStudio')}>
+      <Section icon="palette" title={t('auth:themeStudio')}>
         <ThemeStudio />
       </Section>
     </main>

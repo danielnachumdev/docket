@@ -47,7 +47,6 @@
   "urlPlaceholder": "https://example.com/…",
   "content": "Content",
   "contentPlaceholder": "Notes, logs, summaries…",
-  "showContent": "Show content",
   "openNamed": "Open {{title}}",
   "openLink": "Open link",
   "downloadNamed": "Download {{title}}",

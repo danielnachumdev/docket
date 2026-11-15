@@ -7,6 +7,7 @@ import type { ColorScheme } from '../lib/theme'
 import { AppVersion, useAppVersion } from './AppVersion'
 import { Icon } from './Icon'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import './ProfileMenu.css'
 
 type Props = {
   user: User

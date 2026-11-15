@@ -1,0 +1,337 @@
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  inset-inline-start: 0.75rem;
+  z-index: 100;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  transform: translateY(-200%);
+  transition: transform 0.15s;
+}
+
+.skip-link:focus {
+  color: var(--accent-text);
+  transform: none;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand:hover {
+  color: var(--text);
+}
+
+.sidebar {
+  border-inline-end: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.sidebar-inner {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: 100dvh;
+  padding: 1.1rem 0.75rem;
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.sidebar-top .brand {
+  min-width: 0;
+}
+
+.sidebar-toggle {
+  flex: none;
+}
+
+.sidebar .brand {
+  padding: 0 0.5rem;
+}
+
+.layout.nav-collapsed {
+  --sidebar-w: 4rem;
+}
+
+.layout.nav-collapsed .sidebar-inner {
+  padding-inline: 0.45rem;
+  align-items: stretch;
+}
+
+.layout.nav-collapsed .sidebar-top {
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.layout.nav-collapsed .sidebar .brand span,
+.layout.nav-collapsed .nav-group-label,
+.layout.nav-collapsed .nav-label,
+.layout.nav-collapsed .nav-count {
+  display: none;
+}
+
+.layout.nav-collapsed .nav-item {
+  justify-content: center;
+  padding-inline: 0.45rem;
+}
+
+.layout.nav-collapsed .nav-icon-wrap {
+  margin: 0;
+}
+
+.layout.nav-collapsed .sidebar-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.layout.nav-collapsed .profile-menu.with-identity {
+  width: auto;
+}
+
+.nav {
+  display: grid;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.sidebar .nav {
+  gap: 1.1rem;
+}
+
+.nav-group {
+  display: grid;
+  gap: 2px;
+}
+
+.nav-group-label {
+  padding: 0 0.65rem 0.3rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.65rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.nav-item.active {
+  position: relative;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar .nav-item.active::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.45rem;
+  inset-inline-start: -0.75rem;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  animation: fade 0.2s ease-out;
+}
+
+[dir='rtl'] .sidebar .nav-item.active::before {
+  border-radius: 3px 0 0 3px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 0.6rem 0 0;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- Mobile hamburger drawer ---------- */
+
+.drawer-nav {
+  display: grid;
+  gap: 1.1rem;
+  padding: 0.5rem 0;
+}
+
+.drawer-nav .nav-item {
+  padding: 0.7rem 0.65rem;
+  font-size: 0.95rem;
+}
+
+.mobile-bar-start {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.mobile-bar-start .brand {
+  min-width: 0;
+}
+
+.mobile-bar,
+.tabbar {
+  display: none;
+}
+
+.content {
+  min-width: 0;
+}
+
+.nav-icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.nav-badge {
+  position: absolute;
+  top: -0.35rem;
+  inset-inline-end: -0.55rem;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+  display: none;
+}
+
+.nav-count {
+  min-width: 1.35rem;
+  margin-inline-start: auto;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabbar .nav-badge {
+  display: block;
+}
+
+/* Visually hidden on the tabbar (icon badge shows instead) but kept for screen readers. */
+.tabbar .nav-count {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+@media (max-width: 900px) {
+  :root {
+    --sidebar-w: 0px;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .layout {
+    display: block;
+  }
+
+  .content {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  .mobile-bar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    height: 3.5rem;
+    padding: 0 0.75rem 0 1rem;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+    backdrop-filter: saturate(1.6) blur(12px);
+  }
+
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(1.6) blur(12px);
+  }
+
+  .tabbar .nav-item {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: 0;
+    min-height: 3rem;
+    padding: 0.35rem 0.25rem;
+    font-size: 0.72rem;
+  }
+
+  .tabbar .nav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tabbar .nav-item.active {
+    background: transparent;
+  }
+
+  .tabbar .nav-item.active .icon {
+    animation: check-pop 0.3s ease-out;
+  }
+}

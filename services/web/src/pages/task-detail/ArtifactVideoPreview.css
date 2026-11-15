@@ -1,0 +1,7 @@
+.artifact-preview-video {
+  display: block;
+  max-width: min(100%, 36rem);
+  max-height: 20rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}

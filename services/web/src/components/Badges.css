@@ -1,0 +1,91 @@
+/* ---------- Badges ---------- */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--st) 13%, transparent);
+  color: color-mix(in srgb, var(--st) 75%, var(--text));
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--st);
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.priority-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 0.7rem;
+}
+
+.priority-bars i {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--border-strong);
+}
+
+.priority-bars i:nth-child(1) {
+  height: 40%;
+}
+.priority-bars i:nth-child(2) {
+  height: 70%;
+}
+.priority-bars i:nth-child(3) {
+  height: 100%;
+}
+
+.p1 {
+  color: var(--p1);
+}
+.p1 .priority-bars i {
+  background: var(--p1);
+}
+.p2 .priority-bars i:nth-child(-n + 2) {
+  background: var(--p2);
+}
+.p3 .priority-bars i:nth-child(1) {
+  background: var(--p3);
+}
+.p4 .priority-bars i {
+  background: var(--border);
+}
+
+.due-badge,
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.due-badge.due-overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.due-badge.due-soon {
+  color: var(--warning);
+  font-weight: 600;
+}

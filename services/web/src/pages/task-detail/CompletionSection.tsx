@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Section } from '../../components/Section'
 import { UserBidiText } from '../../components/UserBidiText'
 import { userBidiAttrs } from '../../lib/bidi'
+import './CompletionSection.css'
 
 type Props = {
   requireArtifact: boolean

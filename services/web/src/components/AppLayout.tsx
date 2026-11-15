@@ -7,6 +7,7 @@ import { Dialog } from './Dialog'
 import waymarkIcon from '../assets/waymark-icon.svg'
 import { Icon, type IconName } from './Icon'
 import { ProfileMenu } from './ProfileMenu'
+import './AppLayout.css'
 
 type NavItem = {
   to: string

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Icon, type IconName } from './Icon'
+import './Menu.css'
 
 export type MenuItem = {
   label: string

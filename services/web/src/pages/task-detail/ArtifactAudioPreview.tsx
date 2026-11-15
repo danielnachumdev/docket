@@ -1,5 +1,6 @@
 import { useArtifactObjectUrl } from '../../lib/useArtifactObjectUrl'
 import { PreviewLoading } from './PreviewLoading'
+import './ArtifactAudioPreview.css'
 
 type Props = {
   taskId: string

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type VersionStatus } from '../api'
+import './AppVersion.css'
 
 export function useAppVersion(): VersionStatus | null {
   const [info, setInfo] = useState<VersionStatus | null>(null)

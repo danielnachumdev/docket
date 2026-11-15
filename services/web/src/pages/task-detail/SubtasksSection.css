@@ -1,0 +1,52 @@
+.progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 550;
+}
+
+.progress-track {
+  width: 4.5rem;
+  height: 0.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--st-done);
+  transition: width 0.3s;
+}
+
+.subtask-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.subtasks-side .inline-form {
+  flex-wrap: wrap;
+}
+
+.subtasks-side .list-row {
+  padding-block: 0.4rem;
+  gap: 0.45rem;
+}
+
+.subtasks-side .subtask-link {
+  gap: 0.45rem;
+}
+
+@media (max-width: 640px) {
+  .list-row .priority-badge {
+    display: none;
+  }
+}

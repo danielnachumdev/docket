@@ -18,6 +18,7 @@ import {
 import { useAction } from '../lib/useAction'
 import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
 import { ArtifactRow } from './task-detail/ArtifactRow'
+import './ArtifactsPage.css'
 
 const PAGE_SIZE = 20
 const SEARCH_DEBOUNCE_MS = 300

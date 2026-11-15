@@ -1,0 +1,16 @@
+/* Global layer: theme tokens, element defaults, and shared primitives.
+   Component- and page-specific rules live next to their .tsx file. */
+@import './tokens.css';
+@import './base.css';
+@import './animations.css';
+@import './utilities.css';
+@import './card.css';
+@import './list.css';
+@import './buttons.css';
+@import './forms.css';
+@import './chips.css';
+@import './toolbar.css';
+@import './avatar.css';
+@import './page.css';
+@import './timeline.css';
+@import './floating-bar.css';

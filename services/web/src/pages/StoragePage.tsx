@@ -4,13 +4,16 @@ import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
 import { api, type StorageOverview } from '../api'
 import { Alert, EmptyState, Skeleton } from '../components/Feedback'
-import type { IconName } from '../components/Icon'
+import { Icon, type IconName } from '../components/Icon'
 import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
+import { Section } from '../components/Section'
 import { SectionHeading } from '../components/SectionHeading'
+import { StatCard, StatGrid } from '../components/StatCard'
 import { UserBidiText } from '../components/UserBidiText'
 import { formatBytes, formatDateTime } from '../lib/format'
 import { useToast } from '../lib/toast'
+import './StoragePage.css'
 
 type Props = {
   canAdmin?: boolean
@@ -125,73 +128,74 @@ export function StoragePage({ canAdmin = false }: Props) {
       ) : (
         <>
           <SectionHeading title={t('storage.totalsTitle')} />
-          <div className="stat-grid">
-            <div className="stat">
-              <span className="muted small">{t('storage.totalArtifacts')}</span>
-              <strong>{overview.artifact_count}</strong>
-            </div>
-            <div className="stat">
-              <span className="muted small">{t('storage.totalBytes')}</span>
-              <strong>{formatBytes(overview.stored_bytes)}</strong>
-            </div>
-          </div>
+          <StatGrid>
+            <StatCard label={t('storage.totalArtifacts')} value={overview.artifact_count} />
+            <StatCard label={t('storage.totalBytes')} value={formatBytes(overview.stored_bytes)} />
+          </StatGrid>
 
-          <SectionHeading title={t('storage.backupTitle')} />
-          <p className="muted">{t('storage.backupSubtitle')}</p>
-          <div className="stack tight" style={{ marginBottom: '1.25rem' }}>
-            <p className="muted small">{t('storage.backupExportHint')}</p>
-            <button
-              type="button"
-              className="btn primary"
-              disabled={exporting || importing}
-              onClick={() => void onExport()}
-            >
-              {exporting ? t('storage.backupExporting') : t('storage.backupExport')}
-            </button>
-          </div>
+          <Section icon="database" title={t('storage.backupTitle')}>
+            <p className="muted small">{t('storage.backupSubtitle')}</p>
+            <div className="backup-row">
+              <div className="min-0">
+                <strong className="block">{t('storage.backupExport')}</strong>
+                <span className="muted small">{t('storage.backupExportHint')}</span>
+              </div>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={exporting || importing}
+                onClick={() => void onExport()}
+              >
+                <Icon name="download" />
+                {exporting ? t('storage.backupExporting') : t('storage.backupExport')}
+              </button>
+            </div>
 
-          <Alert tone="warning">{t('storage.backupImportWarning')}</Alert>
-          <div className="card create-form stack" style={{ marginTop: '0.75rem' }}>
-            <strong>{t('storage.backupImportTitle')}</strong>
-            <label className="field">
-              <span>{t('storage.backupImportPick')}</span>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".zip,application/zip"
-                disabled={importing}
-                onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-              <input
-                type="checkbox"
-                checked={understood}
-                disabled={importing}
-                onChange={(e) => setUnderstood(e.target.checked)}
-              />
-              <span>{t('storage.backupImportConfirmLabel')}</span>
-            </label>
-            <label className="field">
-              <span>{t('storage.backupImportTypeLabel')}</span>
-              <input
-                type="text"
-                value={confirmText}
-                disabled={importing}
-                autoComplete="off"
-                placeholder={t('storage.backupImportTypePlaceholder')}
-                onChange={(e) => setConfirmText(e.target.value)}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn danger-solid"
-              disabled={!canImport}
-              onClick={() => void onImport()}
-            >
-              {importing ? t('storage.backupImporting') : t('storage.backupImportSubmit')}
-            </button>
-          </div>
+            <div className="backup-restore stack">
+              <strong>{t('storage.backupImportTitle')}</strong>
+              <Alert tone="warning">{t('storage.backupImportWarning')}</Alert>
+              <label className="field">
+                <span>{t('storage.backupImportPick')}</span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".zip,application/zip"
+                  disabled={importing}
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              <label className="field">
+                <span>{t('storage.backupImportTypeLabel')}</span>
+                <input
+                  type="text"
+                  value={confirmText}
+                  disabled={importing}
+                  autoComplete="off"
+                  placeholder={t('storage.backupImportTypePlaceholder')}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                />
+              </label>
+              <label className="check-field">
+                <input
+                  type="checkbox"
+                  checked={understood}
+                  disabled={importing}
+                  onChange={(e) => setUnderstood(e.target.checked)}
+                />
+                <span>{t('storage.backupImportConfirmLabel')}</span>
+              </label>
+              <div className="actions end">
+                <button
+                  type="button"
+                  className="btn danger-solid"
+                  disabled={!canImport}
+                  onClick={() => void onImport()}
+                >
+                  {importing ? t('storage.backupImporting') : t('storage.backupImportSubmit')}
+                </button>
+              </div>
+            </div>
+          </Section>
 
           <SectionHeading title={t('storage.byKindTitle')} count={overview.by_kind.length} />
           {overview.by_kind.length === 0 ? (

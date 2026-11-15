@@ -1,0 +1,31 @@
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.page-header p {
+  max-width: 44rem;
+  margin-top: 0.25rem;
+}
+
+.page-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .page-header .segmented {
+    width: 100%;
+  }
+
+  .page-header .segmented button {
+    flex: 1;
+    justify-content: center;
+  }
+}

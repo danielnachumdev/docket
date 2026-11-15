@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { usePageTitle } from '../lib/usePageTitle'
+import './PageHeader.css'
 
 type Props = {
   title: string

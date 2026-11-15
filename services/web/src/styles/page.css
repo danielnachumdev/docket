@@ -1,0 +1,38 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 1rem;
+  width: 100%;
+  max-width: min(100%, var(--page-max));
+  padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom);
+  animation: page-in 0.22s ease-out;
+}
+
+/* Opacity only: a transform would re-anchor the fixed savebar/bulkbar mid-animation. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Settings / list pages: a readable column that starts where wide pages start,
+   so the page title never jumps sideways between routes. */
+.page.narrow {
+  max-width: calc(var(--page-narrow) + 2 * var(--page-pad-x));
+}
+
+.page.wide {
+  max-width: none;
+}
+
+.page.has-savebar,
+.page.has-bulkbar {
+  padding-bottom: 7rem;
+}
+
+@media (min-width: 1400px) {
+  :root {
+    --page-max: 110rem;
+  }
+}

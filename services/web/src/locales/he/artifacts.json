@@ -49,7 +49,6 @@
   "urlPlaceholder": "https://example.com/…",
   "content": "תוכן",
   "contentPlaceholder": "הערות, לוגים, סיכומים…",
-  "showContent": "הצגת תוכן",
   "openNamed": "פתיחת {{title}}",
   "openLink": "פתיחת קישור",
   "downloadNamed": "הורדת {{title}}",

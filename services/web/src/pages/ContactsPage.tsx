@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon'
 import { ListRow } from '../components/ListRow'
 import { PageHeader } from '../components/PageHeader'
 import { initials } from '../lib/format'
+import './ContactsPage.css'
 
 export function ContactsPage() {
   const { t } = useTranslation(['integrations', 'common'])

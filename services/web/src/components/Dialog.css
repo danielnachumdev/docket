@@ -1,0 +1,104 @@
+body.dialog-open {
+  overflow: hidden;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, #0b0d12 45%, transparent);
+  backdrop-filter: blur(2px);
+  animation: fade 0.15s ease-out;
+}
+
+.modal {
+  display: grid;
+  gap: 0.85rem;
+  width: min(26rem, 100%);
+  max-height: min(90dvh, 44rem);
+  overflow: auto;
+  padding: 1.15rem 1.25rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  animation: pop 0.15s ease-out;
+}
+
+.modal-md {
+  width: min(34rem, 100%);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dialog-header h2 {
+  padding-top: 0.3rem;
+  font-size: 1.05rem;
+}
+
+.dialog-header .icon-btn {
+  margin: -0.15rem -0.4rem 0 0;
+}
+
+[dir='rtl'] .dialog-header .icon-btn {
+  margin: -0.15rem 0 0 -0.4rem;
+}
+
+.dialog-description {
+  margin-top: -0.4rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+/* Side drawer: phones only; desktop never opens it. Anchors to inline-start (LTR left / RTL right). */
+.backdrop-drawer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0;
+}
+
+.modal-drawer {
+  display: flex;
+  flex-direction: column;
+  width: min(20rem, 86vw);
+  max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  gap: 0.5rem;
+  overflow: hidden;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  border: 0;
+  border-inline-end: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: var(--shadow-lg);
+  animation: slide-in-start 0.2s ease-out;
+}
+
+.modal-drawer .dialog-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+[dir='rtl'] .modal-drawer {
+  animation-name: slide-in-start-rtl;
+}
