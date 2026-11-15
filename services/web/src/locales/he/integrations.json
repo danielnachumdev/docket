@@ -130,6 +130,23 @@
     "emptyUploadersHint": "העלו קובץ מצורף למשימה כדי לראות שימוש כאן.",
     "topTasksTitle": "המשימות הגדולות ביותר",
     "task": "משימה",
-    "emptyTopTasks": "עדיין אין משימות עם קבצים מצורפים."
+    "emptyTopTasks": "עדיין אין משימות עם קבצים מצורפים.",
+    "backupTitle": "גיבוי ושחזור",
+    "backupSubtitle": "ייצוא או החלפה של כל סביבת העבודה (מסד SQLite וקבצי artifact).",
+    "backupExport": "ייצוא גיבוי מלא",
+    "backupExportHint": "מוריד zip עם צילום עקבי של SQLite ובתים של קבצים מצורפים. בטוח בזמן שהשרת רץ.",
+    "backupExportFailed": "לא ניתן לייצא גיבוי",
+    "backupExporting": "מייצא…",
+    "backupImportTitle": "ייבוא / שחזור",
+    "backupImportWarning": "שחזור מחליף את כל נתוני המופע (מסד הנתונים וקבצי ה-artifact שבגיבוי). לא ניתן לבטל. מומלץ לייצא גיבוי קודם.",
+    "backupImportConfirmLabel": "אני מבין/ה שפעולה זו תחליף לצמיתות את כל נתוני סביבת העבודה",
+    "backupImportTypeLabel": "הקלידו REPLACE לאישור",
+    "backupImportTypePlaceholder": "REPLACE",
+    "backupImportPick": "בחרו קובץ zip של גיבוי",
+    "backupImportSubmit": "שחזור גיבוי מלא",
+    "backupImporting": "משחזר…",
+    "backupImportFailed": "לא ניתן לשחזר גיבוי",
+    "backupImportSuccess": "שוחזרו {{count}} קבצי artifact ({{bytes}}) מגיבוי {{when}}.",
+    "backupNoFile": "בחרו קודם קובץ zip של גיבוי"
   }
 }

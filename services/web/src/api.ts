@@ -130,6 +130,14 @@ export type StorageOverview = {
   top_tasks: StorageTask[]
 }
 
+export type BackupImportResult = {
+  exported_at: string
+  artifacts_restored: number
+  artifact_bytes: number
+  artifacts_missing: number
+  message: string
+}
+
 export type ArtifactListPage = {
   items: Artifact[]
   total: number
@@ -392,6 +400,24 @@ export const api = {
   revokeInvite: (id: number) =>
     request<void>(`/api/invites/${id}`, { method: 'DELETE' }),
   getAdminStorage: () => request<StorageOverview>('/api/admin/storage'),
+  downloadAdminBackup: async () => {
+    await downloadBlob(
+      '/api/admin/backup/export',
+      'waymark-instance-backup.zip',
+    )
+  },
+  importAdminBackup: async (file: File, confirm: string) => {
+    const body = new FormData()
+    body.append('file', file)
+    body.append('confirm', confirm)
+    const res = await fetch('/api/admin/backup/import', {
+      method: 'POST',
+      credentials: 'include',
+      body,
+    })
+    if (!res.ok) await requestError(res)
+    return res.json() as Promise<BackupImportResult>
+  },
   listTasks: (opts?: {
     archived?: boolean
     rootsOnly?: boolean

@@ -63,6 +63,8 @@ export GCS_BUCKET=your-bucket
 
 Create file artifacts via JSON with `content_base64`. Content streams through `GET /api/tasks/{id}/artifacts/{artifact_id}/content`.
 
+**Admin instance backup** (`users:admin`): `GET /api/admin/backup/export` downloads a versioned zip (`manifest.json` + consistent SQLite snapshot + `artifacts/blobs/*`). `POST /api/admin/backup/import` with multipart zip and `confirm=replace` destructively replaces the live SQLite file and restores blobs via `ArtifactStorage.put` (sqlite `database_url` only). Compose nginx allows `client_max_body_size 512m` on `/api/admin/backup*` (artifact create stays at 10m).
+
 ## Auth model
 
 - **Authn:** `AuthnMiddleware` resolves session cookie or `Authorization: Bearer` into `request.state.principal`

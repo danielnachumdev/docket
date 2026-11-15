@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from waymark.api import (
+    admin_backup_api,
     admin_storage_api,
     artifacts_api,
     auth_api,
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_api.router)
     app.include_router(admin_storage_api.router)
+    app.include_router(admin_backup_api.router)
     app.include_router(invites_api.router)
     app.include_router(preferences_api.router)
     app.include_router(contacts_api.router)

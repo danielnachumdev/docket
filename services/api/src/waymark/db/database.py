@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from pathlib import Path
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
@@ -16,6 +17,24 @@ class Database:
         self.rebind()
 
     def rebind(self) -> None:
+        previous = getattr(self, "engine", None)
+        if previous is not None:
+            previous.dispose()
+        self.engine = self._make_engine()
+        self.SessionLocal = sessionmaker(
+            bind=self.engine,
+            autoflush=False,
+            autocommit=False,
+            future=True,
+        )
+
+    def rebind_after_file_replace(self, source: Path, dest: Path) -> None:
+        """Dispose the engine, atomically replace ``dest`` with ``source``, rebind."""
+        previous = getattr(self, "engine", None)
+        if previous is not None:
+            previous.dispose()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        source.replace(dest)
         self.engine = self._make_engine()
         self.SessionLocal = sessionmaker(
             bind=self.engine,

@@ -1,6 +1,6 @@
 """HTTP routers."""
 
-from waymark.api.admin import admin_storage_api
+from waymark.api.admin import admin_backup_api, admin_storage_api
 from waymark.api.artifacts import artifacts_api
 from waymark.api.auth import auth_api
 from waymark.api.contacts import contacts_api
@@ -17,6 +17,7 @@ from waymark.api.version import version_api
 from waymark.api.webhooks import webhooks_api
 
 __all__ = [
+    "admin_backup_api",
     "admin_storage_api",
     "artifacts_api",
     "auth_api",
