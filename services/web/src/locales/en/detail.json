@@ -5,6 +5,14 @@
   "breadcrumb": "Breadcrumb",
   "parentFallback": "Task #{{number}}",
   "lastError": "Last error",
+  "statusReason": "Reason",
+  "statusReasonPrompt": {
+    "title": "Add a reason?",
+    "description": "Optional — shown on the task while it stays {{status}}.",
+    "label": "Reason (optional)",
+    "placeholder": "e.g. waiting on vendor reply",
+    "confirm": "Set status"
+  },
   "archivedNotice": "This task was archived {{when}}.",
   "restore": "Restore",
   "titleLabel": "Task title",
@@ -150,7 +158,9 @@
     "event": {
       "created": "created this task",
       "statusChangedFromTo": "changed status from {{from}} to {{to}}",
+      "statusChangedFromToReason": "changed status from {{from}} to {{to}}: {{reason}}",
       "statusChangedTo": "changed status to {{to}}",
+      "statusChangedToReason": "changed status to {{to}}: {{reason}}",
       "statusChanged": "changed status",
       "updatedFields": "updated {{fields}}",
       "updated": "updated this task",

@@ -103,3 +103,71 @@ def test_task_status_failed_with_last_error() -> None:
     assert reopen.status_code == 200
     assert reopen.json()["status"] == "backlog"
     assert reopen.json()["last_error"] is None
+
+
+def test_task_status_blocked_with_optional_reason() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    created = client.post("/api/tasks", json={"title": "Waiting on vendor", "priority": 2})
+    assert created.status_code == 201
+    task_id = created.json()["id"]
+
+    blocked = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "blocked", "reason": "waiting on ACME invoice"},
+    )
+    assert blocked.status_code == 200, blocked.text
+    body = blocked.json()
+    assert body["status"] == "blocked"
+    assert body["status_reason"] == "waiting on ACME invoice"
+    assert body["last_error"] is None
+
+    detail = client.get(f"/api/tasks/{task_id}")
+    assert detail.status_code == 200
+    status_events = [
+        e for e in detail.json()["events"] if e["type"] == "status_changed"
+    ]
+    assert status_events
+    assert "waiting on ACME invoice" in (status_events[0]["payload_json"] or "")
+
+    hold = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "on_hold", "reason": "paused until Q2"},
+    )
+    assert hold.status_code == 200
+    assert hold.json()["status"] == "on_hold"
+    assert hold.json()["status_reason"] == "paused until Q2"
+
+    reopen = client.post(f"/api/tasks/{task_id}/status", json={"status": "in_progress"})
+    assert reopen.status_code == 200
+    assert reopen.json()["status"] == "in_progress"
+    assert reopen.json()["status_reason"] is None
+
+
+def test_task_status_pause_reason_optional_and_ignored_elsewhere() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    created = client.post("/api/tasks", json={"title": "Optional reason", "priority": 3})
+    assert created.status_code == 201
+    task_id = created.json()["id"]
+
+    hold = client.post(f"/api/tasks/{task_id}/status", json={"status": "on_hold"})
+    assert hold.status_code == 200
+    assert hold.json()["status"] == "on_hold"
+    assert hold.json()["status_reason"] is None
+
+    blocked = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "blocked", "reason": "  needs design sign-off  "},
+    )
+    assert blocked.status_code == 200
+    assert blocked.json()["status_reason"] == "needs design sign-off"
+
+    # reason on non-pause statuses is ignored; status_reason clears when leaving pause.
+    done = client.post(
+        f"/api/tasks/{task_id}/status",
+        json={"status": "backlog", "reason": "should not stick"},
+    )
+    assert done.status_code == 200
+    assert done.json()["status"] == "backlog"
+    assert done.json()["status_reason"] is None
