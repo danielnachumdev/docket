@@ -8,6 +8,7 @@ type Props = {
   count?: number
   action?: ReactNode
   className?: string
+  variant?: 'card' | 'plain'
   collapsible?: boolean
   defaultCollapsed?: boolean
   collapseLabel?: string
@@ -23,6 +24,7 @@ export function Section({
   count,
   action,
   className,
+  variant = 'card',
   collapsible = false,
   defaultCollapsed = false,
   collapseLabel,
@@ -34,8 +36,15 @@ export function Section({
   const bodyId = useId()
   const expanded = !collapsible || !collapsed
 
+  const root =
+    variant === 'plain'
+      ? ['section-plain', className].filter(Boolean).join(' ')
+      : className
+        ? `card ${className}`
+        : 'card'
+
   return (
-    <section className={className ? `card ${className}` : 'card'}>
+    <section className={root}>
       <header className="card-header">
         <h2 id={headingId}>
           <Icon name={icon} />

@@ -12,9 +12,16 @@ type Props = {
   shares: TaskShare[]
   isOwner: boolean
   onChanged: () => Promise<void>
+  variant?: 'card' | 'plain'
 }
 
-export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
+export function SharingSection({
+  taskId,
+  shares,
+  isOwner,
+  onChanged,
+  variant = 'card',
+}: Props) {
   const { t } = useTranslation(['detail', 'tasks'])
   const listId = useId()
   const [email, setEmail] = useState('')
@@ -50,7 +57,7 @@ export function SharingSection({ taskId, shares, isOwner, onChanged }: Props) {
   }
 
   return (
-    <Section icon="users" title={t('sharing.title')} count={shares.length}>
+    <Section icon="users" title={t('sharing.title')} count={shares.length} variant={variant}>
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {shares.length === 0 ? (
         <p className="muted small">{t('sharing.onlyYou')}</p>

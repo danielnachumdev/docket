@@ -1582,6 +1582,33 @@ a.app-version-compact:hover {
   padding-block: 0.1rem 0.15rem;
 }
 
+.section-plain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.section-plain .card-header {
+  min-height: auto;
+}
+
+.section-plain .card-header h2 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.detail-side .section-plain:not(:first-child) {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
 .subtle-panel {
   padding: 0.9rem;
   border-radius: var(--radius);
@@ -2312,20 +2339,18 @@ a.list-row:hover {
 }
 
 .detail-grid {
+  --detail-rail-w: 22rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
-  grid-template-rows: auto 1fr;
-  grid-template-areas:
-    'main props'
-    'main related';
-  align-items: start;
-  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) var(--detail-rail-w);
+  grid-template-areas: 'main rail';
+  align-items: stretch;
+  gap: 0;
+  /* Bleed the rail to the page edge so collapsed state is a full strip. */
+  margin-inline-end: calc(-1 * clamp(1.25rem, 2.2vw, 2.75rem));
 }
 
 .detail-grid.side-collapsed {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: none;
-  grid-template-areas: 'main';
+  --detail-rail-w: 4rem;
 }
 
 .detail-main,
@@ -2338,24 +2363,120 @@ a.list-row:hover {
 
 .detail-main {
   grid-area: main;
+  padding-inline-end: 1.25rem;
 }
 
-.detail-main-toolbar {
+.detail-rail {
+  position: relative;
+  grid-area: rail;
+  align-self: stretch;
+  min-width: 0;
+  min-height: calc(100dvh - 1.75rem);
+  margin-block: -1.75rem -4rem;
+  border-inline-start: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.detail-rail-resize-handle {
+  position: absolute;
+  z-index: 3;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 0.45rem;
+  margin-inline-start: -0.22rem;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.detail-rail-resize-handle::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.detail-rail-resize-handle:hover::after,
+.detail-rail-resize-handle:focus-visible::after {
+  background: var(--accent);
+}
+
+.detail-rail-inner {
+  position: sticky;
+  top: 0;
   display: flex;
-  justify-content: flex-end;
-  margin: -0.25rem 0 -0.35rem;
+  flex-direction: column;
+  gap: 0.85rem;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  padding: 1.75rem 0.85rem 1.25rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
-.detail-side-toggle {
-  color: var(--muted);
+.detail-rail-chrome {
+  z-index: 2;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-width: 0;
+  margin-inline: -0.85rem;
+  margin-block-start: -0.35rem;
+  padding: 0.35rem 0.85rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
-.detail-props {
-  grid-area: props;
+.detail-rail-label {
+  min-width: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
+.detail-rail-toggle {
+  flex: none;
+}
+
+.detail-rail.collapsed .detail-rail-inner {
+  align-items: stretch;
+  padding-inline: 0.45rem;
+}
+
+.detail-rail.collapsed .detail-rail-chrome {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  margin-inline: -0.45rem;
+  padding-inline: 0.45rem;
+  border-bottom: none;
+}
+
+.detail-rail.collapsed .detail-rail-label {
+  display: none;
+}
+
+.detail-rail.collapsed .detail-rail-toggle {
+  width: 100%;
+  justify-content: center;
+}
+
+.detail-props,
 .detail-related {
-  grid-area: related;
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.detail-side {
+  gap: 0;
 }
 
 .subtasks-side .inline-form {
@@ -3628,16 +3749,49 @@ fieldset.field > legend {
 
 @media (max-width: 1100px) {
   .detail-grid {
+    --detail-rail-w: minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: none;
     grid-template-areas:
-      'props'
-      'main'
-      'related';
+      'rail'
+      'main';
+    margin-inline-end: 0;
   }
 
   .detail-grid.side-collapsed {
-    grid-template-areas: 'main';
+    --detail-rail-w: 4rem;
+    grid-template-columns: minmax(0, 1fr) var(--detail-rail-w);
+    grid-template-areas: 'main rail';
+    margin-inline-end: calc(-1 * clamp(1.25rem, 2.2vw, 2.75rem));
+  }
+
+  .detail-main {
+    padding-inline-end: 0;
+  }
+
+  .detail-grid:not(.side-collapsed) .detail-main {
+    padding-inline-end: 0;
+  }
+
+  .detail-grid.side-collapsed .detail-main {
+    padding-inline-end: 0.75rem;
+  }
+
+  .detail-rail:not(.collapsed) {
+    min-height: 0;
+    margin-block: 0;
+    border-inline-start: none;
+    border-block-end: 1px solid var(--border);
+  }
+
+  .detail-rail:not(.collapsed) .detail-rail-inner {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    padding-top: 0.75rem;
+  }
+
+  .detail-rail-resize-handle {
+    display: none;
   }
 
   .detail-side {

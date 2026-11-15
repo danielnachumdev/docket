@@ -18,9 +18,10 @@ type Props = {
   links: TaskLink[]
   tasksById: Map<string, Task>
   onChanged: () => Promise<void>
+  variant?: 'card' | 'plain'
 }
 
-export function LinksSection({ taskId, links, tasksById, onChanged }: Props) {
+export function LinksSection({ taskId, links, tasksById, onChanged, variant = 'card' }: Props) {
   const [kind, setKind] = useState<LinkKind>('related')
   const [target, setTarget] = useState('')
   const { t } = useTranslation('detail')
@@ -40,7 +41,7 @@ export function LinksSection({ taskId, links, tasksById, onChanged }: Props) {
   }
 
   return (
-    <Section icon="link" title={t('links.title')} count={links.length}>
+    <Section icon="link" title={t('links.title')} count={links.length} variant={variant}>
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {links.length > 0 && (
         <ul className="list">
