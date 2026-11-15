@@ -3754,12 +3754,14 @@ fieldset.field > legend {
     grid-template-areas:
       'rail'
       'main';
+    margin-inline-end: 0;
   }
 
   .detail-grid.side-collapsed {
     --detail-rail-w: 4rem;
     grid-template-columns: minmax(0, 1fr) var(--detail-rail-w);
     grid-template-areas: 'main rail';
+    margin-inline-end: calc(-1 * clamp(1.25rem, 2.2vw, 2.75rem));
   }
 
   .detail-main {
@@ -3775,8 +3777,17 @@ fieldset.field > legend {
   }
 
   .detail-rail:not(.collapsed) {
+    min-height: 0;
+    margin-block: 0;
     border-inline-start: none;
     border-block-end: 1px solid var(--border);
+  }
+
+  .detail-rail:not(.collapsed) .detail-rail-inner {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    padding-top: 0.75rem;
   }
 
   .detail-rail-resize-handle {
