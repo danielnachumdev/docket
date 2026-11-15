@@ -117,6 +117,23 @@ DEMO_TASKS: list[dict[str, Any]] = [
         "priority": 1,
         "status": "done",
     },
+    {
+        "external_id": "demo:parent-outline",
+        "title": "Demo parent outline",
+        "body": "Hierarchy parent for flat-queue parent-chip screenshots.",
+        "priority": 3,
+        "status": "backlog",
+    },
+    {
+        "external_id": "demo:subtask-prep",
+        "title": "Prep demo subtask",
+        "body": "Child task ordered in the global queue; shows parent chip on Tasks.",
+        "priority": 2,
+        "status": "in_progress",
+        "parent_external_id": "demo:parent-outline",
+        # Place before triage so the flat list shows a child ahead of an unrelated root.
+        "reorder_before_external_id": "demo:triage-inbox",
+    },
 ]
 
 
@@ -240,13 +257,20 @@ def ensure_invitee(client: ApiClient) -> dict[str, Any]:
     return user
 
 
-def ensure_task(client: ApiClient, spec: dict[str, Any]) -> dict[str, Any]:
-    payload = {
+def ensure_task(
+    client: ApiClient,
+    spec: dict[str, Any],
+    *,
+    parent_id: str | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "title": spec["title"],
         "body": spec.get("body"),
         "priority": spec.get("priority", 3),
         "external_id": spec["external_id"],
     }
+    if parent_id is not None:
+        payload["parent_task_id"] = parent_id
     task = client.request("POST", "/api/tasks", payload)
     desired = spec.get("status")
     if desired and task.get("status") != desired:
@@ -312,10 +336,25 @@ def main() -> None:
     tasks_out: dict[str, str] = {}
     detail_id: str | None = None
     for spec in DEMO_TASKS:
-        task = ensure_task(client, spec)
+        parent_ext = spec.get("parent_external_id")
+        parent_id = tasks_out.get(parent_ext) if parent_ext else None
+        if parent_ext and parent_id is None:
+            raise SystemExit(f"parent {parent_ext} must appear before {spec['external_id']}")
+        task = ensure_task(client, spec, parent_id=parent_id)
         tid = task["id"]
         tasks_out[spec["external_id"]] = tid
         print(f"task {spec['external_id']} → {tid} ({task.get('status')})")
+        before_ext = spec.get("reorder_before_external_id")
+        if before_ext:
+            before_id = tasks_out.get(before_ext)
+            if before_id is None:
+                raise SystemExit(f"reorder anchor {before_ext} missing for {spec['external_id']}")
+            client.request(
+                "POST",
+                f"/api/tasks/{tid}/reorder",
+                {"before_task_id": before_id},
+            )
+            print(f"  ↺ reordered before {before_ext}")
         if spec.get("artifacts"):
             ensure_artifacts(client, tid, spec["artifacts"])
             detail_id = detail_id or tid

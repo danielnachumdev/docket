@@ -126,32 +126,24 @@ class TaskGateway:
             ).all()
         )
 
-    def list_siblings(
-        self, parent_task_id: int | None, *, owner_user_id: int
-    ) -> list[Task]:
-        stmt = select(Task).where(Task.archived_at.is_(None))
-        if parent_task_id is None:
-            # Roots are per-owner queues (NULL parent is not globally unique).
-            stmt = stmt.where(
-                Task.parent_task_id.is_(None),
+    def list_owned_queue(self, *, owner_user_id: int) -> list[Task]:
+        """Non-archived tasks for one owner, ordered by global work-queue rank."""
+        stmt = (
+            select(Task)
+            .where(
                 Task.owner_user_id == owner_user_id,
+                Task.archived_at.is_(None),
             )
-        else:
-            stmt = stmt.where(Task.parent_task_id == parent_task_id)
-        stmt = stmt.order_by(Task.rank.asc(), Task.id.asc())
+            .order_by(Task.rank.asc(), Task.id.asc())
+        )
         return list(self._db.scalars(stmt).all())
 
-    def max_rank_for_parent(
-        self, parent_task_id: int | None, *, owner_user_id: int
-    ) -> float | None:
-        stmt = select(func.max(Task.rank)).where(Task.archived_at.is_(None))
-        if parent_task_id is None:
-            stmt = stmt.where(
-                Task.parent_task_id.is_(None),
-                Task.owner_user_id == owner_user_id,
-            )
-        else:
-            stmt = stmt.where(Task.parent_task_id == parent_task_id)
+    def max_rank_for_owner(self, *, owner_user_id: int) -> float | None:
+        """Max rank among non-archived tasks for the owner (append target)."""
+        stmt = select(func.max(Task.rank)).where(
+            Task.owner_user_id == owner_user_id,
+            Task.archived_at.is_(None),
+        )
         return self._db.scalar(stmt)
 
     def commit(self) -> None:

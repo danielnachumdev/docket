@@ -51,6 +51,8 @@
   "kanbanDropHere": "שחררו משימות כאן",
   "shared": "משותף",
   "subtasksDone": "תת-משימות הושלמו",
+  "subtaskOf": "תת-משימה של #{{number}} · {{title}}",
+  "subtaskOfShort": "של #{{number}}",
   "expandSubtasks": "הרחבת תת-משימות",
   "collapseSubtasks": "כיווץ תת-משימות",
   "selectTask": "בחירת \"{{title}}\"",

@@ -1841,6 +1841,34 @@ a.list-row:hover {
   transition: background 0.12s;
 }
 
+.task-row.has-parent {
+  padding-inline-start: 1.35rem;
+}
+
+.parent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: none;
+  max-width: 7.5rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--radius-sm, 0.35rem);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.parent-chip:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
 .drag-handle {
   flex: none;
   width: 1.75rem;

@@ -10,7 +10,7 @@ from waymark.api.task_watches.task_watch_service import TaskWatchService
 from waymark.api.tasks.personal_task_number_allocator import (
     PersonalTaskNumberAllocator,
 )
-from waymark.api.tasks.sibling_rank_allocator import SiblingRankAllocator
+from waymark.api.tasks.owner_rank_allocator import OwnerRankAllocator
 from waymark.api.tasks.task_gateway import TaskGateway
 from waymark.api.tasks.task_response_mapper import TaskResponseMapper
 from waymark.artifacts import ArtifactGateway, ArtifactService
@@ -46,7 +46,7 @@ class TaskService:
         self._outcomes = DoneOutcomeEnforcer()
         self._schema_codec = OutcomeSchemaCodec()
         self._numbers = PersonalTaskNumberAllocator(db)
-        self._ranks = SiblingRankAllocator()
+        self._ranks = OwnerRankAllocator()
         self._mapper = TaskResponseMapper(db)
 
     def list_tasks(
@@ -183,10 +183,8 @@ class TaskService:
         self, principal: Principal, task_ref: str, body: TaskReorder
     ) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:write")
-        siblings = self._gateway.list_siblings(
-            task.parent_task_id, owner_user_id=task.owner_user_id
-        )
-        others = [row for row in siblings if row.id != task.id]
+        queue = self._gateway.list_owned_queue(owner_user_id=task.owner_user_id)
+        others = [row for row in queue if row.id != task.id]
         insert_at = self._reorder_insert_index(principal, task, body, others)
         self._apply_reorder_rank(task, others, insert_at)
         payload: dict[str, Any] = {"rank": task.rank}
@@ -366,9 +364,7 @@ class TaskService:
             body=body.body,
             priority=body.priority,
             rank=self._ranks.append_rank(
-                self._gateway.max_rank_for_parent(
-                    parent_internal, owner_user_id=principal.user_id
-                )
+                self._gateway.max_rank_for_owner(owner_user_id=principal.user_id)
             ),
             due_at=body.due_at,
             source="api" if principal.token else "ui",
@@ -387,19 +383,19 @@ class TaskService:
     ) -> int:
         if body.after_task_id is not None:
             anchor = self._reorder_anchor(principal, task, body.after_task_id)
-            return self._sibling_index(others, anchor.id) + 1
+            return self._queue_index(others, anchor.id) + 1
         if body.before_task_id is not None:
             anchor = self._reorder_anchor(principal, task, body.before_task_id)
-            return self._sibling_index(others, anchor.id)
+            return self._queue_index(others, anchor.id)
         return len(others)
 
     @staticmethod
-    def _sibling_index(siblings: list[Task], task_id: int) -> int:
-        for index, row in enumerate(siblings):
+    def _queue_index(queue: list[Task], task_id: int) -> int:
+        for index, row in enumerate(queue):
             if row.id == task_id:
                 return index
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Anchor is not in the sibling list"
+            status.HTTP_400_BAD_REQUEST, "Anchor is not in the owner work queue"
         )
 
     def _reorder_anchor(
@@ -410,10 +406,10 @@ class TaskService:
                 status.HTTP_400_BAD_REQUEST, "Cannot reorder relative to itself"
             )
         anchor = self._access.get_task(principal, anchor_ref, "tasks:write")
-        if anchor.parent_task_id != task.parent_task_id:
+        if anchor.owner_user_id != task.owner_user_id:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                "Anchor must be a sibling (same parent)",
+                "Anchor must belong to the same owner",
             )
         if anchor.archived_at is not None:
             raise HTTPException(
