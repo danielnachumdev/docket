@@ -34,7 +34,7 @@
   "notesPlaceholder": "Add context, acceptance criteria, or anything an agent should know…",
   "status": "Status",
   "details": "Details",
-  "sidePanel": "Details panel",
+  "sidePanel": "Details",
   "fields": "Fields",
   "resizeSide": "Resize details panel",
   "priority": "Priority",
