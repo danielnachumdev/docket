@@ -8,6 +8,7 @@ import domainEn from '../locales/en/domain.json'
 import inboxEn from '../locales/en/inbox.json'
 import integrationsEn from '../locales/en/integrations.json'
 import navEn from '../locales/en/nav.json'
+import progressEn from '../locales/en/progress.json'
 import tasksEn from '../locales/en/tasks.json'
 import artifactsHe from '../locales/he/artifacts.json'
 import authHe from '../locales/he/auth.json'
@@ -17,6 +18,7 @@ import domainHe from '../locales/he/domain.json'
 import inboxHe from '../locales/he/inbox.json'
 import integrationsHe from '../locales/he/integrations.json'
 import navHe from '../locales/he/nav.json'
+import progressHe from '../locales/he/progress.json'
 import tasksHe from '../locales/he/tasks.json'
 import { applyDocumentLocale } from './applyDocumentLocale'
 import {
@@ -47,6 +49,7 @@ const en = {
   artifacts: artifactsEn,
   inbox: inboxEn,
   integrations: integrationsEn,
+  progress: progressEn,
 }
 
 const he = {
@@ -59,6 +62,7 @@ const he = {
   artifacts: artifactsHe,
   inbox: inboxHe,
   integrations: integrationsHe,
+  progress: progressHe,
 }
 
 function detectInitialLocale(): string {

@@ -11,6 +11,7 @@ import { ContactsPage } from './pages/ContactsPage'
 import { InvitesPage } from './pages/InvitesPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotificationsPage } from './pages/NotificationsPage'
+import { ProgressPage } from './pages/ProgressPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { TaskDetailPage } from './pages/TaskDetailPage'
 import { TaskListPage } from './pages/TaskListPage'
@@ -53,6 +54,7 @@ function Shell() {
         <Route path="/tasks/:id" element={<TaskDetailPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/artifacts" element={<ArtifactsPage />} />
+        <Route path="/progress" element={<ProgressPage />} />
         <Route path="/tokens" element={<TokensPage />} />
         <Route path="/webhooks" element={<WebhooksPage />} />
         <Route path="/people" element={<ContactsPage />} />

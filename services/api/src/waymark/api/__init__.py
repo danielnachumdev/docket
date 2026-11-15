@@ -5,6 +5,7 @@ from waymark.api.artifacts import artifacts_api
 from waymark.api.auth import auth_api
 from waymark.api.contacts import contacts_api
 from waymark.api.invites import invites_api
+from waymark.api.me_stats import me_stats_api
 from waymark.api.notifications import notifications_api
 from waymark.api.preferences import preferences_api
 from waymark.api.saved_views import saved_views_api
@@ -23,6 +24,7 @@ __all__ = [
     "auth_api",
     "contacts_api",
     "invites_api",
+    "me_stats_api",
     "notifications_api",
     "preferences_api",
     "saved_views_api",

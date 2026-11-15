@@ -11,6 +11,7 @@ from waymark.api import (
     auth_api,
     contacts_api,
     invites_api,
+    me_stats_api,
     notifications_api,
     preferences_api,
     saved_views_api,
@@ -72,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_backup_api.router)
     app.include_router(invites_api.router)
     app.include_router(preferences_api.router)
+    app.include_router(me_stats_api.router)
     app.include_router(contacts_api.router)
     app.include_router(tasks_api.router)
     app.include_router(task_comments_api.router)
