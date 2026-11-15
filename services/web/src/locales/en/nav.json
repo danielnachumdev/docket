@@ -14,6 +14,8 @@
   "storage": "Storage",
   "menu": "Menu",
   "openMenu": "Open menu",
+  "collapse": "Collapse navigation",
+  "expand": "Expand navigation",
   "unreadCount": "{{count}} unread",
   "team": "Team",
   "admin": "Admin",
