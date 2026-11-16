@@ -46,16 +46,18 @@ describe('endOfHorizon', () => {
     assert.equal(endOfHorizon('tomorrow', wed).getTime(), endOfLocalDay(tomorrow).getTime())
   })
 
-  it('week ends on Sunday (Monday-start week)', () => {
-    const sunday = endOfHorizon('week', wed)
-    assert.equal(sunday.getDay(), 0)
-    assert.equal(sunday.getDate(), 22)
-    assert.equal(sunday.getHours(), 23)
+  it('week ends on Saturday (Sunday-start week)', () => {
+    const saturday = endOfHorizon('week', wed)
+    assert.equal(saturday.getDay(), 6)
+    assert.equal(saturday.getDate(), 21)
+    assert.equal(saturday.getHours(), 23)
   })
 
-  it('week on Sunday is end of that Sunday', () => {
+  it('week on Sunday ends the following Saturday', () => {
     const sunday = new Date(2026, 10, 22, 8, 0, 0, 0)
-    assert.equal(endOfHorizon('week', sunday).getDate(), 22)
+    const end = endOfHorizon('week', sunday)
+    assert.equal(end.getDay(), 6)
+    assert.equal(end.getDate(), 28)
   })
 
   it('month ends on last local day of month', () => {
@@ -91,7 +93,8 @@ describe('dueSectionForDueAt / groupTasksByDueSection', () => {
     assert.equal(dueSectionForDueAt(localIso(2026, 11, 17, 18), now), 'overdue')
     assert.equal(dueSectionForDueAt(localIso(2026, 11, 18, 20), now), 'today')
     assert.equal(dueSectionForDueAt(localIso(2026, 11, 19, 9), now), 'tomorrow')
-    assert.equal(dueSectionForDueAt(localIso(2026, 11, 21, 12), now), 'week')
+    assert.equal(dueSectionForDueAt(localIso(2026, 11, 21, 12), now), 'week') // Sat
+    assert.equal(dueSectionForDueAt(localIso(2026, 11, 22, 12), now), 'month') // next Sun
     assert.equal(dueSectionForDueAt(null, now), 'none')
   })
 
