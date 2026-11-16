@@ -19,6 +19,9 @@ from pathlib import Path
 from fastapi import HTTPException, status
 
 from waymark.api.admin.backup_bundle import BackupBundle
+from waymark.api.admin.restored_backup_schema_upgrader import (
+    RestoredBackupSchemaUpgrader,
+)
 from waymark.artifact_storage import ArtifactStorage, ArtifactStorageFactory
 from waymark.config import Settings, get_settings
 from waymark.db import database
@@ -144,6 +147,13 @@ class InstanceBackupService:
         except Exception:
             tmp_path.unlink(missing_ok=True)
             raise
+
+        # Bring restored SQLite (possibly older schema, e.g. tasks.body) to head.
+        RestoredBackupSchemaUpgrader(
+            db_path=self._sqlite_path(),
+            database_url=self._settings.database_url,
+            api_root=Path(__file__).resolve().parents[4],
+        ).upgrade_to_head()
 
         restored = 0
         total_bytes = 0

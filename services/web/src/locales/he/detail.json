@@ -145,7 +145,6 @@
     "roleSession": "סשן",
     "field": {
       "title": "כותרת",
-      "body": "תיאור",
       "priority": "עדיפות",
       "due_at": "מועד יעד",
       "parent_task_id": "משימת אב",

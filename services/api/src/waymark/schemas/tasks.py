@@ -8,6 +8,8 @@ PAUSE_STATUSES = frozenset({"blocked", "on_hold"})
 
 
 class TaskCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(min_length=1, max_length=500)
     description: str | None = None
     priority: int = Field(default=3, ge=1, le=4)
@@ -19,6 +21,8 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str | None = Field(default=None, min_length=1, max_length=500)
     description: str | None = None
     priority: int | None = Field(default=None, ge=1, le=4)

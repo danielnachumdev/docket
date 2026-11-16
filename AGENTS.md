@@ -63,7 +63,7 @@ export GCS_BUCKET=your-bucket
 
 Create file artifacts via JSON with `content_base64`. Content streams through `GET /api/tasks/{id}/artifacts/{artifact_id}/content`.
 
-**Admin instance backup** (`users:admin`): `GET /api/admin/backup/export` downloads a versioned zip (`manifest.json` + consistent SQLite snapshot + `artifacts/blobs/*`). `POST /api/admin/backup/import` with multipart zip and `confirm=replace` destructively replaces the live SQLite file and restores blobs via `ArtifactStorage.put` (sqlite `database_url` only). Compose nginx allows `client_max_body_size 512m` on `/api/admin/backup*` (artifact create stays at 10m).
+**Admin instance backup** (`users:admin`): `GET /api/admin/backup/export` downloads a versioned zip (`manifest.json` + consistent SQLite snapshot + `artifacts/blobs/*`). `POST /api/admin/backup/import` with multipart zip and `confirm=replace` destructively replaces the live SQLite file and restores blobs via `ArtifactStorage.put` (sqlite `database_url` only). After replace, import normalizes legacy `tasks.body` → `description` (and event payload keys) then Alembic-upgrades or stamps to head. Compose nginx allows `client_max_body_size 512m` on `/api/admin/backup*` (artifact create stays at 10m).
 
 ## Auth model
 
@@ -101,7 +101,7 @@ UI copy lives under `services/web/src/locales/{en,he}/` (JSON namespaces registe
 - Prefer SQLite-lean schema; avoid heavyweight deps without need.
 - Task history goes in `task_events`; relationships via `parent_task_id` + `task_links`.
 - Public task identity is short `public_id` (API/URLs/sharing); API `number` (`#N`) is **per-viewer** (owner: `owner_task_number`; sharee: `membership.viewer_task_number`).
-- **Work queue order** is owner-global `rank` (lower = do first), independent of hierarchy. `parent_task_id` is structure only (subtasks / outline). List, inbox, and children-under-a-parent all sort by the same global `rank`. Agents should reorder with `POST /api/tasks/{id}/reorder` (`before_task_id` / `after_task_id` relative to any accessible same-owner task, or neither for end) instead of inventing ranks. `priority` (1–4) remains an urgency badge/filter only.
+- **Work queue order:** SPA list/subtasks support sort modes via user preference `task_sort_mode` — **`date`** (default: due horizons Overdue→…→No due date) or **`custom`** (owner-global `rank`, lower = do first; drag reorder). Hierarchy (`parent_task_id`) is structure only. Agents reorder with `POST /api/tasks/{id}/reorder` (`before_task_id` / `after_task_id`, or neither for end). `priority` (1–4) remains an urgency badge/filter only. Task notes field is **`description`** (API/DB; not `body`).
 - Authorization is RBAC (`permissions` / `roles` / `memberships`); API tokens may downscope via `role_id`.
 - Each service owns its Dockerfile and runtime files under `services/<name>/`.
 - Raft / host / TLS / live env live in **waymark-deploy**; this repo ships product + GHCR images.

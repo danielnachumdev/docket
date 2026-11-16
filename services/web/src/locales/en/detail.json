@@ -145,7 +145,6 @@
     "roleSession": "session",
     "field": {
       "title": "title",
-      "body": "description",
       "priority": "priority",
       "due_at": "deadline",
       "parent_task_id": "parent",

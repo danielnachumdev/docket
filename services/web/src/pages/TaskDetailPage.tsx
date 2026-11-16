@@ -454,6 +454,7 @@ export function TaskDetailPage() {
   const canAttachArtifacts =
     isOwner ||
     myShare?.role === 'editor' ||
+    myShare?.role === 'commentor' ||
     Boolean(status?.permissions.includes('artifacts:write') && myShare == null)
   const menuItems: MenuItem[] = [
     { label: t('export'), icon: 'download', onSelect: exportCasePack, disabled: busy },
