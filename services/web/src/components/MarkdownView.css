@@ -1,0 +1,134 @@
+.wm-md {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.wm-md > :first-child {
+  margin-top: 0;
+}
+
+.wm-md > :last-child {
+  margin-bottom: 0;
+}
+
+.wm-md h1,
+.wm-md h2,
+.wm-md h3,
+.wm-md h4 {
+  margin: 0.85em 0 0.35em;
+  font-size: 1em;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.wm-md h1 {
+  font-size: 1.15em;
+}
+
+.wm-md h2 {
+  font-size: 1.05em;
+}
+
+.wm-md p,
+.wm-md ul,
+.wm-md ol,
+.wm-md blockquote,
+.wm-md pre,
+.wm-md table {
+  margin: 0.45em 0;
+}
+
+.wm-md ul,
+.wm-md ol {
+  padding-inline-start: 1.25rem;
+}
+
+.wm-md li + li {
+  margin-top: 0.15em;
+}
+
+.wm-md li:has(> input[type='checkbox']) {
+  list-style: none;
+  margin-inline-start: -1.25rem;
+  padding-inline-start: 1.25rem;
+}
+
+.wm-md li > input[type='checkbox'] {
+  margin-inline-end: 0.4rem;
+  vertical-align: middle;
+}
+
+.wm-md code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+}
+
+.wm-md pre {
+  padding: 0.55rem 0.65rem;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg) 55%, var(--surface-2));
+}
+
+.wm-md pre code {
+  font-size: 0.8rem;
+}
+
+.wm-md blockquote {
+  padding-inline-start: 0.75rem;
+  border-inline-start: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.wm-md table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+}
+
+.wm-md th,
+.wm-md td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.55rem;
+  text-align: start;
+}
+
+.wm-md th {
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--bg));
+  font-weight: 650;
+}
+
+.wm-md .md-link-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin: 0 0.1rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.86em;
+  font-weight: 600;
+  text-decoration: none;
+  vertical-align: baseline;
+}
+
+.wm-md .md-link-chip:hover,
+.wm-md .md-link-chip:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.wm-md .md-link-chip-host {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 16rem;
+}
+
+.wm-md-empty {
+  margin: 0;
+}

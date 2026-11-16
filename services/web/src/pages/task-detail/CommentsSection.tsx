@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -21,6 +20,7 @@ import {
 import { useAuth } from '../../auth'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
+import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { Section } from '../../components/Section'
 import { UserBidiText } from '../../components/UserBidiText'
 import { userBidiAttrs } from '../../lib/bidi'
@@ -64,40 +64,11 @@ function highlightShare(userId: number) {
   window.setTimeout(() => el.classList.remove('comment-flash'), 1600)
 }
 
-function renderBody(
-  body: string,
-  refs: CommentRef[],
-  onRefClick: (ref: CommentRef) => void,
-) {
-  if (!refs.length) return body
-  const ordered = [...refs].sort((a, b) => a.start - b.start)
-  const parts: ReactNode[] = []
-  let cursor = 0
-  ordered.forEach((ref, index) => {
-    if (ref.start < cursor || ref.end > body.length) return
-    if (ref.start > cursor) parts.push(body.slice(cursor, ref.start))
-    const label =
-      ref.kind === 'user'
-        ? `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
-        : ref.kind === 'task'
-          ? `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
-          : ref.kind === 'artifact'
-            ? `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
-            : `~${ref.comment_id ?? ref.raw.slice(1)}`
-    parts.push(
-      <button
-        key={`${ref.kind}-${index}-${ref.start}`}
-        type="button"
-        className={`comment-chip kind-${ref.kind}`}
-        onClick={() => onRefClick(ref)}
-      >
-        {label}
-      </button>,
-    )
-    cursor = ref.end
-  })
-  if (cursor < body.length) parts.push(body.slice(cursor))
-  return parts
+function refChipLabel(ref: CommentRef) {
+  if (ref.kind === 'user') return `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
+  if (ref.kind === 'task') return `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
+  if (ref.kind === 'artifact') return `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
+  return `~${ref.comment_id ?? ref.raw.slice(1)}`
 }
 
 export function CommentsSection({
@@ -301,9 +272,25 @@ export function CommentsSection({
                   {c.updated_at !== c.created_at ? ` · ${t('commentEdited')}` : ''}
                 </span>
               </div>
-              <div {...userBidiAttrs(c.body, 'comment-body')}>
-                {renderBody(c.body, c.refs ?? [], onRefClick)}
-              </div>
+              {(c.refs ?? []).length > 0 ? (
+                <MarkdownWithRefs
+                  source={c.body}
+                  refs={c.refs ?? []}
+                  className="comment-body"
+                  renderRef={(ref, key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`comment-chip kind-${ref.kind}`}
+                      onClick={() => onRefClick(ref)}
+                    >
+                      {refChipLabel(ref)}
+                    </button>
+                  )}
+                />
+              ) : (
+                <MarkdownView source={c.body} className="comment-body" />
+              )}
               {(c.can_edit || c.author_user_id === meId) && canComment && (
                 <div className="row-actions">
                   <button
@@ -405,6 +392,7 @@ export function CommentsSection({
             )}
           </div>
           <p className="muted small">
+            {t('commentMarkdownHint')}{' '}
             {t('commentShorthandHint')} <code>@</code> <code>#</code> <code>&amp;</code>{' '}
             <code>~</code>
           </p>
