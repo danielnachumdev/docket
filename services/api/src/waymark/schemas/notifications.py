@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from waymark.schemas.tasks import ArtifactCreate, ArtifactOut
+
 
 class TaskWatchOut(BaseModel):
     watching: bool
@@ -10,6 +12,7 @@ class TaskWatchOut(BaseModel):
 
 class TaskCommentIn(BaseModel):
     body: str = Field(min_length=1, max_length=8000)
+    attachments: list[ArtifactCreate] | None = None
 
 
 class TaskCommentOut(BaseModel):
@@ -20,8 +23,12 @@ class TaskCommentOut(BaseModel):
     refs: list[dict[str, Any]] = []
     mentioned_user_ids: list[int]
     author_user_id: int
+    author_token_id: int | None = None
+    author_token_name: str | None = None
     author_display_name: str
     author_email: str | None = None
+    author_label: str
+    attachments: list[ArtifactOut] = []
     created_at: datetime
     updated_at: datetime
     can_edit: bool = False

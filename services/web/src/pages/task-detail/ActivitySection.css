@@ -2,6 +2,29 @@
   margin: 0;
 }
 
+.activity-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 0.78rem;
+}
+
+.detail-main .activity-scroll {
+  max-height: min(28rem, 55vh);
+}
+
 .activity-scroll {
   max-height: 14rem;
   overflow-y: auto;

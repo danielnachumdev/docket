@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, type Task, type TaskDetail, type TaskEvent, type TaskShare } from '../api'
+import { api, type Task, type TaskDetail, type TaskShare } from '../api'
 import { useAuth } from '../auth'
 import { useMediaQuery } from '../lib/useMediaQuery'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
@@ -51,7 +51,7 @@ import './TaskDetailPage.css'
 
 type Draft = {
   title: string
-  body: string
+  description: string
   priority: number
   due: string
   parent: string
@@ -84,7 +84,7 @@ function prettySchema(raw: string | null) {
 function draftFrom(task: Task): Draft {
   return {
     title: task.title,
-    body: task.body ?? '',
+    description: task.description ?? '',
     priority: task.priority,
     due: toLocalInput(task.due_at),
     parent: task.parent_task_id != null ? String(task.parent_task_id) : '',
@@ -182,7 +182,7 @@ export function TaskDetailPage() {
     ])
     setDetail(data)
     setDraft(draftFrom(data.task))
-    setNotesMode((data.task.body ?? '').trim() ? 'preview' : 'edit')
+    setNotesMode((data.task.description ?? '').trim() ? 'preview' : 'edit')
     setAllTasks(all)
     setShares(shareRows)
 
@@ -253,7 +253,7 @@ export function TaskDetailPage() {
     const saved = draftFrom(detail.task)
     const patch: Record<string, unknown> = {}
     if (draft.title.trim() !== saved.title) patch.title = draft.title.trim()
-    if (draft.body !== saved.body) patch.body = draft.body
+    if (draft.description !== saved.description) patch.description = draft.description
     if (draft.priority !== saved.priority) patch.priority = draft.priority
     if (draft.due !== saved.due) {
       const due = fromLocalInput(draft.due)
@@ -451,21 +451,6 @@ export function TaskDetailPage() {
     myShare?.role === 'commentor' ||
     myShare?.role === 'editor' ||
     Boolean(status?.permissions.includes('tasks:comment') && myShare == null)
-  const names = new Map<number, string>(shares.map((s) => [s.user_id, s.display_name]))
-
-  const actorUserLabel = (ev: TaskEvent) =>
-    ev.actor_user_id === me?.id
-      ? t('actor.you')
-      : (names.get(ev.actor_user_id) ?? t('actor.user', { id: ev.actor_user_id }))
-
-  const actorName = (ev: TaskEvent) => {
-    const who = actorUserLabel(ev)
-    if (ev.actor_token_id == null) return who
-    const tokenLabel = ev.actor_token_name ? `token:${ev.actor_token_name}` : t('actor.apiToken')
-    const role = ev.actor_role_name ? ` · ${ev.actor_role_name}` : ''
-    return `${who} (${tokenLabel}${role})`
-  }
-
   const menuItems: MenuItem[] = [
     { label: t('export'), icon: 'download', onSelect: exportCasePack, disabled: busy },
     ...(task.archived_at
@@ -598,16 +583,16 @@ export function TaskDetailPage() {
         style={detailGridStyle}
       >
         <div className="detail-main">
-          <Section icon="text" title={t('notes')} headingId="notes-label">
+          <Section icon="text" title={t('description')} headingId="description-label">
             <div className="notes">
-              <div className="notes-toolbar" role="group" aria-label={t('notesMode')}>
+              <div className="notes-toolbar" role="group" aria-label={t('descriptionMode')}>
                 <button
                   type="button"
                   className={notesMode === 'edit' ? 'btn small notes-mode active' : 'btn small notes-mode'}
                   aria-pressed={notesMode === 'edit'}
                   onClick={() => setNotesMode('edit')}
                 >
-                  {t('notesEdit')}
+                  {t('descriptionEdit')}
                 </button>
                 <button
                   type="button"
@@ -617,26 +602,26 @@ export function TaskDetailPage() {
                   aria-pressed={notesMode === 'preview'}
                   onClick={() => setNotesMode('preview')}
                 >
-                  {t('notesPreview')}
+                  {t('descriptionPreview')}
                 </button>
               </div>
               {notesMode === 'edit' ? (
                 <>
                   <textarea
-                    {...userBidiAttrs(draft.body)}
-                    aria-labelledby="notes-label"
-                    rows={Math.min(16, Math.max(4, draft.body.split('\n').length + 1))}
-                    value={draft.body}
-                    onChange={(e) => update('body', e.target.value)}
-                    placeholder={t('notesPlaceholder')}
+                    {...userBidiAttrs(draft.description)}
+                    aria-labelledby="description-label"
+                    rows={Math.min(16, Math.max(4, draft.description.split('\n').length + 1))}
+                    value={draft.description}
+                    onChange={(e) => update('description', e.target.value)}
+                    placeholder={t('descriptionPlaceholder')}
                   />
-                  <p className="muted small">{t('notesMarkdownHint')}</p>
+                  <p className="muted small">{t('descriptionMarkdownHint')}</p>
                 </>
               ) : (
                 <MarkdownView
-                  source={draft.body}
+                  source={draft.description}
                   className="notes-preview"
-                  empty={<p className="muted small wm-md-empty">{t('notesEmptyPreview')}</p>}
+                  empty={<p className="muted small wm-md-empty">{t('descriptionEmptyPreview')}</p>}
                 />
               )}
             </div>
@@ -647,9 +632,10 @@ export function TaskDetailPage() {
             tasks={allTasks}
             shares={shares}
             canComment={canComment}
+            composerOnly
             onChanged={load}
           />
-          <ArtifactsSection taskId={taskId} artifacts={detail.artifacts} onChanged={load} />
+          <ActivitySection taskId={taskId} refreshKey={detail.events.length} />
         </div>
 
         <aside
@@ -842,11 +828,12 @@ export function TaskDetailPage() {
                 variant="plain"
                 defaultCollapsed={railStacked}
               />
-              <ActivitySection
-                events={detail.events}
-                actorName={actorName}
-                actorUserLabel={actorUserLabel}
+              <ArtifactsSection
+                taskId={taskId}
+                artifacts={detail.artifacts}
+                onChanged={load}
                 variant="plain"
+                defaultCollapsed={railStacked}
               />
             </div>
               </>

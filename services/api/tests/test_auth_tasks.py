@@ -27,7 +27,7 @@ def test_bootstrap_login_and_tasks() -> None:
 
     created = client.post(
         "/api/tasks",
-        json={"title": "Ship UI", "priority": 1, "body": "Human control plane"},
+        json={"title": "Ship UI", "priority": 1, "description": "Human control plane"},
     )
     assert created.status_code == 201
     task_id = created.json()["id"]

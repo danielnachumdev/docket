@@ -42,7 +42,7 @@ def test_session_owner_update_does_not_unread_for_self() -> None:
     assert task["unread"] is False
     task_id = task["id"]
 
-    patched = client.patch(f"/api/tasks/{task_id}", json={"body": "my edit"})
+    patched = client.patch(f"/api/tasks/{task_id}", json={"description": "my edit"})
     assert patched.status_code == 200
     assert patched.json()["unread"] is False
 
@@ -67,7 +67,7 @@ def test_sharee_sees_unread_after_owner_session_update() -> None:
     )
     assert share.status_code == 201
 
-    patched = client.patch(f"/api/tasks/{task_id}", json={"body": "owner edit"})
+    patched = client.patch(f"/api/tasks/{task_id}", json={"description": "owner edit"})
     assert patched.status_code == 200
     assert patched.json()["unread"] is False
 
@@ -99,7 +99,7 @@ def test_api_token_update_marks_unread_for_token_owner() -> None:
 
     patched = client.patch(
         f"/api/tasks/{task_id}",
-        json={"body": "agent update"},
+        json={"description": "agent update"},
         headers=bearer(raw),
     )
     assert patched.status_code == 200, patched.text
@@ -188,7 +188,7 @@ def test_manual_mark_unread_is_visible_to_actor() -> None:
     assert client.get(f"/api/tasks/{task_id}").json()["task"]["unread"] is False
 
     # Session edit would normally exclude actor; manual mark forces visible.
-    client.patch(f"/api/tasks/{task_id}", json={"body": "self edit"})
+    client.patch(f"/api/tasks/{task_id}", json={"description": "self edit"})
     assert client.get(f"/api/tasks/{task_id}").json()["task"]["unread"] is False
 
     first = client.post(f"/api/tasks/{task_id}/unread")
@@ -212,7 +212,7 @@ def test_mapper_except_semantics_without_sharee() -> None:
     client = TestClient(create_app())
     owner = bootstrap_owner(client)
     task_id = client.post("/api/tasks", json={"title": "Mapper"}).json()["id"]
-    client.patch(f"/api/tasks/{task_id}", json={"body": "x"})
+    client.patch(f"/api/tasks/{task_id}", json={"description": "x"})
 
     db = database.SessionLocal()
     try:

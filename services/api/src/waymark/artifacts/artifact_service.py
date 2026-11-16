@@ -13,7 +13,7 @@ from waymark.auth.principal import Principal
 from waymark.auth.task_access_service import TaskAccessService
 from waymark.config import Settings, get_settings
 from waymark.events import task_event_recorder
-from waymark.models import Artifact, Task
+from waymark.models import Artifact, CommentArtifact, Task, TaskComment
 from waymark.schemas import ArtifactCreate, ArtifactUpdate
 
 
@@ -123,9 +123,17 @@ class ArtifactService:
         return self._access.may_access(principal, row, "artifacts:write")
 
     def create(
-        self, principal: Principal, task_ref: str, body: ArtifactCreate
+        self,
+        principal: Principal,
+        task_ref: str,
+        body: ArtifactCreate,
+        *,
+        comment_id: int | None = None,
+        commit: bool = True,
     ) -> Artifact:
         task = self._access.get_task(principal, task_ref, "artifacts:write")
+        if comment_id is not None:
+            self._require_comment_on_task(task.id, comment_id)
         storage_key, content_type, content_text, byte_size = self._prepare_create_payload(
             task.id, body
         )
@@ -141,20 +149,34 @@ class ArtifactService:
             created_by_token_id=principal.token_id,
         )
         self._gateway.add(artifact)
+        self._db.flush()
+        if comment_id is not None:
+            self._db.add(
+                CommentArtifact(comment_id=comment_id, artifact_id=artifact.id)
+            )
+        payload: dict = {
+            "artifact_id": artifact.id,
+            "kind": artifact.kind,
+            "title": artifact.title,
+        }
+        if comment_id is not None:
+            payload["comment_id"] = comment_id
         task_event_recorder.record(
             self._db,
             task_id=task.id,
             event_type="artifact_added",
             actor=principal,
-            payload={
-                "artifact_id": artifact.id,
-                "kind": artifact.kind,
-                "title": artifact.title,
-            },
+            payload=payload,
         )
-        self._gateway.commit()
-        self._gateway.refresh(artifact)
+        if commit:
+            self._gateway.commit()
+            self._gateway.refresh(artifact)
         return artifact
+
+    def _require_comment_on_task(self, task_id: int, comment_id: int) -> None:
+        comment = self._db.get(TaskComment, comment_id)
+        if comment is None or comment.task_id != task_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Comment not found")
 
     def update(
         self,

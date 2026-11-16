@@ -38,7 +38,7 @@ export type Task = {
   parent_task_id: string | null
   external_id: string | null
   title: string
-  body: string | null
+  description: string | null
   status: string
   priority: number
   rank: number
@@ -239,11 +239,38 @@ export type TaskComment = {
   refs: CommentRef[]
   mentioned_user_ids: number[]
   author_user_id: number
+  author_token_id: number | null
+  author_token_name: string | null
   author_display_name: string
   author_email: string | null
+  author_label: string
+  attachments: Artifact[]
   created_at: string
   updated_at: string
   can_edit: boolean
+}
+
+export type ActivityActor = {
+  user_id: number
+  token_id: number | null
+  label: string
+  display_name: string | null
+  email: string | null
+  token_name: string | null
+}
+
+export type ActivityItem = {
+  id: string
+  kind: 'comment' | 'event'
+  created_at: string
+  actor: ActivityActor
+  comment: TaskComment | null
+  event: TaskEvent | null
+}
+
+export type ActivityFeed = {
+  items: ActivityItem[]
+  order: 'asc' | 'desc'
 }
 
 export type MentionableUser = {
@@ -463,12 +490,14 @@ export const api = {
   getTask: (id: string) => request<TaskDetail>(`/api/tasks/${id}`),
   createTask: (body: {
     title: string
-    body?: string
+    description?: string
     priority?: number
     parent_task_id?: string | null
     due_at?: string | null
     external_id?: string | null
   }) => request<Task>('/api/tasks', { method: 'POST', body: JSON.stringify(body) }),
+  listActivity: (id: string, order: 'asc' | 'desc' = 'desc') =>
+    request<ActivityFeed>(`/api/tasks/${id}/activity?order=${order}`),
   updateTask: (id: string, body: Record<string, unknown>) =>
     request<Task>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   reorderTask: (
@@ -595,15 +624,43 @@ export const api = {
   listComments: (id: string) => request<TaskComment[]>(`/api/tasks/${id}/comments`),
   listMentionables: (id: string) =>
     request<MentionableUser[]>(`/api/tasks/${id}/mentionables`),
-  addComment: (id: string, body: string) =>
+  addComment: (
+    id: string,
+    body: string,
+    attachments?: Array<{
+      kind: 'link' | 'text' | 'file' | 'json'
+      title: string
+      content_text?: string | null
+      content_base64?: string | null
+      content_type?: string | null
+    }>,
+  ) =>
     request<TaskComment>(`/api/tasks/${id}/comments`, {
       method: 'POST',
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({
+        body,
+        ...(attachments?.length ? { attachments } : {}),
+      }),
     }),
   updateComment: (id: string, commentId: number, body: string) =>
     request<TaskComment>(`/api/tasks/${id}/comments/${commentId}`, {
       method: 'PATCH',
       body: JSON.stringify({ body }),
+    }),
+  attachCommentArtifact: (
+    id: string,
+    commentId: number,
+    body: {
+      kind: 'link' | 'text' | 'file' | 'json'
+      title: string
+      content_text?: string | null
+      content_base64?: string | null
+      content_type?: string | null
+    },
+  ) =>
+    request<Artifact>(`/api/tasks/${id}/comments/${commentId}/artifacts`, {
+      method: 'POST',
+      body: JSON.stringify(body),
     }),
   deleteComment: (id: string, commentId: number) =>
     request<void>(`/api/tasks/${id}/comments/${commentId}`, { method: 'DELETE' }),

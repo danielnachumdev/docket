@@ -26,9 +26,17 @@ type Props = {
   taskId: string
   artifacts: Artifact[]
   onChanged: () => Promise<void>
+  variant?: 'card' | 'plain'
+  defaultCollapsed?: boolean
 }
 
-export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
+export function ArtifactsSection({
+  taskId,
+  artifacts,
+  onChanged,
+  variant = 'card',
+  defaultCollapsed = false,
+}: Props) {
   const { t } = useTranslation(['artifacts', 'common'])
   const [open, setOpen] = useState(false)
   const [kind, setKind] = useState<Kind>('text')
@@ -80,11 +88,16 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
     }, t('errors.attach'))
   }
 
+  const compact = variant === 'plain'
+
   return (
     <Section
       icon="paperclip"
       title={t('title')}
       count={artifacts.length}
+      variant={variant}
+      collapsible={compact}
+      defaultCollapsed={defaultCollapsed}
       action={
         !open && (
           <button type="button" className="btn ghost small" onClick={() => setOpen(true)}>
@@ -99,7 +112,7 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
       {artifacts.length === 0 && !open && <p className="muted small">{t('sectionEmpty')}</p>}
 
       {artifacts.length > 0 && (
-        <ul className="artifact-grid">
+        <ul className={compact ? 'artifact-list' : 'artifact-grid'}>
           {artifacts.map((a) => (
             <ArtifactRow
               key={a.id}
@@ -107,7 +120,7 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
               busy={busy}
               run={run}
               onDeleted={onChanged}
-              layout="grid"
+              layout={compact ? 'list' : 'grid'}
             />
           ))}
         </ul>

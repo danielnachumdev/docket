@@ -30,13 +30,6 @@
   "delete": "Delete task",
   "deleteTitle": "Delete task?",
   "deleteBody": "“{{title}}” and its history will be permanently deleted. This cannot be undone.",
-  "notes": "Notes",
-  "notesPlaceholder": "Add context, acceptance criteria, or anything an agent should know…",
-  "notesMode": "Notes edit or preview",
-  "notesEdit": "Edit",
-  "notesPreview": "Preview",
-  "notesEmptyPreview": "Nothing to preview yet. Switch to Edit to add markdown notes.",
-  "notesMarkdownHint": "Markdown supported: tables, task lists, fenced code, and links (shown as hostname chips).",
   "status": "Status",
   "details": "Details",
   "sidePanel": "Details",
@@ -152,12 +145,13 @@
     "roleSession": "session",
     "field": {
       "title": "title",
-      "body": "notes",
+      "body": "description",
       "priority": "priority",
       "due_at": "deadline",
       "parent_task_id": "parent",
       "require_artifact_on_done": "completion rules",
-      "outcome_schema_json": "outcome schema"
+      "outcome_schema_json": "outcome schema",
+      "description": "description"
     },
     "event": {
       "created": "created this task",
@@ -192,8 +186,17 @@
       "released": "released the claim",
       "failed": "failed to {{operation}}: {{error}}",
       "commented": "commented: {{body}}",
-      "commentedPlain": "commented"
-    }
+      "commentedPlain": "commented",
+      "commentUpdated": "edited a comment",
+      "commentDeleted": "deleted a comment",
+      "artifactUpdated": "updated artifact “{{title}}”",
+      "artifactUpdatedPlain": "updated an artifact"
+    },
+    "newestFirst": "Newest first",
+    "oldestFirst": "Oldest first",
+    "sortOldest": "Show oldest activity first",
+    "sortNewest": "Show newest activity first",
+    "loadFailed": "Could not load activity"
   },
   "completion": {
     "title": "Completion",
@@ -214,5 +217,12 @@
     "outcomeJson": "Outcome must be valid JSON.",
     "submit": "Mark done"
   },
-  "savedToast": "Changes saved"
+  "savedToast": "Changes saved",
+  "description": "Description",
+  "descriptionPlaceholder": "Add context, acceptance criteria, or anything an agent should know…",
+  "descriptionMode": "Description edit or preview",
+  "descriptionEdit": "Edit",
+  "descriptionPreview": "Preview",
+  "descriptionEmptyPreview": "Nothing to preview yet. Switch to Edit to add a markdown description.",
+  "descriptionMarkdownHint": "Markdown supported: tables, task lists, fenced code, and links (shown as hostname chips)."
 }

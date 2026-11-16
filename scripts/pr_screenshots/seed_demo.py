@@ -46,14 +46,14 @@ DEMO_TASKS: list[dict[str, Any]] = [
     {
         "external_id": "demo:triage-inbox",
         "title": "Triage demo inbox",
-        "body": "Fabricated backlog item for SPA screenshots. No real operators.",
+        "description": "Fabricated backlog item for SPA screenshots. No real operators.",
         "priority": 2,
         "status": "in_progress",
     },
     {
         "external_id": "demo:ship-artifacts",
         "title": "Attach sample artifacts",
-        "body": "Demo task with text + link artifacts for the Artifacts page.",
+        "description": "Demo task with text + link artifacts for the Artifacts page.",
         "priority": 3,
         "status": "backlog",
         "artifacts": [
@@ -103,7 +103,7 @@ DEMO_TASKS: list[dict[str, Any]] = [
     {
         "external_id": "demo:blocked-deps",
         "title": "Blocked on demo dependency",
-        "body": "Shows blocked status chip in the task list.",
+        "description": "Shows blocked status chip in the task list.",
         "priority": 1,
         "status": "blocked",
         "status_reason": "Waiting on ACME API credentials",
@@ -111,7 +111,7 @@ DEMO_TASKS: list[dict[str, Any]] = [
     {
         "external_id": "demo:on-hold-budget",
         "title": "On hold until budget review",
-        "body": "Shows on-hold status reason in the task list.",
+        "description": "Shows on-hold status reason in the task list.",
         "priority": 2,
         "status": "on_hold",
         "status_reason": "Paused until Q2 budget sign-off",
@@ -119,7 +119,7 @@ DEMO_TASKS: list[dict[str, Any]] = [
     {
         "external_id": "demo:shared-review",
         "title": "Shared review checklist",
-        "body": "Shared with Alex Demo so People / shared badges look populated.",
+        "description": "Shared with Alex Demo so People / shared badges look populated.",
         "priority": 3,
         "status": "backlog",
         "share_with_invitee": True,
@@ -129,35 +129,35 @@ DEMO_TASKS: list[dict[str, Any]] = [
     {
         "external_id": "demo:done-example",
         "title": "Completed demo chore",
-        "body": "Done status for filter chips.",
+        "description": "Done status for filter chips.",
         "priority": 4,
         "status": "done",
     },
     {
         "external_id": "demo:failed-retry",
         "title": "Failed demo retry",
-        "body": "Failed status for Progress page stats screenshots.",
+        "description": "Failed status for Progress page stats screenshots.",
         "priority": 2,
         "status": "failed",
     },
     {
         "external_id": "demo:done-priority",
         "title": "Shipped P1 demo milestone",
-        "body": "High-priority completion for Progress throughput.",
+        "description": "High-priority completion for Progress throughput.",
         "priority": 1,
         "status": "done",
     },
     {
         "external_id": "demo:parent-outline",
         "title": "Demo parent outline",
-        "body": "Hierarchy parent for flat-queue parent-chip screenshots.",
+        "description": "Hierarchy parent for flat-queue parent-chip screenshots.",
         "priority": 3,
         "status": "backlog",
     },
     {
         "external_id": "demo:subtask-prep",
         "title": "Prep demo subtask",
-        "body": "Child task ordered in the global queue; shows parent chip on Tasks.",
+        "description": "Child task ordered in the global queue; shows parent chip on Tasks.",
         "priority": 2,
         "status": "in_progress",
         "parent_external_id": "demo:parent-outline",
@@ -295,7 +295,7 @@ def ensure_task(
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "title": spec["title"],
-        "body": spec.get("body"),
+        "description": spec.get("description"),
         "priority": spec.get("priority", 3),
         "external_id": spec["external_id"],
     }

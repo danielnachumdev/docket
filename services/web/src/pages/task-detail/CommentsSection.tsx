@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -20,7 +21,6 @@ import {
 import { useAuth } from '../../auth'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
-import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { Section } from '../../components/Section'
 import { UserBidiText } from '../../components/UserBidiText'
 import { userBidiAttrs } from '../../lib/bidi'
@@ -37,6 +37,8 @@ type Props = {
   tasks: Task[]
   shares: TaskShare[]
   canComment: boolean
+  /** When true, only the composer is shown (feed lives in ActivitySection). */
+  composerOnly?: boolean
   onChanged: () => Promise<void>
 }
 
@@ -64,11 +66,40 @@ function highlightShare(userId: number) {
   window.setTimeout(() => el.classList.remove('comment-flash'), 1600)
 }
 
-function refChipLabel(ref: CommentRef) {
-  if (ref.kind === 'user') return `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
-  if (ref.kind === 'task') return `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
-  if (ref.kind === 'artifact') return `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
-  return `~${ref.comment_id ?? ref.raw.slice(1)}`
+function renderBody(
+  body: string,
+  refs: CommentRef[],
+  onRefClick: (ref: CommentRef) => void,
+) {
+  if (!refs.length) return body
+  const ordered = [...refs].sort((a, b) => a.start - b.start)
+  const parts: ReactNode[] = []
+  let cursor = 0
+  ordered.forEach((ref, index) => {
+    if (ref.start < cursor || ref.end > body.length) return
+    if (ref.start > cursor) parts.push(body.slice(cursor, ref.start))
+    const label =
+      ref.kind === 'user'
+        ? `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
+        : ref.kind === 'task'
+          ? `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
+          : ref.kind === 'artifact'
+            ? `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
+            : `~${ref.comment_id ?? ref.raw.slice(1)}`
+    parts.push(
+      <button
+        key={`${ref.kind}-${index}-${ref.start}`}
+        type="button"
+        className={`comment-chip kind-${ref.kind}`}
+        onClick={() => onRefClick(ref)}
+      >
+        {label}
+      </button>,
+    )
+    cursor = ref.end
+  })
+  if (cursor < body.length) parts.push(body.slice(cursor))
+  return parts
 }
 
 export function CommentsSection({
@@ -77,6 +108,7 @@ export function CommentsSection({
   tasks,
   shares,
   canComment,
+  composerOnly = false,
   onChanged,
 }: Props) {
   const { t } = useTranslation(['tasks', 'common'])
@@ -255,83 +287,84 @@ export function CommentsSection({
     textareaRef.current?.focus()
   }
 
+  if (composerOnly && !canComment) return null
+
   return (
-    <Section icon="message" title={t('comments')} count={comments.length}>
+    <Section
+      icon="message"
+      title={composerOnly ? t('commentSubmit') : t('comments')}
+      count={composerOnly ? undefined : comments.length}
+    >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
-      {comments.length === 0 ? (
-        <p className="muted small">{t('commentsEmpty')}</p>
-      ) : (
-        <ul className="comment-thread">
-          {comments.map((c) => (
-            <li key={c.id} id={`comment-${c.id}`} className="comment-item">
-              <div className="comment-meta">
-                <strong>{c.author_display_name}</strong>
-                <span className="muted small" title={formatDateTime(c.created_at)}>
-                  {formatRelative(c.created_at)}
-                  {c.updated_at !== c.created_at ? ` · ${t('commentEdited')}` : ''}
-                </span>
-              </div>
-              {(c.refs ?? []).length > 0 ? (
-                <MarkdownWithRefs
-                  source={c.body}
-                  refs={c.refs ?? []}
-                  className="comment-body"
-                  renderRef={(ref, key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`comment-chip kind-${ref.kind}`}
-                      onClick={() => onRefClick(ref)}
-                    >
-                      {refChipLabel(ref)}
-                    </button>
-                  )}
-                />
-              ) : (
-                <MarkdownView source={c.body} className="comment-body" />
-              )}
-              {(c.can_edit || c.author_user_id === meId) && canComment && (
-                <div className="row-actions">
-                  <button
-                    type="button"
-                    className="btn ghost small"
-                    disabled={busy}
-                    onClick={() => startEdit(c)}
-                  >
-                    {t('commentEdit')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn ghost small danger"
-                    disabled={busy}
-                    onClick={async () => {
-                      const ok = await confirm({
-                        title: t('commentDeleteTitle'),
-                        description: t('commentDeleteConfirm'),
-                        confirmLabel: t('common:delete'),
-                        danger: true,
-                      })
-                      if (!ok) return
-                      void run(async () => {
-                        await api.deleteComment(taskId, c.id)
-                        if (editingId === c.id) {
-                          setEditingId(null)
-                          setBody('')
-                        }
-                        await reload()
-                        await onChanged()
-                      }, t('commentDeleteFailed'))
-                    }}
-                  >
-                    {t('commentDelete')}
-                  </button>
+      {!composerOnly &&
+        (comments.length === 0 ? (
+          <p className="muted small">{t('commentsEmpty')}</p>
+        ) : (
+          <ul className="comment-thread">
+            {comments.map((c) => (
+              <li key={c.id} id={`comment-${c.id}`} className="comment-item">
+                <div className="comment-meta">
+                  <strong>{c.author_label || c.author_display_name}</strong>
+                  <span className="muted small" title={formatDateTime(c.created_at)}>
+                    {formatRelative(c.created_at)}
+                    {c.updated_at !== c.created_at ? ` · ${t('commentEdited')}` : ''}
+                  </span>
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                <div {...userBidiAttrs(c.body, 'comment-body')}>
+                  {renderBody(c.body, c.refs ?? [], onRefClick)}
+                </div>
+                {(c.attachments?.length ?? 0) > 0 && (
+                  <ul className="activity-attachments">
+                    {c.attachments.map((art) => (
+                      <li key={art.id} className="activity-attachment">
+                        <Icon name="paperclip" size={12} />
+                        <span>{art.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {(c.can_edit || c.author_user_id === meId) && canComment && (
+                  <div className="row-actions">
+                    <button
+                      type="button"
+                      className="btn ghost small"
+                      disabled={busy}
+                      onClick={() => startEdit(c)}
+                    >
+                      {t('commentEdit')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost small danger"
+                      disabled={busy}
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: t('commentDeleteTitle'),
+                          description: t('commentDeleteConfirm'),
+                          confirmLabel: t('common:delete'),
+                          danger: true,
+                        })
+                        if (!ok) return
+                        void run(async () => {
+                          await api.deleteComment(taskId, c.id)
+                          if (editingId === c.id) {
+                            setEditingId(null)
+                            setBody('')
+                          }
+                          await reload()
+                          await onChanged()
+                        }, t('commentDeleteFailed'))
+                      }}
+                    >
+                      {t('commentDelete')}
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        ))}
 
       {canComment ? (
         <form className="comment-form" onSubmit={onSubmit}>
@@ -392,7 +425,6 @@ export function CommentsSection({
             )}
           </div>
           <p className="muted small">
-            {t('commentMarkdownHint')}{' '}
             {t('commentShorthandHint')} <code>@</code> <code>#</code> <code>&amp;</code>{' '}
             <code>~</code>
           </p>

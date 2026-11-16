@@ -11,7 +11,7 @@ def test_create_with_same_external_id_is_idempotent() -> None:
         "title": "WhatsApp follow-up",
         "priority": 2,
         "external_id": "wa:chat-demo:msg-001",
-        "body": "From demo chat bot",
+        "description": "From demo chat bot",
     }
 
     first = client.post("/api/tasks", json=payload)
@@ -25,7 +25,7 @@ def test_create_with_same_external_id_is_idempotent() -> None:
         json={
             **payload,
             "title": "Different title should not create a duplicate",
-            "body": "retry",
+            "description": "retry",
         },
     )
     assert second.status_code == 200, second.text

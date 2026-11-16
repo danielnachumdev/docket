@@ -9,7 +9,7 @@ PAUSE_STATUSES = frozenset({"blocked", "on_hold"})
 
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=500)
-    body: str | None = None
+    description: str | None = None
     priority: int = Field(default=3, ge=1, le=4)
     parent_task_id: str | None = None
     due_at: datetime | None = None
@@ -20,7 +20,7 @@ class TaskCreate(BaseModel):
 
 class TaskUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=500)
-    body: str | None = None
+    description: str | None = None
     priority: int | None = Field(default=None, ge=1, le=4)
     rank: float | None = None
     parent_task_id: str | None = None
@@ -82,7 +82,7 @@ class TaskOut(BaseModel):
     parent_task_id: str | None
     external_id: str | None
     title: str
-    body: str | None
+    description: str | None
     status: str
     priority: int
     rank: float
