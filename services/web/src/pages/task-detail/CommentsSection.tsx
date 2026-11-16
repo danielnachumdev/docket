@@ -4,8 +4,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
-  type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -21,15 +21,19 @@ import {
 import { useAuth } from '../../auth'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
+import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { Section } from '../../components/Section'
 import { UserBidiText } from '../../components/UserBidiText'
 import { userBidiAttrs } from '../../lib/bidi'
 import { useConfirm } from '../../lib/dialogs'
 import { formatDateTime, formatRelative } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
+import { CommentAttachmentList } from './CommentAttachmentList'
 import './CommentsSection.css'
 
 type TriggerKind = '@' | '#' | '&' | '~'
+
+type PendingFile = { key: string; file: File }
 
 type Props = {
   taskId: string
@@ -37,9 +41,20 @@ type Props = {
   tasks: Task[]
   shares: TaskShare[]
   canComment: boolean
+  /** Attach files/images on new comments (requires artifacts:write). */
+  canAttach?: boolean
   /** When true, only the composer is shown (feed lives in ActivitySection). */
   composerOnly?: boolean
   onChanged: () => Promise<void>
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]!)
+  }
+  return btoa(binary)
 }
 
 function highlightComment(commentId: number) {
@@ -66,40 +81,11 @@ function highlightShare(userId: number) {
   window.setTimeout(() => el.classList.remove('comment-flash'), 1600)
 }
 
-function renderBody(
-  body: string,
-  refs: CommentRef[],
-  onRefClick: (ref: CommentRef) => void,
-) {
-  if (!refs.length) return body
-  const ordered = [...refs].sort((a, b) => a.start - b.start)
-  const parts: ReactNode[] = []
-  let cursor = 0
-  ordered.forEach((ref, index) => {
-    if (ref.start < cursor || ref.end > body.length) return
-    if (ref.start > cursor) parts.push(body.slice(cursor, ref.start))
-    const label =
-      ref.kind === 'user'
-        ? `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
-        : ref.kind === 'task'
-          ? `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
-          : ref.kind === 'artifact'
-            ? `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
-            : `~${ref.comment_id ?? ref.raw.slice(1)}`
-    parts.push(
-      <button
-        key={`${ref.kind}-${index}-${ref.start}`}
-        type="button"
-        className={`comment-chip kind-${ref.kind}`}
-        onClick={() => onRefClick(ref)}
-      >
-        {label}
-      </button>,
-    )
-    cursor = ref.end
-  })
-  if (cursor < body.length) parts.push(body.slice(cursor))
-  return parts
+function refChipLabel(ref: CommentRef) {
+  if (ref.kind === 'user') return `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
+  if (ref.kind === 'task') return `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
+  if (ref.kind === 'artifact') return `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
+  return `~${ref.comment_id ?? ref.raw.slice(1)}`
 }
 
 export function CommentsSection({
@@ -108,6 +94,7 @@ export function CommentsSection({
   tasks,
   shares,
   canComment,
+  canAttach = false,
   composerOnly = false,
   onChanged,
 }: Props) {
@@ -119,12 +106,16 @@ export function CommentsSection({
   const [comments, setComments] = useState<TaskComment[]>([])
   const [mentionables, setMentionables] = useState<MentionableUser[]>([])
   const [body, setBody] = useState('')
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
   const [trigger, setTrigger] = useState<{ kind: TriggerKind; start: number; query: string } | null>(
     null,
   )
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { busy, error, setError, run } = useAction()
+  const canPost = Boolean(body.trim() || (editingId == null && pendingFiles.length > 0))
+  const showAttach = canAttach && editingId == null
 
   const reload = useCallback(async () => {
     const [rows, people] = await Promise.all([
@@ -262,16 +253,36 @@ export function CommentsSection({
     }
   }
 
+  function onPickFiles(e: ChangeEvent<HTMLInputElement>) {
+    const list = e.target.files
+    if (!list?.length) return
+    const next: PendingFile[] = Array.from(list).map((file) => ({
+      key: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
+      file,
+    }))
+    setPendingFiles((prev) => [...prev, ...next])
+    e.target.value = ''
+  }
+
   function onSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!body.trim() || !canComment) return
+    if (!canComment || !canPost) return
     void run(async () => {
       if (editingId != null) {
         await api.updateComment(taskId, editingId, body.trim())
       } else {
-        await api.addComment(taskId, body.trim())
+        const attachments = await Promise.all(
+          pendingFiles.map(async ({ file }) => ({
+            kind: 'file' as const,
+            title: file.name,
+            content_base64: await fileToBase64(file),
+            content_type: file.type || 'application/octet-stream',
+          })),
+        )
+        await api.addComment(taskId, body.trim(), attachments)
       }
       setBody('')
+      setPendingFiles([])
       setEditingId(null)
       setTrigger(null)
       await reload()
@@ -283,6 +294,7 @@ export function CommentsSection({
   function startEdit(comment: TaskComment) {
     setEditingId(comment.id)
     setBody(comment.body)
+    setPendingFiles([])
     setTrigger(null)
     textareaRef.current?.focus()
   }
@@ -311,18 +323,27 @@ export function CommentsSection({
                     {c.updated_at !== c.created_at ? ` · ${t('commentEdited')}` : ''}
                   </span>
                 </div>
-                <div {...userBidiAttrs(c.body, 'comment-body')}>
-                  {renderBody(c.body, c.refs ?? [], onRefClick)}
-                </div>
+                {(c.refs ?? []).length > 0 ? (
+                  <MarkdownWithRefs
+                    source={c.body}
+                    refs={c.refs ?? []}
+                    className="comment-body"
+                    renderRef={(ref, key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`comment-chip kind-${ref.kind}`}
+                        onClick={() => onRefClick(ref)}
+                      >
+                        {refChipLabel(ref)}
+                      </button>
+                    )}
+                  />
+                ) : (
+                  <MarkdownView source={c.body} className="comment-body" />
+                )}
                 {(c.attachments?.length ?? 0) > 0 && (
-                  <ul className="activity-attachments">
-                    {c.attachments.map((art) => (
-                      <li key={art.id} className="activity-attachment">
-                        <Icon name="paperclip" size={12} />
-                        <span>{art.title}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <CommentAttachmentList taskId={taskId} attachments={c.attachments} />
                 )}
                 {(c.can_edit || c.author_user_id === meId) && canComment && (
                   <div className="row-actions">
@@ -383,11 +404,33 @@ export function CommentsSection({
               }}
               onKeyUp={(e) => detectTrigger(body, e.currentTarget.selectionStart)}
               onClick={(e) => detectTrigger(body, e.currentTarget.selectionStart)}
-              placeholder={t('commentPlaceholder')}
+              placeholder={
+                showAttach ? t('commentPlaceholderWithAttach') : t('commentPlaceholder')
+              }
               disabled={busy}
               {...userBidiAttrs(body)}
             />
           </label>
+          {showAttach && pendingFiles.length > 0 && (
+            <ul className="comment-pending-files" aria-label={t('commentPendingFiles')}>
+              {pendingFiles.map((item) => (
+                <li key={item.key} className="comment-pending-file">
+                  <Icon name="paperclip" size={12} />
+                  <span>{item.file.name}</span>
+                  <button
+                    type="button"
+                    className="btn ghost small"
+                    disabled={busy}
+                    onClick={() =>
+                      setPendingFiles((prev) => prev.filter((row) => row.key !== item.key))
+                    }
+                  >
+                    {t('common:remove')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           {trigger && pickerItems.length > 0 && (
             <ul className="comment-picker" role="listbox" aria-label={t('commentPicker')}>
               {pickerItems.map((item) => (
@@ -404,8 +447,29 @@ export function CommentsSection({
               ))}
             </ul>
           )}
-          <div className="inline-form">
-            <button type="submit" className="btn primary small" disabled={busy || !body.trim()}>
+          <div className="inline-form comment-form-actions">
+            {showAttach && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="sr-only"
+                  onChange={onPickFiles}
+                  disabled={busy}
+                />
+                <button
+                  type="button"
+                  className="btn ghost small"
+                  disabled={busy}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Icon name="paperclip" />
+                  {t('commentAttach')}
+                </button>
+              </>
+            )}
+            <button type="submit" className="btn primary small" disabled={busy || !canPost}>
               <Icon name="plus" />
               {editingId != null ? t('commentSave') : t('commentSubmit')}
             </button>
@@ -417,6 +481,7 @@ export function CommentsSection({
                 onClick={() => {
                   setEditingId(null)
                   setBody('')
+                  setPendingFiles([])
                   setTrigger(null)
                 }}
               >
@@ -425,6 +490,8 @@ export function CommentsSection({
             )}
           </div>
           <p className="muted small">
+            {showAttach ? `${t('commentAttachHint')} ` : ''}
+            {t('commentMarkdownHint')}{' '}
             {t('commentShorthandHint')} <code>@</code> <code>#</code> <code>&amp;</code>{' '}
             <code>~</code>
           </p>

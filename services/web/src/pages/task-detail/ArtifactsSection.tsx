@@ -28,6 +28,8 @@ type Props = {
   onChanged: () => Promise<void>
   variant?: 'card' | 'plain'
   defaultCollapsed?: boolean
+  /** When false, browse/delete only — new files attach via the activity comment composer. */
+  allowCreate?: boolean
 }
 
 export function ArtifactsSection({
@@ -36,6 +38,7 @@ export function ArtifactsSection({
   onChanged,
   variant = 'card',
   defaultCollapsed = false,
+  allowCreate = true,
 }: Props) {
   const { t } = useTranslation(['artifacts', 'common'])
   const [open, setOpen] = useState(false)
@@ -99,17 +102,21 @@ export function ArtifactsSection({
       collapsible={compact}
       defaultCollapsed={defaultCollapsed}
       action={
-        !open && (
+        allowCreate && !open ? (
           <button type="button" className="btn ghost small" onClick={() => setOpen(true)}>
             <Icon name="plus" />
             {t('attach')}
           </button>
-        )
+        ) : undefined
       }
     >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
-      {artifacts.length === 0 && !open && <p className="muted small">{t('sectionEmpty')}</p>}
+      {artifacts.length === 0 && !open && (
+        <p className="muted small">
+          {allowCreate ? t('sectionEmpty') : t('sectionEmptyViaComment')}
+        </p>
+      )}
 
       {artifacts.length > 0 && (
         <ul className={compact ? 'artifact-list' : 'artifact-grid'}>
@@ -126,7 +133,7 @@ export function ArtifactsSection({
         </ul>
       )}
 
-      {open && (
+      {allowCreate && open && (
         <form className="stack subtle-panel" onSubmit={onAdd}>
           <div className="segmented" role="radiogroup" aria-label={t('kindLabel')}>
             {KINDS.map((k) => (

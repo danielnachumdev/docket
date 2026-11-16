@@ -451,6 +451,10 @@ export function TaskDetailPage() {
     myShare?.role === 'commentor' ||
     myShare?.role === 'editor' ||
     Boolean(status?.permissions.includes('tasks:comment') && myShare == null)
+  const canAttachArtifacts =
+    isOwner ||
+    myShare?.role === 'editor' ||
+    Boolean(status?.permissions.includes('artifacts:write') && myShare == null)
   const menuItems: MenuItem[] = [
     { label: t('export'), icon: 'download', onSelect: exportCasePack, disabled: busy },
     ...(task.archived_at
@@ -632,6 +636,7 @@ export function TaskDetailPage() {
             tasks={allTasks}
             shares={shares}
             canComment={canComment}
+            canAttach={canAttachArtifacts}
             composerOnly
             onChanged={load}
           />
@@ -834,6 +839,7 @@ export function TaskDetailPage() {
                 onChanged={load}
                 variant="plain"
                 defaultCollapsed={railStacked}
+                allowCreate={false}
               />
             </div>
               </>

@@ -99,6 +99,36 @@ def test_comment_artifact_attachment_inline() -> None:
     ]
     assert "artifact_added" not in event_types
 
+    multi = client.post(
+        f"/api/tasks/{task['id']}/comments",
+        json={
+            "body": "",
+            "attachments": [
+                {
+                    "kind": "file",
+                    "title": "a.txt",
+                    "content_base64": payload,
+                    "content_type": "text/plain",
+                },
+                {
+                    "kind": "file",
+                    "title": "b.txt",
+                    "content_base64": payload,
+                    "content_type": "text/plain",
+                },
+            ],
+        },
+    )
+    assert multi.status_code == 201
+    assert len(multi.json()["attachments"]) == 2
+    assert multi.json()["body"] == ""
+
+    empty = client.post(
+        f"/api/tasks/{task['id']}/comments",
+        json={"body": "", "attachments": []},
+    )
+    assert empty.status_code == 422
+
     standalone = client.post(
         f"/api/tasks/{task['id']}/artifacts",
         json={"kind": "text", "title": "Loose note", "content_text": "hi"},

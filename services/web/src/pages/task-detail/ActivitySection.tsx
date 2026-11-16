@@ -4,17 +4,16 @@ import { useTranslation } from 'react-i18next'
 import {
   api,
   type ActivityItem,
-  type Artifact,
   type TaskComment,
   type TaskEvent,
 } from '../../api'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
+import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { Section } from '../../components/Section'
-import { UserBidiText } from '../../components/UserBidiText'
-import { userBidiAttrs } from '../../lib/bidi'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
+import { CommentAttachmentList } from './CommentAttachmentList'
 import './ActivitySection.css'
 import './CommentsSection.css'
 
@@ -130,23 +129,17 @@ function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
   }
 }
 
-function CommentAttachments({ attachments }: { attachments: Artifact[] }) {
-  if (!attachments.length) return null
-  return (
-    <ul className="activity-attachments">
-      {attachments.map((art) => (
-        <li key={art.id} className="activity-attachment">
-          <Icon name="paperclip" size={12} />
-          <span>{art.title}</span>
-          <span className="muted small">{art.kind}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function CommentRow({ comment, actorLabel }: { comment: TaskComment; actorLabel: string }) {
+function CommentRow({
+  comment,
+  actorLabel,
+  taskId,
+}: {
+  comment: TaskComment
+  actorLabel: string
+  taskId: string
+}) {
   const { t } = useTranslation('tasks')
+  const hasBody = Boolean(comment.body?.trim())
   return (
     <li id={`comment-${comment.id}`} className="event event-comment">
       <span className="event-dot" aria-hidden="true" />
@@ -158,10 +151,28 @@ function CommentRow({ comment, actorLabel }: { comment: TaskComment; actorLabel:
             {comment.updated_at !== comment.created_at ? ` · ${t('commentEdited')}` : ''}
           </span>
         </p>
-        <div {...userBidiAttrs(comment.body, 'comment-body')}>
-          <UserBidiText text={comment.body} />
-        </div>
-        <CommentAttachments attachments={comment.attachments ?? []} />
+        {hasBody &&
+          ((comment.refs ?? []).length > 0 ? (
+            <MarkdownWithRefs
+              source={comment.body}
+              refs={comment.refs ?? []}
+              className="comment-body"
+              renderRef={(ref, key) => (
+                <span key={key} className={`comment-chip kind-${ref.kind}`}>
+                  {ref.kind === 'user'
+                    ? `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
+                    : ref.kind === 'task'
+                      ? `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
+                      : ref.kind === 'artifact'
+                        ? `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
+                        : `~${ref.comment_id ?? ref.raw.slice(1)}`}
+                </span>
+              )}
+            />
+          ) : (
+            <MarkdownView source={comment.body} className="comment-body" />
+          ))}
+        <CommentAttachmentList taskId={taskId} attachments={comment.attachments ?? []} />
       </div>
     </li>
   )
@@ -277,6 +288,7 @@ export function ActivitySection({ taskId, refreshKey = 0, variant = 'card' }: Pr
               item.kind === 'comment' && item.comment ? (
                 <CommentRow
                   key={item.id}
+                  taskId={taskId}
                   comment={item.comment}
                   actorLabel={item.actor.label || item.comment.author_label}
                 />

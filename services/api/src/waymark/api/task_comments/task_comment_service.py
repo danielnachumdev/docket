@@ -82,9 +82,11 @@ class TaskCommentService:
     ) -> TaskCommentOut:
         task = self._access.get_task(principal, task_ref, "tasks:comment")
         text = body.body.strip()
-        if not text:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Comment cannot be empty")
         attachments_in = body.attachments or []
+        if not text and not attachments_in:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Comment needs text and/or attachments"
+            )
         if attachments_in:
             self._access.get_task(principal, task_ref, "artifacts:write")
         refs = self._refs.resolve(principal=principal, task=task, text=text)
