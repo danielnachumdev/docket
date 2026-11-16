@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { JSDOM } from 'jsdom'
-import createDOMPurify from 'dompurify'
 import {
   hostnameOf,
   isSafeHref,
@@ -13,7 +11,19 @@ import {
   splitRefPlaceholders,
 } from './markdown.mjs'
 
-const purify = createDOMPurify(new JSDOM('').window)
+/**
+ * Minimal purify stand-in so unit tests stay Node-20-safe (jsdom→undici zstd
+ * breaks on Node 20). Production still uses browser DOMPurify.
+ * @param {string} dirty
+ * @param {object} [_cfg]
+ */
+function stubPurifySanitize(dirty, _cfg) {
+  return String(dirty)
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+}
+
+const stubPurify = { sanitize: stubPurifySanitize }
 
 describe('hostnameOf / isSafeHref', () => {
   it('extracts hostnames from http(s) URLs', () => {
@@ -71,14 +81,14 @@ describe('parseMarkdown GFM', () => {
 })
 
 describe('sanitizeMarkdownHtml', () => {
-  it('strips script tags and keeps tables/links', () => {
+  it('strips script tags and keeps tables/links via purify', () => {
     const dirty =
       '<table><tr><td>ok</td></tr></table>' +
       '<script>alert(1)</script>' +
       '<a class="md-link-chip" href="https://example.com" target="_blank" rel="noopener noreferrer">' +
       '<span class="md-link-chip-host">example.com</span></a>' +
       '<img src=x onerror=alert(1)>'
-    const clean = sanitizeMarkdownHtml(dirty, purify)
+    const clean = sanitizeMarkdownHtml(dirty, stubPurify)
     assert.match(clean, /<table>/)
     assert.match(clean, /md-link-chip/)
     assert.doesNotMatch(clean, /<script/i)
@@ -88,7 +98,7 @@ describe('sanitizeMarkdownHtml', () => {
   it('renderMarkdown end-to-end drops XSS from source', () => {
     const html = renderMarkdown(
       'hi <script>alert(1)</script>\n\n[x](javascript:alert(1))\n\n| a |\n| - |\n| 1 |\n',
-      purify,
+      stubPurify,
     )
     assert.doesNotMatch(html, /<script/i)
     assert.doesNotMatch(html, /javascript:/i)
