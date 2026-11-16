@@ -47,7 +47,7 @@ export function endOfLocalDay(ref = new Date()) {
 
 /**
  * End of a named due horizon in the viewer's local timezone.
- * Week is Monday-start (ends Sunday). Quarter ends on the last day of Mar/Jun/Sep/Dec.
+ * Week is Sunday-start (ends Saturday). Quarter ends on the last day of Mar/Jun/Sep/Dec.
  * @param {'today' | 'tomorrow' | 'week' | 'month' | 'quarter' | 'year'} horizon
  * @param {Date} [ref]
  */
@@ -60,9 +60,13 @@ export function endOfHorizon(horizon, ref = new Date()) {
       return endOfLocalDay(d)
     }
     case 'week': {
-      const day = ref.getDay() // 0=Sun … 6=Sat; Monday-start → Sunday end
-      const daysUntilSunday = day === 0 ? 0 : 7 - day
-      const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + daysUntilSunday)
+      const day = ref.getDay() // 0=Sun … 6=Sat; Sunday-start → Saturday end
+      const daysUntilSaturday = 6 - day
+      const d = new Date(
+        ref.getFullYear(),
+        ref.getMonth(),
+        ref.getDate() + daysUntilSaturday,
+      )
       return endOfLocalDay(d)
     }
     case 'month': {
