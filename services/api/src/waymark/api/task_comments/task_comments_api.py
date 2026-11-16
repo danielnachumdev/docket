@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, status
 from waymark.api.task_comments.task_comment_service import TaskCommentService
 from waymark.auth import Principal, RequirePermission
 from waymark.db import DbSession
+from waymark.schemas import ArtifactCreate, ArtifactOut
 from waymark.schemas.notifications import (
     MentionableUserOut,
     TaskCommentIn,
@@ -47,6 +48,13 @@ class TaskCommentsApi:
             status_code=status.HTTP_204_NO_CONTENT,
         )
         self.router.add_api_route(
+            "/{task_id}/comments/{comment_id}/artifacts",
+            self.attach_comment_artifact,
+            methods=["POST"],
+            response_model=ArtifactOut,
+            status_code=status.HTTP_201_CREATED,
+        )
+        self.router.add_api_route(
             "/{task_id}/mentionables",
             self.list_mentionables,
             methods=["GET"],
@@ -85,6 +93,18 @@ class TaskCommentsApi:
         principal: CanComment,
     ) -> None:
         TaskCommentService(db).delete(principal, task_id, comment_id)
+
+    def attach_comment_artifact(
+        self,
+        task_id: str,
+        comment_id: int,
+        body: ArtifactCreate,
+        db: DbSession,
+        principal: CanComment,
+    ) -> ArtifactOut:
+        return TaskCommentService(db).attach_artifact(
+            principal, task_id, comment_id, body
+        )
 
     def list_mentionables(
         self, task_id: str, db: DbSession, principal: CanRead

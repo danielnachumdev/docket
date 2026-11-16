@@ -17,7 +17,7 @@ from helpers import bootstrap_owner
 def _create_task(client: TestClient, title: str = "Audit case") -> int:
     res = client.post(
         "/api/tasks",
-        json={"title": title, "priority": 2, "body": "case notes"},
+        json={"title": title, "priority": 2, "description": "case notes"},
     )
     assert res.status_code == 201
     return res.json()["id"]
@@ -108,7 +108,7 @@ def test_export_includes_task_events_artifacts(tmp_path: Path, monkeypatch) -> N
         task = json.loads(zf.read("task.json"))
         assert task["id"] == task_id
         assert task["title"] == "Audit case"
-        assert task["body"] == "case notes"
+        assert task["description"] == "case notes"
 
         events = json.loads(zf.read("events.json"))
         assert isinstance(events, list)

@@ -9,6 +9,7 @@ from waymark.api.me_stats import me_stats_api
 from waymark.api.notifications import notifications_api
 from waymark.api.preferences import preferences_api
 from waymark.api.saved_views import saved_views_api
+from waymark.api.task_activity import task_activity_api
 from waymark.api.task_comments import task_comments_api
 from waymark.api.task_shares import task_shares_api
 from waymark.api.task_watches import task_watches_api
@@ -28,6 +29,7 @@ __all__ = [
     "notifications_api",
     "preferences_api",
     "saved_views_api",
+    "task_activity_api",
     "task_comments_api",
     "task_shares_api",
     "task_watches_api",

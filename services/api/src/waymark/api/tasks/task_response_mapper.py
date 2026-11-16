@@ -44,7 +44,7 @@ class TaskResponseMapper:
             parent_task_id=self.public_id(task.parent_task_id),
             external_id=task.external_id,
             title=task.title,
-            body=task.body,
+            description=task.description,
             status=task.status,
             priority=task.priority,
             rank=task.rank,

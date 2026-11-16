@@ -26,9 +26,20 @@ type Props = {
   taskId: string
   artifacts: Artifact[]
   onChanged: () => Promise<void>
+  variant?: 'card' | 'plain'
+  defaultCollapsed?: boolean
+  /** When false, browse/delete only — new files attach via the activity comment composer. */
+  allowCreate?: boolean
 }
 
-export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
+export function ArtifactsSection({
+  taskId,
+  artifacts,
+  onChanged,
+  variant = 'card',
+  defaultCollapsed = false,
+  allowCreate = true,
+}: Props) {
   const { t } = useTranslation(['artifacts', 'common'])
   const [open, setOpen] = useState(false)
   const [kind, setKind] = useState<Kind>('text')
@@ -80,26 +91,35 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
     }, t('errors.attach'))
   }
 
+  const compact = variant === 'plain'
+
   return (
     <Section
       icon="paperclip"
       title={t('title')}
       count={artifacts.length}
+      variant={variant}
+      collapsible={compact}
+      defaultCollapsed={defaultCollapsed}
       action={
-        !open && (
+        allowCreate && !open ? (
           <button type="button" className="btn ghost small" onClick={() => setOpen(true)}>
             <Icon name="plus" />
             {t('attach')}
           </button>
-        )
+        ) : undefined
       }
     >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
-      {artifacts.length === 0 && !open && <p className="muted small">{t('sectionEmpty')}</p>}
+      {artifacts.length === 0 && !open && (
+        <p className="muted small">
+          {allowCreate ? t('sectionEmpty') : t('sectionEmptyViaComment')}
+        </p>
+      )}
 
       {artifacts.length > 0 && (
-        <ul className="artifact-grid">
+        <ul className={compact ? 'artifact-list' : 'artifact-grid'}>
           {artifacts.map((a) => (
             <ArtifactRow
               key={a.id}
@@ -107,13 +127,13 @@ export function ArtifactsSection({ taskId, artifacts, onChanged }: Props) {
               busy={busy}
               run={run}
               onDeleted={onChanged}
-              layout="grid"
+              layout={compact ? 'list' : 'grid'}
             />
           ))}
         </ul>
       )}
 
-      {open && (
+      {allowCreate && open && (
         <form className="stack subtle-panel" onSubmit={onAdd}>
           <div className="segmented" role="radiogroup" aria-label={t('kindLabel')}>
             {KINDS.map((k) => (

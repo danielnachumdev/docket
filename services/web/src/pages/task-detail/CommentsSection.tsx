@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
 } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,9 +28,12 @@ import { userBidiAttrs } from '../../lib/bidi'
 import { useConfirm } from '../../lib/dialogs'
 import { formatDateTime, formatRelative } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
+import { CommentAttachmentList } from './CommentAttachmentList'
 import './CommentsSection.css'
 
 type TriggerKind = '@' | '#' | '&' | '~'
+
+type PendingFile = { key: string; file: File }
 
 type Props = {
   taskId: string
@@ -37,7 +41,20 @@ type Props = {
   tasks: Task[]
   shares: TaskShare[]
   canComment: boolean
+  /** Attach files/images on new comments (requires artifacts:write). */
+  canAttach?: boolean
+  /** When true, only the composer is shown (feed lives in ActivitySection). */
+  composerOnly?: boolean
   onChanged: () => Promise<void>
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]!)
+  }
+  return btoa(binary)
 }
 
 function highlightComment(commentId: number) {
@@ -77,6 +94,8 @@ export function CommentsSection({
   tasks,
   shares,
   canComment,
+  canAttach = false,
+  composerOnly = false,
   onChanged,
 }: Props) {
   const { t } = useTranslation(['tasks', 'common'])
@@ -87,12 +106,16 @@ export function CommentsSection({
   const [comments, setComments] = useState<TaskComment[]>([])
   const [mentionables, setMentionables] = useState<MentionableUser[]>([])
   const [body, setBody] = useState('')
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
   const [trigger, setTrigger] = useState<{ kind: TriggerKind; start: number; query: string } | null>(
     null,
   )
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { busy, error, setError, run } = useAction()
+  const canPost = Boolean(body.trim() || (editingId == null && pendingFiles.length > 0))
+  const showAttach = canAttach && editingId == null
 
   const reload = useCallback(async () => {
     const [rows, people] = await Promise.all([
@@ -230,16 +253,36 @@ export function CommentsSection({
     }
   }
 
+  function onPickFiles(e: ChangeEvent<HTMLInputElement>) {
+    const list = e.target.files
+    if (!list?.length) return
+    const next: PendingFile[] = Array.from(list).map((file) => ({
+      key: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
+      file,
+    }))
+    setPendingFiles((prev) => [...prev, ...next])
+    e.target.value = ''
+  }
+
   function onSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!body.trim() || !canComment) return
+    if (!canComment || !canPost) return
     void run(async () => {
       if (editingId != null) {
         await api.updateComment(taskId, editingId, body.trim())
       } else {
-        await api.addComment(taskId, body.trim())
+        const attachments = await Promise.all(
+          pendingFiles.map(async ({ file }) => ({
+            kind: 'file' as const,
+            title: file.name,
+            content_base64: await fileToBase64(file),
+            content_type: file.type || 'application/octet-stream',
+          })),
+        )
+        await api.addComment(taskId, body.trim(), attachments)
       }
       setBody('')
+      setPendingFiles([])
       setEditingId(null)
       setTrigger(null)
       await reload()
@@ -251,87 +294,98 @@ export function CommentsSection({
   function startEdit(comment: TaskComment) {
     setEditingId(comment.id)
     setBody(comment.body)
+    setPendingFiles([])
     setTrigger(null)
     textareaRef.current?.focus()
   }
 
+  if (composerOnly && !canComment) return null
+
   return (
-    <Section icon="message" title={t('comments')} count={comments.length}>
+    <Section
+      icon="message"
+      title={composerOnly ? t('commentSubmit') : t('comments')}
+      count={composerOnly ? undefined : comments.length}
+    >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
-      {comments.length === 0 ? (
-        <p className="muted small">{t('commentsEmpty')}</p>
-      ) : (
-        <ul className="comment-thread">
-          {comments.map((c) => (
-            <li key={c.id} id={`comment-${c.id}`} className="comment-item">
-              <div className="comment-meta">
-                <strong>{c.author_display_name}</strong>
-                <span className="muted small" title={formatDateTime(c.created_at)}>
-                  {formatRelative(c.created_at)}
-                  {c.updated_at !== c.created_at ? ` · ${t('commentEdited')}` : ''}
-                </span>
-              </div>
-              {(c.refs ?? []).length > 0 ? (
-                <MarkdownWithRefs
-                  source={c.body}
-                  refs={c.refs ?? []}
-                  className="comment-body"
-                  renderRef={(ref, key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`comment-chip kind-${ref.kind}`}
-                      onClick={() => onRefClick(ref)}
-                    >
-                      {refChipLabel(ref)}
-                    </button>
-                  )}
-                />
-              ) : (
-                <MarkdownView source={c.body} className="comment-body" />
-              )}
-              {(c.can_edit || c.author_user_id === meId) && canComment && (
-                <div className="row-actions">
-                  <button
-                    type="button"
-                    className="btn ghost small"
-                    disabled={busy}
-                    onClick={() => startEdit(c)}
-                  >
-                    {t('commentEdit')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn ghost small danger"
-                    disabled={busy}
-                    onClick={async () => {
-                      const ok = await confirm({
-                        title: t('commentDeleteTitle'),
-                        description: t('commentDeleteConfirm'),
-                        confirmLabel: t('common:delete'),
-                        danger: true,
-                      })
-                      if (!ok) return
-                      void run(async () => {
-                        await api.deleteComment(taskId, c.id)
-                        if (editingId === c.id) {
-                          setEditingId(null)
-                          setBody('')
-                        }
-                        await reload()
-                        await onChanged()
-                      }, t('commentDeleteFailed'))
-                    }}
-                  >
-                    {t('commentDelete')}
-                  </button>
+      {!composerOnly &&
+        (comments.length === 0 ? (
+          <p className="muted small">{t('commentsEmpty')}</p>
+        ) : (
+          <ul className="comment-thread">
+            {comments.map((c) => (
+              <li key={c.id} id={`comment-${c.id}`} className="comment-item">
+                <div className="comment-meta">
+                  <strong>{c.author_label || c.author_display_name}</strong>
+                  <span className="muted small" title={formatDateTime(c.created_at)}>
+                    {formatRelative(c.created_at)}
+                    {c.updated_at !== c.created_at ? ` · ${t('commentEdited')}` : ''}
+                  </span>
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                {(c.refs ?? []).length > 0 ? (
+                  <MarkdownWithRefs
+                    source={c.body}
+                    refs={c.refs ?? []}
+                    className="comment-body"
+                    renderRef={(ref, key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`comment-chip kind-${ref.kind}`}
+                        onClick={() => onRefClick(ref)}
+                      >
+                        {refChipLabel(ref)}
+                      </button>
+                    )}
+                  />
+                ) : (
+                  <MarkdownView source={c.body} className="comment-body" />
+                )}
+                {(c.attachments?.length ?? 0) > 0 && (
+                  <CommentAttachmentList taskId={taskId} attachments={c.attachments} />
+                )}
+                {(c.can_edit || c.author_user_id === meId) && canComment && (
+                  <div className="row-actions">
+                    <button
+                      type="button"
+                      className="btn ghost small"
+                      disabled={busy}
+                      onClick={() => startEdit(c)}
+                    >
+                      {t('commentEdit')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost small danger"
+                      disabled={busy}
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: t('commentDeleteTitle'),
+                          description: t('commentDeleteConfirm'),
+                          confirmLabel: t('common:delete'),
+                          danger: true,
+                        })
+                        if (!ok) return
+                        void run(async () => {
+                          await api.deleteComment(taskId, c.id)
+                          if (editingId === c.id) {
+                            setEditingId(null)
+                            setBody('')
+                          }
+                          await reload()
+                          await onChanged()
+                        }, t('commentDeleteFailed'))
+                      }}
+                    >
+                      {t('commentDelete')}
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        ))}
 
       {canComment ? (
         <form className="comment-form" onSubmit={onSubmit}>
@@ -350,11 +404,33 @@ export function CommentsSection({
               }}
               onKeyUp={(e) => detectTrigger(body, e.currentTarget.selectionStart)}
               onClick={(e) => detectTrigger(body, e.currentTarget.selectionStart)}
-              placeholder={t('commentPlaceholder')}
+              placeholder={
+                showAttach ? t('commentPlaceholderWithAttach') : t('commentPlaceholder')
+              }
               disabled={busy}
               {...userBidiAttrs(body)}
             />
           </label>
+          {showAttach && pendingFiles.length > 0 && (
+            <ul className="comment-pending-files" aria-label={t('commentPendingFiles')}>
+              {pendingFiles.map((item) => (
+                <li key={item.key} className="comment-pending-file">
+                  <Icon name="paperclip" size={12} />
+                  <span>{item.file.name}</span>
+                  <button
+                    type="button"
+                    className="btn ghost small"
+                    disabled={busy}
+                    onClick={() =>
+                      setPendingFiles((prev) => prev.filter((row) => row.key !== item.key))
+                    }
+                  >
+                    {t('common:remove')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           {trigger && pickerItems.length > 0 && (
             <ul className="comment-picker" role="listbox" aria-label={t('commentPicker')}>
               {pickerItems.map((item) => (
@@ -371,8 +447,29 @@ export function CommentsSection({
               ))}
             </ul>
           )}
-          <div className="inline-form">
-            <button type="submit" className="btn primary small" disabled={busy || !body.trim()}>
+          <div className="inline-form comment-form-actions">
+            {showAttach && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="sr-only"
+                  onChange={onPickFiles}
+                  disabled={busy}
+                />
+                <button
+                  type="button"
+                  className="btn ghost small"
+                  disabled={busy}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Icon name="paperclip" />
+                  {t('commentAttach')}
+                </button>
+              </>
+            )}
+            <button type="submit" className="btn primary small" disabled={busy || !canPost}>
               <Icon name="plus" />
               {editingId != null ? t('commentSave') : t('commentSubmit')}
             </button>
@@ -384,6 +481,7 @@ export function CommentsSection({
                 onClick={() => {
                   setEditingId(null)
                   setBody('')
+                  setPendingFiles([])
                   setTrigger(null)
                 }}
               >
@@ -392,6 +490,7 @@ export function CommentsSection({
             )}
           </div>
           <p className="muted small">
+            {showAttach ? `${t('commentAttachHint')} ` : ''}
             {t('commentMarkdownHint')}{' '}
             {t('commentShorthandHint')} <code>@</code> <code>#</code> <code>&amp;</code>{' '}
             <code>~</code>

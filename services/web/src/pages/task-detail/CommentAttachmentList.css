@@ -1,0 +1,76 @@
+.comment-attachment-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment-attachment-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.comment-attachment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.comment-attachment-title {
+  font-weight: 600;
+}
+
+.comment-attachment-preview {
+  max-width: min(100%, 28rem);
+}
+
+.comment-attachment-preview .artifact-preview {
+  max-height: 12rem;
+  width: auto;
+  border-radius: var(--radius-sm);
+}
+
+.comment-attachment-link {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.comment-attachment-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.comment-pending-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.comment-pending-file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 0.85rem;
+}
+
+.comment-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}

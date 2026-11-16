@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from waymark.db import Base
 
 if TYPE_CHECKING:
+    from waymark.models.comment_artifact import CommentArtifact
     from waymark.models.task import Task
     from waymark.models.user import User
 
@@ -31,3 +32,6 @@ class TaskComment(Base):
 
     task: Mapped["Task"] = relationship(back_populates="comments")
     author: Mapped["User"] = relationship()
+    artifact_links: Mapped[list["CommentArtifact"]] = relationship(
+        back_populates="comment", cascade="all, delete-orphan"
+    )

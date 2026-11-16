@@ -30,13 +30,6 @@
   "delete": "מחיקת משימה",
   "deleteTitle": "למחוק את המשימה?",
   "deleteBody": "\"{{title}}\" וההיסטוריה שלה יימחקו לצמיתות. לא ניתן לבטל פעולה זו.",
-  "notes": "הערות",
-  "notesPlaceholder": "הוסיפו הקשר, קריטריוני קבלה או כל דבר שסוכן צריך לדעת…",
-  "notesMode": "עריכה או תצוגה מקדימה של הערות",
-  "notesEdit": "עריכה",
-  "notesPreview": "תצוגה מקדימה",
-  "notesEmptyPreview": "אין מה להציג עדיין. עברו לעריכה כדי להוסיף הערות ב־Markdown.",
-  "notesMarkdownHint": "נתמך Markdown: טבלאות, רשימות משימות, בלוקי קוד וקישורים (מוצגים כשבבי שם־מארח).",
   "status": "סטטוס",
   "details": "פרטים",
   "sidePanel": "פרטים",
@@ -152,12 +145,13 @@
     "roleSession": "סשן",
     "field": {
       "title": "כותרת",
-      "body": "הערות",
+      "body": "תיאור",
       "priority": "עדיפות",
       "due_at": "מועד יעד",
       "parent_task_id": "משימת אב",
       "require_artifact_on_done": "כללי השלמה",
-      "outcome_schema_json": "סכמת תוצאה"
+      "outcome_schema_json": "סכמת תוצאה",
+      "description": "תיאור"
     },
     "event": {
       "created": "יצר/ה את המשימה",
@@ -192,8 +186,17 @@
       "released": "שחרר/ה את התפיסה",
       "failed": "נכשל/ה ב־{{operation}}: {{error}}",
       "commented": "הגיב/ה: {{body}}",
-      "commentedPlain": "הגיב/ה"
-    }
+      "commentedPlain": "הגיב/ה",
+      "commentUpdated": "ערך/ה תגובה",
+      "commentDeleted": "מחק/ה תגובה",
+      "artifactUpdated": "עדכן/ה את הארטיפקט “{{title}}”",
+      "artifactUpdatedPlain": "עדכן/ה ארטיפקט"
+    },
+    "newestFirst": "חדש קודם",
+    "oldestFirst": "ישן קודם",
+    "sortOldest": "הצג פעילות מהישנה לחדשה",
+    "sortNewest": "הצג פעילות מהחדשה לישנה",
+    "loadFailed": "טעינת הפעילות נכשלה"
   },
   "completion": {
     "title": "השלמה",
@@ -214,5 +217,12 @@
     "outcomeJson": "התוצאה חייבת להיות JSON תקין.",
     "submit": "סימון כהושלמה"
   },
-  "savedToast": "השינויים נשמרו"
+  "savedToast": "השינויים נשמרו",
+  "description": "תיאור",
+  "descriptionPlaceholder": "הוסיפו הקשר, קריטריוני קבלה או כל דבר שסוכן צריך לדעת…",
+  "descriptionMode": "עריכה או תצוגה מקדימה של התיאור",
+  "descriptionEdit": "עריכה",
+  "descriptionPreview": "תצוגה מקדימה",
+  "descriptionEmptyPreview": "אין מה להציג עדיין. עברו לעריכה כדי להוסיף תיאור ב־Markdown.",
+  "descriptionMarkdownHint": "נתמך Markdown: טבלאות, רשימות משימות, בלוקי קוד וקישורים (מוצגים כשבבי שם־מארח)."
 }

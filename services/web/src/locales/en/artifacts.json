@@ -6,6 +6,7 @@
   "emptyNoMatch": "No matching artifacts",
   "emptyNoMatchHint": "Try a different kind, search term, or clear “Mine only”.",
   "sectionEmpty": "No artifacts yet. Attach notes, links, or files produced for this task.",
+  "sectionEmptyViaComment": "No artifacts yet. Attach files on a comment in Activity so they stay ordered with context.",
   "taskFallback": "Task",
   "searchPlaceholder": "Search artifacts",
   "searchShortcut": "Press / to search",

@@ -23,6 +23,11 @@ from waymark.schemas.invites import (
     InvitePreviewOut,
     RegisterIn,
 )
+from waymark.schemas.activity import (
+    ActivityActorOut,
+    ActivityFeedOut,
+    ActivityItemOut,
+)
 from waymark.schemas.notifications import (
     MentionableUserOut,
     NotificationOut,
@@ -70,6 +75,9 @@ from waymark.schemas.webhooks import (
 )
 
 __all__ = [
+    "ActivityActorOut",
+    "ActivityFeedOut",
+    "ActivityItemOut",
     "ApiTokenCreate",
     "ApiTokenCreatedOut",
     "ApiTokenOut",

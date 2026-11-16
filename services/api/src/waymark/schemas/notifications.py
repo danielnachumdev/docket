@@ -1,7 +1,9 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from waymark.schemas.tasks import ArtifactCreate, ArtifactOut
 
 
 class TaskWatchOut(BaseModel):
@@ -9,7 +11,16 @@ class TaskWatchOut(BaseModel):
 
 
 class TaskCommentIn(BaseModel):
-    body: str = Field(min_length=1, max_length=8000)
+    """Text and/or attachments. Attachments alone are allowed (caption optional)."""
+
+    body: str = Field(default="", max_length=8000)
+    attachments: list[ArtifactCreate] | None = None
+
+    @model_validator(mode="after")
+    def require_body_or_attachments(self) -> Self:
+        if not self.body.strip() and not (self.attachments or []):
+            raise ValueError("Provide comment text and/or attachments")
+        return self
 
 
 class TaskCommentOut(BaseModel):
@@ -20,8 +31,12 @@ class TaskCommentOut(BaseModel):
     refs: list[dict[str, Any]] = []
     mentioned_user_ids: list[int]
     author_user_id: int
+    author_token_id: int | None = None
+    author_token_name: str | None = None
     author_display_name: str
     author_email: str | None = None
+    author_label: str
+    attachments: list[ArtifactOut] = []
     created_at: datetime
     updated_at: datetime
     can_edit: bool = False

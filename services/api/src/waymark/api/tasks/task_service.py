@@ -365,7 +365,7 @@ class TaskService:
             parent_task_id=parent_internal,
             external_id=external_id,
             title=body.title.strip(),
-            body=body.body,
+            description=body.description,
             priority=body.priority,
             rank=self._ranks.append_rank(
                 self._gateway.max_rank_for_owner(owner_user_id=principal.user_id)
@@ -457,9 +457,9 @@ class TaskService:
         if body.title is not None:
             task.title = body.title.strip()
             changes["title"] = task.title
-        if body.body is not None:
-            task.body = body.body
-            changes["body"] = True
+        if body.description is not None:
+            task.description = body.description
+            changes["description"] = True
         if body.priority is not None:
             task.priority = body.priority
             changes["priority"] = task.priority
