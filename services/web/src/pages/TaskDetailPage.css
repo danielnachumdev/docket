@@ -260,6 +260,21 @@
   font-size: 0.8rem;
 }
 
+@media (max-width: 640px) {
+  .horizon-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-block-end: 0.2rem;
+    scrollbar-width: thin;
+  }
+
+  .horizon-chip {
+    flex: none;
+  }
+}
+
 .horizon-chip.active {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
@@ -391,5 +406,16 @@
 
   .detail-fields > label:nth-of-type(-n + 2) {
     grid-column: auto;
+  }
+
+  .notes textarea,
+  .notes-preview {
+    min-height: 5rem;
+    font-size: 0.92rem;
+  }
+
+  .notes-toolbar .notes-mode {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }

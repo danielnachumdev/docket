@@ -489,7 +489,7 @@ export function CommentsSection({
               </button>
             )}
           </div>
-          <p className="muted small">
+          <p className="muted small comment-form-hint hide-narrow">
             {showAttach ? `${t('commentAttachHint')} ` : ''}
             {t('commentMarkdownHint')}{' '}
             {t('commentShorthandHint')} <code>@</code> <code>#</code> <code>&amp;</code>{' '}

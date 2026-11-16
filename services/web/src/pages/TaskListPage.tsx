@@ -656,10 +656,13 @@ export function TaskListPage() {
                     role="radio"
                     aria-checked={taskSortMode === mode}
                     className={taskSortMode === mode ? 'active' : ''}
+                    title={mode === 'custom' ? t('tasks:sortCustom') : t('tasks:sortDate')}
                     onClick={() => setTaskSortMode(mode)}
                   >
                     <Icon name={mode === 'custom' ? 'list' : 'calendar'} size={14} />
-                    {mode === 'custom' ? t('tasks:sortCustom') : t('tasks:sortDate')}
+                    <span className="hide-narrow">
+                      {mode === 'custom' ? t('tasks:sortCustom') : t('tasks:sortDate')}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -672,10 +675,13 @@ export function TaskListPage() {
                   role="radio"
                   aria-checked={layout === mode}
                   className={layout === mode ? 'active' : ''}
+                  title={mode === 'list' ? t('tasks:list') : t('tasks:board')}
                   onClick={() => setLayout(mode)}
                 >
                   <Icon name={mode === 'list' ? 'list' : 'columns'} size={14} />
-                  {mode === 'list' ? t('tasks:list') : t('tasks:board')}
+                  <span className="hide-narrow">
+                    {mode === 'list' ? t('tasks:list') : t('tasks:board')}
+                  </span>
                 </button>
               ))}
             </div>

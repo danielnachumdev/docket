@@ -174,3 +174,9 @@ html[dir='rtl'] .user-bidi-mixed {
     display: none;
   }
 }
+
+@media (max-width: 420px) {
+  .hide-narrow {
+    display: none;
+  }
+}

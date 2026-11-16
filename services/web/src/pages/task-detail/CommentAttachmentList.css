@@ -74,3 +74,25 @@
   gap: 0.4rem;
   align-items: center;
 }
+
+@media (max-width: 640px) {
+  .comment-form-actions {
+    width: 100%;
+  }
+
+  .comment-form-actions .btn.primary {
+    margin-inline-start: auto;
+  }
+
+  .comment-pending-file {
+    font-size: 0.8rem;
+  }
+
+  .comment-attachment-preview {
+    max-width: 100%;
+  }
+
+  .comment-attachment-preview .artifact-preview {
+    max-height: 9rem;
+  }
+}
