@@ -118,6 +118,7 @@
   "commentEdited": "נערכה",
   "commentPicker": "הוספת הפניה",
   "commentReadOnly": "אפשר לקרוא את השרשור, אבל להגיב נדרשת הרשאת מגיב או גבוהה יותר.",
+  "commentMarkdownHint": "נתמך Markdown (טבלאות, רשימות, קוד, קישורים).",
   "commentShorthandHint": "קיצורים: @אנשים #משימה &קובץ-מצורף ~תגובה.",
   "commentAddFailed": "לא ניתן להוסיף תגובה",
   "commentUpdateFailed": "לא ניתן לעדכן תגובה",
