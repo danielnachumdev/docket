@@ -138,7 +138,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => storedTheme() ?? systemTheme())
   const [customThemes, setCustomThemesState] = useState<CustomTheme[]>(() => readCustomThemes())
   const [taskSortMode, setTaskSortModeState] = useState<TaskSortMode>(
-    () => storedTaskSortMode() ?? 'custom',
+    () => storedTaskSortMode() ?? 'date',
   )
   const [hydrated, setHydrated] = useState(false)
   const hydratedUserId = useRef<number | null>(null)
@@ -254,10 +254,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setTaskSortModeState(server.task_sort_mode)
     } else {
       const local = storedTaskSortMode()
-      if (local) {
-        seed.task_sort_mode = local
-        setTaskSortModeState(local)
-      }
+      const mode = local ?? 'date'
+      seed.task_sort_mode = mode
+      cacheTaskSortMode(mode)
+      setTaskSortModeState(mode)
     }
 
     if (Object.keys(seed).length > 0) {

@@ -53,8 +53,8 @@ ROLES: dict[str, tuple[str, list[str]]] = {
         ],
     ),
     "commentor": (
-        "Read tasks and leave comments",
-        ["tasks:read", "tasks:comment"],
+        "Read tasks, leave comments, and attach files on comments",
+        ["tasks:read", "tasks:comment", "artifacts:write"],
     ),
     "viewer": (
         "Read-only",

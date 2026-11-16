@@ -60,10 +60,9 @@ function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
       return reason ? e('statusChangedToReason', { to, reason }) : e('statusChangedTo', { to })
     }
     case 'updated': {
-      const fields = Object.keys(payload ?? {}).map((k) => {
-        if (k === 'body') return t('activity.field.description')
-        return t(`activity.field.${k}`, { defaultValue: humanize(k).toLowerCase() })
-      })
+      const fields = Object.keys(payload ?? {}).map((k) =>
+        t(`activity.field.${k}`, { defaultValue: humanize(k).toLowerCase() }),
+      )
       return fields.length ? e('updatedFields', { fields: fields.join(', ') }) : e('updated')
     }
     case 'artifact_added': {
