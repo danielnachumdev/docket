@@ -31,9 +31,12 @@
 }
 
 .comment-body {
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 1.45;
+}
+
+.comment-body .comment-chip {
+  vertical-align: baseline;
 }
 
 .comment-chip {

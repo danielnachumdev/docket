@@ -217,6 +217,18 @@
   gap: 0.5rem;
 }
 
+.notes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.notes-mode.active {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--accent-soft);
+}
+
 .notes textarea {
   padding: 0.6rem 0.7rem;
   border-color: transparent;
@@ -228,6 +240,13 @@
 
 .notes textarea:focus {
   background: var(--surface);
+}
+
+.notes-preview {
+  min-height: 6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
 }
 
 .do-today-btn {

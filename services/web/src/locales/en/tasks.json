@@ -86,6 +86,7 @@
   "commentEdited": "edited",
   "commentPicker": "Insert reference",
   "commentReadOnly": "You can read this thread, but commenting needs the commentor role or higher.",
+  "commentMarkdownHint": "Markdown supported (tables, lists, code, links).",
   "commentShorthandHint": "Shorthand: @people #task &artifact ~comment.",
   "commentAddFailed": "Could not add comment",
   "commentUpdateFailed": "Could not update comment",

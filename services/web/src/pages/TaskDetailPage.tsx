@@ -15,6 +15,7 @@ import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { Alert } from '../components/Feedback'
 import { DetailSkeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
+import { MarkdownView } from '../components/MarkdownView'
 import { Menu, type MenuItem } from '../components/Menu'
 import { Section } from '../components/Section'
 import { UserBidiText } from '../components/UserBidiText'
@@ -125,6 +126,7 @@ export function TaskDetailPage() {
   const [draft, setDraft] = useState<Draft | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [completeOpen, setCompleteOpen] = useState(false)
+  const [notesMode, setNotesMode] = useState<'edit' | 'preview'>('preview')
   const [sideCollapsed, setSideCollapsed] = useState(false)
   const [railWidthPx, setRailWidthPx] = useState(DETAIL_RAIL_DEFAULT_PX)
   const railStacked = useMediaQuery('(max-width: 1100px)')
@@ -177,6 +179,7 @@ export function TaskDetailPage() {
     ])
     setDetail(data)
     setDraft(draftFrom(data.task))
+    setNotesMode((data.task.body ?? '').trim() ? 'preview' : 'edit')
     setAllTasks(all)
     setShares(shareRows)
 
@@ -582,14 +585,45 @@ export function TaskDetailPage() {
         <div className="detail-main">
           <Section icon="text" title={t('notes')} headingId="notes-label">
             <div className="notes">
-              <textarea
-                {...userBidiAttrs(draft.body)}
-                aria-labelledby="notes-label"
-                rows={Math.min(16, Math.max(4, draft.body.split('\n').length + 1))}
-                value={draft.body}
-                onChange={(e) => update('body', e.target.value)}
-                placeholder={t('notesPlaceholder')}
-              />
+              <div className="notes-toolbar" role="group" aria-label={t('notesMode')}>
+                <button
+                  type="button"
+                  className={notesMode === 'edit' ? 'btn small notes-mode active' : 'btn small notes-mode'}
+                  aria-pressed={notesMode === 'edit'}
+                  onClick={() => setNotesMode('edit')}
+                >
+                  {t('notesEdit')}
+                </button>
+                <button
+                  type="button"
+                  className={
+                    notesMode === 'preview' ? 'btn small notes-mode active' : 'btn small notes-mode'
+                  }
+                  aria-pressed={notesMode === 'preview'}
+                  onClick={() => setNotesMode('preview')}
+                >
+                  {t('notesPreview')}
+                </button>
+              </div>
+              {notesMode === 'edit' ? (
+                <>
+                  <textarea
+                    {...userBidiAttrs(draft.body)}
+                    aria-labelledby="notes-label"
+                    rows={Math.min(16, Math.max(4, draft.body.split('\n').length + 1))}
+                    value={draft.body}
+                    onChange={(e) => update('body', e.target.value)}
+                    placeholder={t('notesPlaceholder')}
+                  />
+                  <p className="muted small">{t('notesMarkdownHint')}</p>
+                </>
+              ) : (
+                <MarkdownView
+                  source={draft.body}
+                  className="notes-preview"
+                  empty={<p className="muted small wm-md-empty">{t('notesEmptyPreview')}</p>}
+                />
+              )}
             </div>
           </Section>
           <CommentsSection
