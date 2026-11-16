@@ -279,11 +279,20 @@
   background: var(--accent-soft);
 }
 
-/* No hover on touch: an invisible tap target would be a trap, so only show the active state. */
+/* No hover on touch: hide inactive unread (invisible tap trap). Keep due-horizon
+   visible so phones can still set a deadline from the list. */
 @media (hover: none) {
-  .unread-toggle:not(.active),
-  .due-horizon-toggle:not(.active) {
+  .unread-toggle:not(.active) {
     display: none;
+  }
+
+  .due-horizon-toggle {
+    opacity: 0.75;
+  }
+
+  .due-horizon-toggle.active,
+  .due-horizon-toggle:focus-within {
+    opacity: 1;
   }
 }
 
@@ -431,6 +440,22 @@
 }
 
 @media (max-width: 640px) {
+  .list-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .list-header-actions .segmented {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .list-header-actions .segmented button {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding-inline: 0.55rem;
+  }
+
   .status-select .icon {
     display: none;
   }
@@ -446,6 +471,15 @@
 
   .task-row .drag-handle {
     width: 1.4rem;
+  }
+
+  .date-sections {
+    gap: 1rem;
+  }
+
+  .due-section-title {
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
   }
 
   /* Selection is an explicit mode on phones so idle rows keep their width. */

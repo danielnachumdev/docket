@@ -110,3 +110,18 @@
   grid-template-columns: 4.5rem 1fr;
   gap: 0.35rem;
 }
+
+@media (max-width: 640px) {
+  /* Phone: activity lives in the main column — let it flow instead of a short pane. */
+  .detail-main .activity-scroll {
+    max-height: none;
+  }
+
+  .activity-scroll .event-body {
+    font-size: 0.8rem;
+  }
+
+  .actor-meta > div {
+    grid-template-columns: 4.75rem 1fr;
+  }
+}

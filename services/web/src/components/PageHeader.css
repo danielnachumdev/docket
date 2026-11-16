@@ -33,4 +33,9 @@
   .page-header p {
     font-size: 0.9rem;
   }
+
+  .page-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
 }
