@@ -31,17 +31,23 @@ def test_preferences_default_empty_and_patch_persists() -> None:
 
     empty = client.get("/api/me/preferences")
     assert empty.status_code == 200
-    assert empty.json() == {"theme": None, "locale": None, "custom_themes": None}
+    assert empty.json() == {
+        "theme": None,
+        "locale": None,
+        "custom_themes": None,
+        "task_sort_mode": None,
+    }
 
     patched = client.patch(
         "/api/me/preferences",
-        json={"theme": "dark", "locale": "he"},
+        json={"theme": "dark", "locale": "he", "task_sort_mode": "date"},
     )
     assert patched.status_code == 200, patched.text
     assert patched.json() == {
         "theme": "dark",
         "locale": "he",
         "custom_themes": None,
+        "task_sort_mode": "date",
     }
 
     again = client.get("/api/me/preferences")
@@ -50,6 +56,7 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "theme": "dark",
         "locale": "he",
         "custom_themes": None,
+        "task_sort_mode": "date",
     }
 
     merge = client.patch("/api/me/preferences", json={"theme": "light"})
@@ -58,6 +65,7 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "theme": "light",
         "locale": "he",
         "custom_themes": None,
+        "task_sort_mode": "date",
     }
 
 
@@ -141,11 +149,17 @@ def test_preferences_reject_unknown_and_invalid() -> None:
     )
     assert incomplete.status_code == 422
 
+    bad_sort = client.patch(
+        "/api/me/preferences", json={"task_sort_mode": "priority"}
+    )
+    assert bad_sort.status_code == 422
+
     still_empty = client.get("/api/me/preferences")
     assert still_empty.json() == {
         "theme": None,
         "locale": None,
         "custom_themes": None,
+        "task_sort_mode": None,
     }
 
 
@@ -183,4 +197,5 @@ def test_preferences_via_api_token() -> None:
         "theme": None,
         "locale": "en",
         "custom_themes": None,
+        "task_sort_mode": None,
     }

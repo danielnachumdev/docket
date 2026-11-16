@@ -21,7 +21,13 @@ import {
   statusLabel,
   type Status,
 } from '../lib/format'
-import { dueAtIsoForLocalEndOfDay, isOpenDueTodayOrEarlier } from '../lib/localDay'
+import { HorizonDueMenu, type HorizonDueChoice } from '../components/HorizonDueMenu'
+import {
+  dueAtIsoForHorizon,
+  groupTasksByDueSection,
+  type DueSectionId,
+  type HorizonId,
+} from '../lib/localDay'
 import {
   SMART_FILTERS,
   filterLabel,
@@ -33,6 +39,7 @@ import { ranksForOrder, reorderBodyAfterMove } from '../lib/taskReorder'
 import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
 import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
+import { usePreferences } from '../preferences'
 import { TaskKanbanBoard } from './TaskKanbanBoard'
 import './TaskListPage.css'
 
@@ -58,11 +65,12 @@ type RowProps = {
   childCount: number
   childDone: number
   selected: Set<string>
+  dragDisabled?: boolean
   onToggleDone: (task: Task) => void
   onStatusChange: (task: Task, status: Status) => void
   onToggleSelect: (id: string) => void
   onToggleUnread: (task: Task) => void
-  onDoThisToday: (task: Task) => void
+  onDueHorizon: (task: Task, choice: HorizonDueChoice) => void
 }
 
 function TaskRow({
@@ -71,24 +79,25 @@ function TaskRow({
   childCount,
   childDone,
   selected,
+  dragDisabled = false,
   onToggleDone,
   onStatusChange,
   onToggleSelect,
   onToggleUnread,
-  onDoThisToday,
+  onDueHorizon,
 }: RowProps) {
   const { t } = useTranslation('tasks')
   const closed = isClosed(task.status)
   const done = task.status === 'done'
   const unread = Boolean(task.unread)
   const shared = Boolean(task.shared)
-  const dueToday = isOpenDueTodayOrEarlier(task.status, task.due_at)
+  const hasDue = Boolean(task.due_at)
   const isSelected = selected.has(task.id)
   const hasParent = parent != null
   const rowClass = closed ? 'task-row closed' : 'task-row'
 
   return (
-    <SortableSiblingItem id={task.id}>
+    <SortableSiblingItem id={task.id} disabled={dragDisabled}>
       {({ dragHandle, setNodeRef, style, isDragging }) => (
         <li
           className={isDragging ? 'task-node dragging' : 'task-node'}
@@ -96,7 +105,7 @@ function TaskRow({
           style={style}
         >
           <div className={rowClass}>
-            {dragHandle}
+            {dragDisabled ? <span className="drag-handle-spacer" aria-hidden="true" /> : dragHandle}
             <input
               type="checkbox"
               className="task-select"
@@ -150,20 +159,13 @@ function TaskRow({
                 </Link>
               )}
               {!closed && (
-                <button
-                  type="button"
-                  className={
-                    dueToday
-                      ? 'icon-btn ghost do-today-toggle active'
-                      : 'icon-btn ghost do-today-toggle'
-                  }
-                  aria-label={t('doThisTodayNamed', { title: task.title })}
-                  aria-pressed={dueToday}
-                  title={dueToday ? t('doThisTodayDone') : t('doThisToday')}
-                  onClick={() => onDoThisToday(task)}
-                >
-                  <Icon name="calendar" size={14} />
-                </button>
+                <HorizonDueMenu
+                  label={t('horizon.setNamed', { title: task.title })}
+                  hasDue={hasDue}
+                  className={hasDue ? 'due-horizon-toggle active' : 'due-horizon-toggle'}
+                  omitExact
+                  onChoose={(choice) => onDueHorizon(task, choice)}
+                />
               )}
               <button
                 type="button"
@@ -214,12 +216,17 @@ function TaskRow({
   )
 }
 
+function sectionLabel(t: (key: string) => string, id: DueSectionId): string {
+  return t(`dueSection.${id}`)
+}
+
 export function TaskListPage() {
   const { t } = useTranslation(['tasks', 'common', 'domain', 'detail'])
   const [searchParams, setSearchParams] = useSearchParams()
   const archived = searchParams.get('view') === 'archived'
   const layout = searchParams.get('layout') === 'kanban' ? 'kanban' : 'list'
   const { status: auth } = useAuth()
+  const { taskSortMode, setTaskSortMode } = usePreferences()
   const userId = auth?.user?.id ?? null
   const [tasks, setTasks] = useState<Task[] | null>(null)
   const [filter, setFilter] = useState<FilterKey>('active')
@@ -239,6 +246,7 @@ export function TaskListPage() {
   const navigate = useNavigate()
   const searchRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLInputElement>(null)
+  const dateMode = layout === 'list' && taskSortMode === 'date'
 
   useKeyboardShortcut('/', () => searchRef.current?.focus())
   useKeyboardShortcut('n', () => composerRef.current?.focus(), !archived)
@@ -285,6 +293,10 @@ export function TaskListPage() {
     [ranked, filter, query, pinned, userId],
   )
   const visibleIds = useMemo(() => visible.map((task) => task.id), [visible])
+  const dateSections = useMemo(
+    () => (dateMode ? groupTasksByDueSection(visible) : []),
+    [dateMode, visible],
+  )
   const boardTasks = visible
   const byId = useMemo(() => new Map((tasks ?? []).map((t) => [t.id, t])), [tasks])
   const childrenById = useMemo(() => {
@@ -441,23 +453,58 @@ export function TaskListPage() {
     })
   }
 
-  function doThisToday(task: Task) {
+  function applyDueHorizon(task: Task, choice: HorizonDueChoice) {
     if (isClosed(task.status)) return
-    const dueAt = dueAtIsoForLocalEndOfDay()
+    if (choice === 'exact') {
+      navigate(`/tasks/${task.id}`)
+      return
+    }
+    const patch =
+      choice === 'clear'
+        ? { clear_due_at: true as const }
+        : { due_at: dueAtIsoForHorizon(choice as HorizonId) }
+    const optimisticDue = choice === 'clear' ? null : patch.due_at!
     setPinned((prev) => new Set(prev).add(task.id))
     setTasks(
-      (prev) => prev?.map((row) => (row.id === task.id ? { ...row, due_at: dueAt } : row)) ?? null,
+      (prev) =>
+        prev?.map((row) => (row.id === task.id ? { ...row, due_at: optimisticDue } : row)) ?? null,
     )
     api
-      .updateTask(task.id, { due_at: dueAt })
+      .updateTask(task.id, patch)
       .then((updated) => {
         setTasks((prev) => prev?.map((row) => (row.id === updated.id ? updated : row)) ?? null)
-        toast(t('tasks:doThisTodayToast'))
+        toast(
+          choice === 'clear'
+            ? t('tasks:horizon.clearedToast')
+            : t(`tasks:horizon.setToast.${choice}`),
+        )
       })
       .catch((err: Error) => {
-        setError(err.message || t('tasks:doThisTodayFailed'))
+        setError(err.message || t('tasks:horizon.setFailed'))
         void load()
       })
+  }
+
+  function renderTaskRow(task: Task) {
+    const kids = childrenById.get(task.id) ?? []
+    const parent =
+      task.parent_task_id != null ? (byId.get(task.parent_task_id) ?? null) : null
+    return (
+      <TaskRow
+        key={task.id}
+        task={task}
+        parent={parent}
+        childCount={kids.length}
+        childDone={kids.filter((k) => k.status === 'done').length}
+        selected={selected}
+        dragDisabled={dateMode}
+        onToggleDone={toggleDone}
+        onStatusChange={applyStatus}
+        onToggleSelect={toggleSelect}
+        onToggleUnread={toggleUnread}
+        onDueHorizon={applyDueHorizon}
+      />
+    )
   }
 
   function reorderQueue(activeId: string, orderedIds: string[]) {
@@ -599,20 +646,39 @@ export function TaskListPage() {
                 })
         }
         actions={
-          <div className="segmented" role="radiogroup" aria-label={t('tasks:layout')}>
-            {(['list', 'kanban'] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                role="radio"
-                aria-checked={layout === mode}
-                className={layout === mode ? 'active' : ''}
-                onClick={() => setLayout(mode)}
-              >
-                <Icon name={mode === 'list' ? 'list' : 'columns'} size={14} />
-                {mode === 'list' ? t('tasks:list') : t('tasks:board')}
-              </button>
-            ))}
+          <div className="list-header-actions">
+            {layout === 'list' && (
+              <div className="segmented" role="radiogroup" aria-label={t('tasks:sortMode')}>
+                {(['custom', 'date'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={taskSortMode === mode}
+                    className={taskSortMode === mode ? 'active' : ''}
+                    onClick={() => setTaskSortMode(mode)}
+                  >
+                    <Icon name={mode === 'custom' ? 'list' : 'calendar'} size={14} />
+                    {mode === 'custom' ? t('tasks:sortCustom') : t('tasks:sortDate')}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="segmented" role="radiogroup" aria-label={t('tasks:layout')}>
+              {(['list', 'kanban'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={layout === mode}
+                  className={layout === mode ? 'active' : ''}
+                  onClick={() => setLayout(mode)}
+                >
+                  <Icon name={mode === 'list' ? 'list' : 'columns'} size={14} />
+                  {mode === 'list' ? t('tasks:list') : t('tasks:board')}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />
@@ -808,32 +874,30 @@ export function TaskListPage() {
             </label>
             {archived && selectModeButton}
           </div>
-          <SortableSiblingList
-            ids={visibleIds}
-            className={selecting ? 'task-tree selecting' : 'task-tree'}
-            onReorder={reorderQueue}
-          >
-            {visible.map((task) => {
-              const kids = childrenById.get(task.id) ?? []
-              const parent =
-                task.parent_task_id != null ? (byId.get(task.parent_task_id) ?? null) : null
-              return (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  parent={parent}
-                  childCount={kids.length}
-                  childDone={kids.filter((k) => k.status === 'done').length}
-                  selected={selected}
-                  onToggleDone={toggleDone}
-                  onStatusChange={applyStatus}
-                  onToggleSelect={toggleSelect}
-                  onToggleUnread={toggleUnread}
-                  onDoThisToday={doThisToday}
-                />
-              )
-            })}
-          </SortableSiblingList>
+          {dateMode ? (
+            <div className={selecting ? 'task-tree selecting date-sections' : 'task-tree date-sections'}>
+              {dateSections.map((section) => (
+                <section key={section.id} className="due-section" aria-label={sectionLabel(t, section.id)}>
+                  <h2 className="due-section-title">{sectionLabel(t, section.id)}</h2>
+                  <SortableSiblingList
+                    ids={section.tasks.map((task) => task.id)}
+                    className="due-section-list"
+                    onReorder={reorderQueue}
+                  >
+                    {section.tasks.map((task) => renderTaskRow(task))}
+                  </SortableSiblingList>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <SortableSiblingList
+              ids={visibleIds}
+              className={selecting ? 'task-tree selecting' : 'task-tree'}
+              onReorder={reorderQueue}
+            >
+              {visible.map((task) => renderTaskRow(task))}
+            </SortableSiblingList>
+          )}
         </>
       )}
 

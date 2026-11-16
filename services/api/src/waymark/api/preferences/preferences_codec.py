@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from waymark.schemas.preferences import (
     ALLOWED_COLOR_SCHEMES,
     ALLOWED_LOCALES,
+    ALLOWED_TASK_SORT_MODES,
     ALLOWED_THEME_TOKEN_KEYS,
     CUSTOM_THEME_ID_RE,
     CustomThemeOut,
@@ -42,10 +43,16 @@ class PreferencesCodec:
             locale = self._optional_locale(data.get("locale"))
         except HTTPException:
             locale = None
+        task_sort_mode: str | None
+        try:
+            task_sort_mode = self._optional_task_sort_mode(data.get("task_sort_mode"))
+        except HTTPException:
+            task_sort_mode = None
         return UserPreferencesOut(
             theme=theme,
             locale=locale,
             custom_themes=customs,
+            task_sort_mode=task_sort_mode,
         )
 
     def encode(self, prefs: UserPreferencesOut) -> str:
@@ -58,6 +65,8 @@ class PreferencesCodec:
             payload["custom_themes"] = [
                 theme.model_dump(mode="json") for theme in prefs.custom_themes
             ]
+        if prefs.task_sort_mode is not None:
+            payload["task_sort_mode"] = prefs.task_sort_mode
         return json.dumps(payload, separators=(",", ":"), sort_keys=True)
 
     def merge(
@@ -67,12 +76,15 @@ class PreferencesCodec:
         theme = current.theme
         locale = current.locale
         custom_themes = current.custom_themes
+        task_sort_mode = current.task_sort_mode
         if "custom_themes" in patch:
             custom_themes = self._optional_custom_themes(patch["custom_themes"])
         if "theme" in patch:
             theme = self._optional_theme(patch["theme"], custom_themes)
         if "locale" in patch:
             locale = self._optional_locale(patch["locale"])
+        if "task_sort_mode" in patch:
+            task_sort_mode = self._optional_task_sort_mode(patch["task_sort_mode"])
         # Active theme must remain resolvable after catalog changes.
         if theme is not None and not is_builtin_theme_id(theme):
             ids = {t.id for t in (custom_themes or [])}
@@ -85,6 +97,7 @@ class PreferencesCodec:
             theme=theme,
             locale=locale,
             custom_themes=custom_themes,
+            task_sort_mode=task_sort_mode,
         )
 
     @staticmethod
@@ -143,6 +156,17 @@ class PreferencesCodec:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "locale must be a known locale code",
+            )
+        return value
+
+    @staticmethod
+    def _optional_task_sort_mode(value: object | None) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str) or value not in ALLOWED_TASK_SORT_MODES:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "task_sort_mode must be 'custom' or 'date'",
             )
         return value
 

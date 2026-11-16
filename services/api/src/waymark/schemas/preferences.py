@@ -8,6 +8,7 @@ BuiltinThemeId = Literal[
     "light", "dark", "lilac", "sage", "sky", "sand", "dusk", "slate"
 ]
 LocalePreference = Literal["en", "he"]
+TaskSortMode = Literal["custom", "date"]
 
 ALLOWED_COLOR_SCHEMES: frozenset[str] = frozenset({"light", "dark"})
 ALLOWED_BUILTIN_THEMES: frozenset[str] = frozenset(
@@ -18,8 +19,9 @@ _THEME_ID_ALIASES: dict[str, str] = {"pastel": "lilac"}
 # Back-compat alias
 ALLOWED_THEMES = ALLOWED_BUILTIN_THEMES
 ALLOWED_LOCALES: frozenset[str] = frozenset({"en", "he"})
+ALLOWED_TASK_SORT_MODES: frozenset[str] = frozenset({"custom", "date"})
 KNOWN_PREFERENCE_KEYS: frozenset[str] = frozenset(
-    {"theme", "locale", "custom_themes"}
+    {"theme", "locale", "custom_themes", "task_sort_mode"}
 )
 
 CUSTOM_THEME_ID_RE = re.compile(r"^c_[a-z0-9]{8,24}$")
@@ -117,6 +119,7 @@ class UserPreferencesOut(BaseModel):
     theme: str | None = None
     locale: LocalePreference | None = None
     custom_themes: list[CustomThemeOut] | None = None
+    task_sort_mode: TaskSortMode | None = None
 
 
 class UserPreferencesPatch(BaseModel):
@@ -127,3 +130,4 @@ class UserPreferencesPatch(BaseModel):
     theme: str | None = Field(default=None)
     locale: LocalePreference | None = Field(default=None)
     custom_themes: list[dict[str, Any]] | None = Field(default=None)
+    task_sort_mode: TaskSortMode | None = Field(default=None)

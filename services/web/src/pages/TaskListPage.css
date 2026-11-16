@@ -257,7 +257,7 @@
 }
 
 .unread-toggle,
-.do-today-toggle {
+.due-horizon-toggle {
   flex: none;
   color: var(--muted);
   opacity: 0;
@@ -267,14 +267,14 @@
 .task-row:hover .unread-toggle,
 .unread-toggle.active,
 .unread-toggle:focus-visible,
-.task-row:hover .do-today-toggle,
-.do-today-toggle.active,
-.do-today-toggle:focus-visible {
+.task-row:hover .due-horizon-toggle,
+.due-horizon-toggle.active,
+.due-horizon-toggle:focus-within {
   opacity: 1;
 }
 
 .unread-toggle.active,
-.do-today-toggle.active {
+.due-horizon-toggle.active .icon-btn {
   color: var(--accent);
   background: var(--accent-soft);
 }
@@ -282,9 +282,45 @@
 /* No hover on touch: an invisible tap target would be a trap, so only show the active state. */
 @media (hover: none) {
   .unread-toggle:not(.active),
-  .do-today-toggle:not(.active) {
+  .due-horizon-toggle:not(.active) {
     display: none;
   }
+}
+
+.list-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.drag-handle-spacer {
+  width: 1.75rem;
+  flex: none;
+}
+
+.date-sections {
+  display: grid;
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.due-section-title {
+  margin: 0 0 0.45rem;
+  padding-inline: 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.due-section-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .task-main:hover .task-title {

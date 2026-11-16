@@ -320,10 +320,13 @@ export type CustomThemePreference = {
   tokens: Record<string, string>
 }
 
+export type TaskSortMode = 'custom' | 'date'
+
 export type UserPreferences = {
   theme: string | null
   locale: 'en' | 'he' | null
   custom_themes: CustomThemePreference[] | null
+  task_sort_mode: TaskSortMode | null
 }
 
 async function requestError(res: Response): Promise<never> {

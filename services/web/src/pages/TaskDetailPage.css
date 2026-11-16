@@ -230,12 +230,18 @@
   background: var(--surface);
 }
 
-.do-today-btn {
-  justify-content: flex-start;
+.horizon-chips {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.35rem;
+  grid-column: 1 / -1;
 }
 
-.do-today-btn.active {
+.horizon-chip {
+  font-size: 0.8rem;
+}
+
+.horizon-chip.active {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
   background: var(--accent-soft);
