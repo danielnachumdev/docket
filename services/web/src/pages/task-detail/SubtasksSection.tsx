@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { api, type Task } from '../../api'
@@ -10,8 +10,10 @@ import { SortableSiblingItem, SortableSiblingList } from '../../components/Sorta
 import { UserBidiText } from '../../components/UserBidiText'
 import { userBidiAttrs } from '../../lib/bidi'
 import { PRIORITIES, isClosed, priorityLabel } from '../../lib/format'
+import { groupTasksByDueSection, type DueSectionId } from '../../lib/localDay'
 import { ranksForOrder, reorderBodyAfterMove } from '../../lib/taskReorder'
 import { useAction } from '../../lib/useAction'
+import { usePreferences } from '../../preferences'
 import './SubtasksSection.css'
 
 type Props = {
@@ -24,6 +26,10 @@ type Props = {
   defaultCollapsed?: boolean
 }
 
+function sortByRank(tasks: Task[]): Task[] {
+  return [...tasks].sort((a, b) => a.rank - b.rank || a.number - b.number)
+}
+
 export function SubtasksSection({
   taskId,
   subtasks,
@@ -32,14 +38,20 @@ export function SubtasksSection({
   variant = 'card',
   defaultCollapsed,
 }: Props) {
-  const { t } = useTranslation(['detail', 'common'])
+  const { t } = useTranslation(['detail', 'tasks', 'common'])
+  const { taskSortMode } = usePreferences()
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState(3)
   const [localSubs, setLocalSubs] = useState<Task[] | null>(null)
   const { busy, error, setError, run } = useAction()
-  const rows = localSubs ?? subtasks
+  const rows = useMemo(() => sortByRank(localSubs ?? subtasks), [localSubs, subtasks])
   const done = rows.filter((row) => row.status === 'done').length
   const ids = rows.map((row) => row.id)
+  const dateMode = taskSortMode === 'date'
+  const dateSections = useMemo(
+    () => (dateMode ? groupTasksByDueSection(rows) : []),
+    [dateMode, rows],
+  )
 
   useEffect(() => {
     setLocalSubs(null)
@@ -57,6 +69,7 @@ export function SubtasksSection({
   }
 
   function onReorder(activeId: string, orderedIds: string[]) {
+    if (dateMode) return
     const ranks = ranksForOrder(orderedIds)
     const byId = new Map(rows.map((row) => [row.id, row]))
     setLocalSubs(
@@ -79,6 +92,26 @@ export function SubtasksSection({
       })
   }
 
+  function renderRow(child: Task) {
+    return (
+      <SortableSiblingItem key={child.id} id={child.id} disabled={dateMode}>
+        {({ dragHandle, setNodeRef, style, isDragging }) => (
+          <li ref={setNodeRef} style={style} className={isDragging ? 'dragging' : undefined}>
+            <div className={isClosed(child.status) ? 'list-row link closed' : 'list-row link'}>
+              {dateMode ? <span className="drag-handle-spacer" aria-hidden="true" /> : dragHandle}
+              <Link to={`/tasks/${child.id}`} className="subtask-link grow">
+                <StatusBadge status={child.status} />
+                <UserBidiText text={child.title} className="grow truncate" />
+                <DueBadge due={child.due_at} closed={isClosed(child.status)} />
+                <PriorityBadge priority={child.priority} />
+              </Link>
+            </div>
+          </li>
+        )}
+      </SortableSiblingItem>
+    )
+  }
+
   return (
     <Section
       icon="subtasks"
@@ -99,31 +132,33 @@ export function SubtasksSection({
       }
     >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
-      {rows.length > 0 && (
-        <SortableSiblingList ids={ids} className="list" onReorder={onReorder}>
-          {rows.map((child) => (
-            <SortableSiblingItem key={child.id} id={child.id}>
-              {({ dragHandle, setNodeRef, style, isDragging }) => (
-                <li ref={setNodeRef} style={style} className={isDragging ? 'dragging' : undefined}>
-                  <div
-                    className={
-                      isClosed(child.status) ? 'list-row link closed' : 'list-row link'
-                    }
-                  >
-                    {dragHandle}
-                    <Link to={`/tasks/${child.id}`} className="subtask-link grow">
-                      <StatusBadge status={child.status} />
-                      <UserBidiText text={child.title} className="grow truncate" />
-                      <DueBadge due={child.due_at} closed={isClosed(child.status)} />
-                      <PriorityBadge priority={child.priority} />
-                    </Link>
-                  </div>
-                </li>
-              )}
-            </SortableSiblingItem>
-          ))}
-        </SortableSiblingList>
-      )}
+      {rows.length > 0 &&
+        (dateMode ? (
+          <div className="subtask-date-sections">
+            {dateSections.map((section) => (
+              <section
+                key={section.id}
+                className="due-section"
+                aria-label={t(`tasks:dueSection.${section.id as DueSectionId}`)}
+              >
+                <h3 className="due-section-title">
+                  {t(`tasks:dueSection.${section.id as DueSectionId}`)}
+                </h3>
+                <SortableSiblingList
+                  ids={section.tasks.map((row) => row.id)}
+                  className="list"
+                  onReorder={onReorder}
+                >
+                  {section.tasks.map((child) => renderRow(child))}
+                </SortableSiblingList>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <SortableSiblingList ids={ids} className="list" onReorder={onReorder}>
+            {rows.map((child) => renderRow(child))}
+          </SortableSiblingList>
+        ))}
       <form className="inline-form" onSubmit={onAdd}>
         <input
           type="text"

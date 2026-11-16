@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
@@ -34,7 +35,8 @@ import {
   priorityLabel,
   statusLabel,
 } from '../lib/format'
-import { dueAtIsoForLocalEndOfDay, isOpenDueTodayOrEarlier } from '../lib/localDay'
+import { HorizonDueChips, type HorizonDueChoice } from '../components/HorizonDueMenu'
+import { dueAtIsoForHorizon, type HorizonId } from '../lib/localDay'
 import { useAction } from '../lib/useAction'
 import { ActivitySection } from './task-detail/ActivitySection'
 import { ArtifactsSection } from './task-detail/ArtifactsSection'
@@ -131,6 +133,7 @@ export function TaskDetailPage() {
   const [railWidthPx, setRailWidthPx] = useState(DETAIL_RAIL_DEFAULT_PX)
   const railStacked = useMediaQuery('(max-width: 1100px)')
   const { busy, error, setError, run } = useAction()
+  const dueInputRef = useRef<HTMLInputElement>(null)
 
   const detailGridStyle = useMemo(
     () =>
@@ -381,13 +384,26 @@ export function TaskDetailPage() {
     }, t('errors.read'))
   }
 
-  function doThisToday() {
+  function applyDueHorizon(choice: HorizonDueChoice) {
     if (!detail || isClosed(detail.task.status)) return
+    if (choice === 'exact') {
+      dueInputRef.current?.focus()
+      dueInputRef.current?.showPicker?.()
+      return
+    }
     void run(async () => {
-      await api.updateTask(taskId, { due_at: dueAtIsoForLocalEndOfDay() })
+      if (choice === 'clear') {
+        await api.updateTask(taskId, { clear_due_at: true })
+        setDraft((prev) => (prev ? { ...prev, due: '' } : prev))
+        toast(t('tasks:horizon.clearedToast'))
+      } else {
+        const dueAt = dueAtIsoForHorizon(choice as HorizonId)
+        await api.updateTask(taskId, { due_at: dueAt })
+        setDraft((prev) => (prev ? { ...prev, due: toLocalInput(dueAt) } : prev))
+        toast(t(`tasks:horizon.setToast.${choice}`))
+      }
       await load()
-      toast(t('doThisTodayToast'))
-    }, t('doThisTodayFailed'))
+    }, t('tasks:horizon.setFailed'))
   }
 
   async function remove() {
@@ -427,7 +443,6 @@ export function TaskDetailPage() {
   }
 
   const task = detail.task
-  const dueToday = isOpenDueTodayOrEarlier(task.status, task.due_at)
   const me = status?.user
   const isOwner = me?.id === task.owner_user_id
   const myShare = shares.find((s) => s.user_id === me?.id)
@@ -718,6 +733,7 @@ export function TaskDetailPage() {
                   <span>{t('deadline')}</span>
                   <span className="input-with-action">
                     <input
+                      ref={dueInputRef}
                       type="datetime-local"
                       value={draft.due}
                       onChange={(e) => update('due', e.target.value)}
@@ -736,17 +752,11 @@ export function TaskDetailPage() {
                   </span>
                 </label>
                 {!isClosed(task.status) && (
-                  <button
-                    type="button"
-                    className={dueToday ? 'btn small do-today-btn active' : 'btn small do-today-btn'}
+                  <HorizonDueChips
                     disabled={busy}
-                    aria-pressed={dueToday}
-                    title={dueToday ? t('doThisTodayDone') : t('doThisToday')}
-                    onClick={doThisToday}
-                  >
-                    <Icon name="calendar" size={14} />
-                    {dueToday ? t('doThisTodayDone') : t('doThisToday')}
-                  </button>
+                    exactActive={Boolean(draft.due)}
+                    onChoose={applyDueHorizon}
+                  />
                 )}
                 <label className="field">
                   <span>{t('parentTask')}</span>

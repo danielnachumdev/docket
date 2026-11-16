@@ -45,6 +45,25 @@
   gap: 0.45rem;
 }
 
+.subtask-date-sections {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.subtask-date-sections .due-section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.drag-handle-spacer {
+  width: 1.75rem;
+  flex: none;
+}
+
 @media (max-width: 640px) {
   .list-row .priority-badge {
     display: none;

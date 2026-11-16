@@ -8,7 +8,12 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { api, type CustomThemePreference, type UserPreferences } from './api'
+import {
+  api,
+  type CustomThemePreference,
+  type TaskSortMode,
+  type UserPreferences,
+} from './api'
 import { useAuth } from './auth'
 import i18n, {
   LOCALE_STORAGE_KEY,
@@ -42,6 +47,8 @@ import {
 } from './lib/themeTokens'
 
 const THEME_PERSIST_MS = 400
+/** First-paint / guest cache for list sort mode; server wins when authenticated. */
+export const TASK_SORT_MODE_STORAGE_KEY = 'waymark.taskSortMode'
 
 type PreferencesContextValue = {
   theme: Theme
@@ -49,6 +56,8 @@ type PreferencesContextValue = {
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
   setLocale: (locale: string) => void
+  taskSortMode: TaskSortMode
+  setTaskSortMode: (mode: TaskSortMode) => void
   customThemes: CustomTheme[]
   addCustomTheme: (fromThemeId?: Theme) => CustomTheme | null
   renameCustomTheme: (id: string, name: string) => void
@@ -69,6 +78,28 @@ function storedLocale(): NonNullable<UserPreferences['locale']> | null {
     return isSupportedLocale(code) ? (code as 'en' | 'he') : null
   } catch {
     return null
+  }
+}
+
+function isTaskSortMode(value: string): value is TaskSortMode {
+  return value === 'custom' || value === 'date'
+}
+
+function storedTaskSortMode(): TaskSortMode | null {
+  try {
+    const value = localStorage.getItem(TASK_SORT_MODE_STORAGE_KEY)
+    if (!value || !isTaskSortMode(value)) return null
+    return value
+  } catch {
+    return null
+  }
+}
+
+function cacheTaskSortMode(mode: TaskSortMode) {
+  try {
+    localStorage.setItem(TASK_SORT_MODE_STORAGE_KEY, mode)
+  } catch {
+    /* ignore quota / private mode */
   }
 }
 
@@ -106,6 +137,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const { status, loading: authLoading } = useAuth()
   const [theme, setThemeState] = useState<Theme>(() => storedTheme() ?? systemTheme())
   const [customThemes, setCustomThemesState] = useState<CustomTheme[]>(() => readCustomThemes())
+  const [taskSortMode, setTaskSortModeState] = useState<TaskSortMode>(
+    () => storedTaskSortMode() ?? 'custom',
+  )
   const [hydrated, setHydrated] = useState(false)
   const hydratedUserId = useRef<number | null>(null)
   const persistSeq = useRef(0)
@@ -138,6 +172,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         setThemeState(next.theme)
       }
       if (next.locale) applyLocale(next.locale)
+      if (next.task_sort_mode) {
+        cacheTaskSortMode(next.task_sort_mode)
+        setTaskSortModeState(next.task_sort_mode)
+      }
       if (next.custom_themes != null) {
         const normalized = normalizeCustomThemes(next.custom_themes)
         writeCustomThemes(normalized)
@@ -211,6 +249,17 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       if (local) seed.locale = local
     }
 
+    if (server.task_sort_mode) {
+      cacheTaskSortMode(server.task_sort_mode)
+      setTaskSortModeState(server.task_sort_mode)
+    } else {
+      const local = storedTaskSortMode()
+      if (local) {
+        seed.task_sort_mode = local
+        setTaskSortModeState(local)
+      }
+    }
+
     if (Object.keys(seed).length > 0) {
       await api.patchPreferences(seed)
     }
@@ -256,6 +305,15 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       }
     },
     [applyLocale, persist],
+  )
+
+  const setTaskSortMode = useCallback(
+    (mode: TaskSortMode) => {
+      setTaskSortModeState(mode)
+      cacheTaskSortMode(mode)
+      void persist({ task_sort_mode: mode })
+    },
+    [persist],
   )
 
   const addCustomTheme = useCallback(
@@ -356,6 +414,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setTheme,
       toggleTheme,
       setLocale,
+      taskSortMode,
+      setTaskSortMode,
       customThemes,
       addCustomTheme,
       renameCustomTheme,
@@ -370,6 +430,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setTheme,
       toggleTheme,
       setLocale,
+      taskSortMode,
+      setTaskSortMode,
       customThemes,
       addCustomTheme,
       renameCustomTheme,

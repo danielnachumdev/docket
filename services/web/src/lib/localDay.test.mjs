@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  dueAtIsoForHorizon,
   dueAtIsoForLocalEndOfDay,
+  dueSectionForDueAt,
+  endOfHorizon,
   endOfLocalDay,
+  groupTasksByDueSection,
   isOpenDueTodayOrEarlier,
+  startOfLocalDay,
 } from './localDay.mjs'
 
 function localIso(y, m, d, h = 12, min = 0) {
@@ -28,6 +33,109 @@ describe('endOfLocalDay', () => {
     const iso = dueAtIsoForLocalEndOfDay(ref)
     assert.match(iso, /Z$/)
     assert.equal(new Date(iso).getTime(), endOfLocalDay(ref).getTime())
+  })
+})
+
+describe('endOfHorizon', () => {
+  // Wednesday 2026-11-18 local
+  const wed = new Date(2026, 10, 18, 14, 0, 0, 0)
+
+  it('today / tomorrow are successive local end-of-days', () => {
+    assert.equal(endOfHorizon('today', wed).getTime(), endOfLocalDay(wed).getTime())
+    const tomorrow = new Date(2026, 10, 19)
+    assert.equal(endOfHorizon('tomorrow', wed).getTime(), endOfLocalDay(tomorrow).getTime())
+  })
+
+  it('week ends on Sunday (Monday-start week)', () => {
+    const sunday = endOfHorizon('week', wed)
+    assert.equal(sunday.getDay(), 0)
+    assert.equal(sunday.getDate(), 22)
+    assert.equal(sunday.getHours(), 23)
+  })
+
+  it('week on Sunday is end of that Sunday', () => {
+    const sunday = new Date(2026, 10, 22, 8, 0, 0, 0)
+    assert.equal(endOfHorizon('week', sunday).getDate(), 22)
+  })
+
+  it('month ends on last local day of month', () => {
+    const end = endOfHorizon('month', wed)
+    assert.equal(end.getMonth(), 10)
+    assert.equal(end.getDate(), 30)
+  })
+
+  it('quarter ends on last day of Q4 for November', () => {
+    const end = endOfHorizon('quarter', wed)
+    assert.equal(end.getMonth(), 11)
+    assert.equal(end.getDate(), 31)
+  })
+
+  it('year ends on Dec 31', () => {
+    const end = endOfHorizon('year', wed)
+    assert.equal(end.getFullYear(), 2026)
+    assert.equal(end.getMonth(), 11)
+    assert.equal(end.getDate(), 31)
+  })
+
+  it('dueAtIsoForHorizon matches endOfHorizon', () => {
+    const iso = dueAtIsoForHorizon('week', wed)
+    assert.equal(new Date(iso).getTime(), endOfHorizon('week', wed).getTime())
+  })
+})
+
+describe('dueSectionForDueAt / groupTasksByDueSection', () => {
+  // Wednesday noon 2026-11-18
+  const now = new Date(2026, 10, 18, 12, 0, 0, 0).getTime()
+
+  it('classifies overdue / today / tomorrow / week / none', () => {
+    assert.equal(dueSectionForDueAt(localIso(2026, 11, 17, 18), now), 'overdue')
+    assert.equal(dueSectionForDueAt(localIso(2026, 11, 18, 20), now), 'today')
+    assert.equal(dueSectionForDueAt(localIso(2026, 11, 19, 9), now), 'tomorrow')
+    assert.equal(dueSectionForDueAt(localIso(2026, 11, 21, 12), now), 'week')
+    assert.equal(dueSectionForDueAt(null, now), 'none')
+  })
+
+  it('classifies month / quarter / later (Q4: year end == quarter end)', () => {
+    assert.equal(dueSectionForDueAt(localIso(2026, 11, 28, 12), now), 'month')
+    assert.equal(dueSectionForDueAt(localIso(2026, 12, 15, 12), now), 'quarter')
+    // In Q4, Dec 31 lands in quarter (year bucket empty until next year → later)
+    assert.equal(
+      dueSectionForDueAt(endOfHorizon('year', new Date(now)).toISOString(), now),
+      'quarter',
+    )
+    assert.equal(dueSectionForDueAt(localIso(2027, 1, 5, 12), now), 'later')
+  })
+
+  it('classifies year when due is after this quarter (e.g. March → June)', () => {
+    const march = new Date(2026, 2, 10, 12, 0, 0, 0).getTime()
+    // In March, month/quarter both end Mar 31 — June is past quarter → year
+    assert.equal(dueSectionForDueAt(localIso(2026, 3, 31, 12), march), 'month')
+    assert.equal(dueSectionForDueAt(localIso(2026, 6, 1, 12), march), 'year')
+  })
+
+  it('groups in section order and skips empty buckets', () => {
+    const tasks = [
+      { id: 'a', due_at: localIso(2026, 11, 19, 9) },
+      { id: 'b', due_at: null },
+      { id: 'c', due_at: localIso(2026, 11, 17, 9) },
+      { id: 'd', due_at: localIso(2026, 11, 18, 15) },
+    ]
+    const sections = groupTasksByDueSection(tasks, now)
+    assert.deepEqual(
+      sections.map((s) => s.id),
+      ['overdue', 'today', 'tomorrow', 'none'],
+    )
+    assert.deepEqual(
+      sections.map((s) => s.tasks.map((t) => t.id)),
+      [['c'], ['d'], ['a'], ['b']],
+    )
+  })
+
+  it('startOfLocalDay is midnight local', () => {
+    const start = startOfLocalDay(new Date(now))
+    assert.equal(start.getHours(), 0)
+    assert.equal(start.getMinutes(), 0)
+    assert.equal(start.getDate(), 18)
   })
 })
 
