@@ -113,7 +113,7 @@ export function isOpenDueTodayOrEarlier(status, dueAt, nowMs = Date.now()) {
 }
 
 /**
- * Mutually exclusive date-mode section for a `due_at` value.
+ * Mutually exclusive date-mode section for a `due_at` value (timestamp first-match).
  * @param {string | null | undefined} dueAt
  * @param {number} [nowMs]
  * @returns {(typeof DUE_SECTION_IDS)[number]}
@@ -134,8 +134,26 @@ export function dueSectionForDueAt(dueAt, nowMs = Date.now()) {
 }
 
 /**
+ * Date-mode section preferring stored `due_horizon` intent when present.
+ * Overdue always wins; named horizons map to their section; `exact` / missing
+ * fall back to timestamp first-match (legacy rows).
+ * @param {{ due_at?: string | null, due_horizon?: string | null }} task
+ * @param {number} [nowMs]
+ * @returns {(typeof DUE_SECTION_IDS)[number]}
+ */
+export function dueSectionForTask(task, nowMs = Date.now()) {
+  const due = parseDueAt(task?.due_at)
+  if (!due) return 'none'
+  const now = new Date(nowMs)
+  if (due.getTime() < startOfLocalDay(now).getTime()) return 'overdue'
+  const horizon = task?.due_horizon
+  if (horizon && HORIZON_IDS.includes(horizon)) return horizon
+  return dueSectionForDueAt(task.due_at, nowMs)
+}
+
+/**
  * Group tasks into date-mode sections (non-empty only), preserving relative order within each.
- * @template {{ due_at?: string | null }} T
+ * @template {{ due_at?: string | null, due_horizon?: string | null }} T
  * @param {T[]} tasks
  * @param {number} [nowMs]
  * @returns {{ id: (typeof DUE_SECTION_IDS)[number], tasks: T[] }[]}
@@ -144,7 +162,7 @@ export function groupTasksByDueSection(tasks, nowMs = Date.now()) {
   /** @type {Map<string, typeof tasks>} */
   const buckets = new Map(DUE_SECTION_IDS.map((id) => [id, []]))
   for (const task of tasks) {
-    const id = dueSectionForDueAt(task.due_at, nowMs)
+    const id = dueSectionForTask(task, nowMs)
     buckets.get(id).push(task)
   }
   return DUE_SECTION_IDS.map((id) => ({ id, tasks: buckets.get(id) }))

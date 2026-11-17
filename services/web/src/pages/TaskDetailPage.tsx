@@ -266,8 +266,12 @@ export function TaskDetailPage() {
     if (draft.priority !== saved.priority) patch.priority = draft.priority
     if (draft.due !== saved.due) {
       const due = fromLocalInput(draft.due)
-      if (due) patch.due_at = due
-      else patch.clear_due_at = true
+      if (due) {
+        patch.due_at = due
+        patch.due_horizon = 'exact'
+      } else {
+        patch.clear_due_at = true
+      }
     }
     if (draft.parent !== saved.parent) {
       if (!draft.parent) patch.clear_parent = true
@@ -407,7 +411,10 @@ export function TaskDetailPage() {
         toast(t('tasks:horizon.clearedToast'))
       } else {
         const dueAt = dueAtIsoForHorizon(choice as HorizonId)
-        await api.updateTask(taskId, { due_at: dueAt })
+        await api.updateTask(taskId, {
+          due_at: dueAt,
+          due_horizon: choice as HorizonId,
+        })
         setDraft((prev) => (prev ? { ...prev, due: toLocalInput(dueAt) } : prev))
         toast(t(`tasks:horizon.setToast.${choice}`))
       }

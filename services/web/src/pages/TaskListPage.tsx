@@ -462,12 +462,20 @@ export function TaskListPage() {
     const patch =
       choice === 'clear'
         ? { clear_due_at: true as const }
-        : { due_at: dueAtIsoForHorizon(choice as HorizonId) }
+        : {
+            due_at: dueAtIsoForHorizon(choice as HorizonId),
+            due_horizon: choice as HorizonId,
+          }
     const optimisticDue = choice === 'clear' ? null : patch.due_at!
+    const optimisticHorizon = choice === 'clear' ? null : (choice as HorizonId)
     setPinned((prev) => new Set(prev).add(task.id))
     setTasks(
       (prev) =>
-        prev?.map((row) => (row.id === task.id ? { ...row, due_at: optimisticDue } : row)) ?? null,
+        prev?.map((row) =>
+          row.id === task.id
+            ? { ...row, due_at: optimisticDue, due_horizon: optimisticHorizon }
+            : row,
+        ) ?? null,
     )
     api
       .updateTask(task.id, patch)

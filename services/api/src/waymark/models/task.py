@@ -56,6 +56,8 @@ class Task(Base):
     # whatsapp | ui | api
     source: Mapped[str] = mapped_column(String(32), default="ui")
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Named chip / exact intent for date-mode sections (today…year|exact); null = legacy.
+    due_horizon: Mapped[str | None] = mapped_column(String(16), nullable=True)
     claimed_by_token_id: Mapped[int | None] = mapped_column(
         ForeignKey("api_tokens.id", ondelete="SET NULL"), nullable=True
     )

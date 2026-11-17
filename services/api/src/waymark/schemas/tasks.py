@@ -1,10 +1,14 @@
 from datetime import datetime
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _STATUS_PATTERN = "^(backlog|in_progress|blocked|on_hold|failed|done|cancelled)$"
 PAUSE_STATUSES = frozenset({"blocked", "on_hold"})
+
+DueHorizon = Literal[
+    "today", "tomorrow", "week", "month", "quarter", "year", "exact"
+]
 
 
 class TaskCreate(BaseModel):
@@ -15,6 +19,7 @@ class TaskCreate(BaseModel):
     priority: int = Field(default=3, ge=1, le=4)
     parent_task_id: str | None = None
     due_at: datetime | None = None
+    due_horizon: DueHorizon | None = None
     external_id: str | None = Field(default=None, min_length=1, max_length=255)
     require_artifact_on_done: bool = False
     outcome_schema: dict[str, Any] | None = None
@@ -29,6 +34,7 @@ class TaskUpdate(BaseModel):
     rank: float | None = None
     parent_task_id: str | None = None
     due_at: datetime | None = None
+    due_horizon: DueHorizon | None = None
     clear_due_at: bool = False
     clear_parent: bool = False
     external_id: str | None = Field(default=None, min_length=1, max_length=255)
@@ -92,6 +98,7 @@ class TaskOut(BaseModel):
     rank: float
     source: str
     due_at: datetime | None
+    due_horizon: DueHorizon | None = None
     claimed_by_token_id: int | None
     claimed_by_token_name: str | None = None
     claim_expires_at: datetime | None
