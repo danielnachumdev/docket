@@ -236,7 +236,6 @@ type Props = {
 }
 
 const ORDER_KEY = 'waymark.activityOrder'
-const SHOW_ALL_KEY = 'waymark.activityShowAll'
 
 function readOrder(): 'asc' | 'desc' {
   try {
@@ -254,27 +253,11 @@ function writeOrder(order: 'asc' | 'desc') {
   }
 }
 
-function readShowAll(): boolean {
-  try {
-    return sessionStorage.getItem(SHOW_ALL_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-function writeShowAll(showAll: boolean) {
-  try {
-    sessionStorage.setItem(SHOW_ALL_KEY, showAll ? '1' : '0')
-  } catch {
-    /* ignore */
-  }
-}
-
 /** Page-flow timeline: each activity is a row; comments render as comment cards. */
 export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
   const { t } = useTranslation('detail')
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
-  const [showAll, setShowAll] = useState(readShowAll)
+  const [showAll, setShowAll] = useState(false)
   const [items, setItems] = useState<ActivityItem[]>([])
   const { busy, error, setError, run } = useAction()
 
@@ -284,6 +267,10 @@ export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
       setItems(feed.items)
     }, t('activity.loadFailed'))
   }, [order, run, t, taskId])
+
+  useEffect(() => {
+    setShowAll(false)
+  }, [taskId])
 
   useEffect(() => {
     reload()
@@ -304,11 +291,7 @@ export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
   }
 
   function toggleShowAll() {
-    setShowAll((prev) => {
-      const next = !prev
-      writeShowAll(next)
-      return next
-    })
+    setShowAll((prev) => !prev)
   }
 
   return (
