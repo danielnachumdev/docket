@@ -221,8 +221,52 @@ def test_contact_nickname_patch_search_and_uniqueness() -> None:
     )
     assert bad.status_code == 422
 
+    spaced = client.patch(
+        f"/api/me/contacts/{blake.id}", json={"nickname": "Blake Friend"}
+    )
+    assert spaced.status_code == 422
+
+    hebrew = client.patch(
+        f"/api/me/contacts/{blake.id}", json={"nickname": "בלייק"}
+    )
+    assert hebrew.status_code == 200, hebrew.text
+    assert hebrew.json()["nickname"] == "בלייק"
+
+    with_at = client.patch(
+        f"/api/me/contacts/{alex.id}", json={"nickname": "@אלכס"}
+    )
+    assert with_at.status_code == 200, with_at.text
+    assert with_at.json()["nickname"] == "אלכס"
+
     missing = client.patch("/api/me/contacts/999999", json={"nickname": "ghost"})
     assert missing.status_code == 404
+
+
+def test_unicode_nickname_resolves_in_mentions() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    task_id = client.post("/api/tasks", json={"title": "Unicode nick"}).json()["id"]
+    alex = _create_member("alex@example.com", "Alex Friend")
+    assert (
+        client.post(
+            f"/api/tasks/{task_id}/shares",
+            json={"email": "alex@example.com", "role": "commentor"},
+        ).status_code
+        == 201
+    )
+    assert (
+        client.patch(
+            f"/api/me/contacts/{alex.id}", json={"nickname": "דני"}
+        ).status_code
+        == 200
+    )
+
+    mentioned = client.post(
+        f"/api/tasks/{task_id}/comments",
+        json={"body": "שלום @דני"},
+    )
+    assert mentioned.status_code == 201, mentioned.text
+    assert alex.id in mentioned.json()["mentioned_user_ids"]
 
 
 def test_contact_nickname_private_to_viewer_and_mention_resolve() -> None:
