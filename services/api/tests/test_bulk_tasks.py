@@ -68,6 +68,30 @@ def test_bulk_update_requires_status_or_priority() -> None:
     assert res.status_code == 422
 
 
+def test_bulk_update_unread() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    a = _create_task(client, "Unread A")
+    b = _create_task(client, "Unread B")
+    client.post(f"/api/tasks/{a}/unread")
+    client.post(f"/api/tasks/{b}/unread")
+    assert client.get(f"/api/tasks/{a}").json()["task"]["unread"] is True
+
+    marked = client.post(
+        "/api/tasks/bulk",
+        json={"task_ids": [a, b], "unread": False},
+    )
+    assert marked.status_code == 200
+    assert all(row["unread"] is False for row in marked.json())
+
+    restored = client.post(
+        "/api/tasks/bulk",
+        json={"task_ids": [a, b], "unread": True},
+    )
+    assert restored.status_code == 200
+    assert all(row["unread"] is True for row in restored.json())
+
+
 def test_bulk_update_unknown_task_is_404_and_atomic() -> None:
     client = TestClient(create_app())
     bootstrap_owner(client)

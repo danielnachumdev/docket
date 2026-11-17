@@ -16,6 +16,7 @@ import { Menu } from '../../components/Menu'
 import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { linkEventTaskIds } from '../../lib/activityTaskRef'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
+import { mapPool } from '../../lib/mapPool'
 import { useAction } from '../../lib/useAction'
 import { userBidiAttrs } from '../../lib/bidi'
 import { useConfirm } from '../../lib/dialogs'
@@ -498,22 +499,20 @@ export function ActivitySection({
     if (missing.length === 0) return
     let cancelled = false
     void (async () => {
-      const rows = await Promise.all(
-        missing.map(async (id) => {
-          try {
-            const detail = await api.getTask(id)
-            const summary: TaskSummary = {
-              id: detail.task.id,
-              number: detail.task.number,
-              title: detail.task.title,
-            }
-            return [id, { status: 'ok', summary } as TaskRefLookup] as const
-          } catch {
-            // Authz returns 404 for unshared tasks; treat as Slack-style private.
-            return [id, { status: 'private' } as TaskRefLookup] as const
+      const rows = await mapPool(missing, 4, async (id) => {
+        try {
+          const detail = await api.getTask(id)
+          const summary: TaskSummary = {
+            id: detail.task.id,
+            number: detail.task.number,
+            title: detail.task.title,
           }
-        }),
-      )
+          return [id, { status: 'ok', summary } as TaskRefLookup] as const
+        } catch {
+          // Authz returns 404 for unshared tasks; treat as Slack-style private.
+          return [id, { status: 'private' } as TaskRefLookup] as const
+        }
+      })
       if (cancelled) return
       setFetchedLookups((prev) => {
         const next = new Map(prev)

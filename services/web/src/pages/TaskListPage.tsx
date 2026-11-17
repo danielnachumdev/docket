@@ -594,9 +594,7 @@ export function TaskListPage() {
     })
     void run(async () => {
       try {
-        const updated = await Promise.all(
-          taskIds.map((id) => (unread ? api.markTaskUnread(id) : api.markTaskRead(id))),
-        )
+        const updated = await api.bulkUpdateTasks({ task_ids: taskIds, unread })
         const byId = new Map(updated.map((t) => [t.id, t]))
         setTasks((prev) => prev?.map((t) => byId.get(t.id) ?? t) ?? null)
         clearSelection()

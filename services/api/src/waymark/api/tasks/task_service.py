@@ -262,6 +262,8 @@ class TaskService:
                     actor=principal,
                     payload={"priority": task.priority},
                 )
+            if body.unread is not None:
+                self._apply_unread(task, unread=body.unread)
         self._gateway.commit()
         for task in tasks:
             self._gateway.refresh(task)
@@ -333,22 +335,25 @@ class TaskService:
 
     def mark_read(self, principal: Principal, task_ref: str) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:read")
-        if task.unread or task.unread_except_user_id is not None:
-            task.unread = False
-            task.unread_except_user_id = None
+        if self._apply_unread(task, unread=False):
             self._gateway.commit()
             self._gateway.refresh(task)
         return self._mapper.task_out(task, viewer_user_id=principal.user_id)
 
     def mark_unread(self, principal: Principal, task_ref: str) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:read")
-        # Forced visible to everyone including the acting user.
-        if not task.unread or task.unread_except_user_id is not None:
-            task.unread = True
-            task.unread_except_user_id = None
+        if self._apply_unread(task, unread=True):
             self._gateway.commit()
             self._gateway.refresh(task)
         return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+
+    def _apply_unread(self, task: Task, *, unread: bool) -> bool:
+        """Set shared unread bit; clear viewer exclusion. True when mutated."""
+        if task.unread == unread and task.unread_except_user_id is None:
+            return False
+        task.unread = unread
+        task.unread_except_user_id = None
+        return True
 
     def _build_new_task(
         self,
