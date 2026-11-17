@@ -53,7 +53,7 @@ export function Skeleton({
   )
 }
 
-/** Section headings over stat-card grids (Progress, Storage overview). */
+/** Section headings over stat-card grids (Storage overview). */
 export function StatsSkeleton({ groups = 2, perGroup = 3 }: { groups?: number; perGroup?: number }) {
   return (
     <Frame className="skeleton-stats">
@@ -70,6 +70,35 @@ export function StatsSkeleton({ groups = 2, perGroup = 3 }: { groups?: number; p
           </div>
         </div>
       ))}
+    </Frame>
+  )
+}
+
+/** KPI strip + graph cards for the Progress page. */
+export function ProgressSkeleton() {
+  return (
+    <Frame className="skeleton-progress">
+      <div className="skeleton-progress-kpis">
+        {Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="skeleton-progress-kpi">
+            <Bone className="bone-line sm" width={META_WIDTHS[i % META_WIDTHS.length] + 20} />
+            <Bone className="bone-value" />
+            <Bone className="bone-line sm" width={40} />
+          </div>
+        ))}
+      </div>
+      <div className="skeleton-progress-graphs">
+        <div className="skeleton-progress-graph is-wide">
+          <Bone className="bone-heading" width={28} />
+          <Bone className="bone-block" width={100} />
+        </div>
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="skeleton-progress-graph">
+            <Bone className="bone-heading" width={TITLE_WIDTHS[i % TITLE_WIDTHS.length] / 2} />
+            <Bone className="bone-block" width={100} />
+          </div>
+        ))}
+      </div>
     </Frame>
   )
 }

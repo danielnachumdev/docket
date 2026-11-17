@@ -32,9 +32,11 @@ Metric definitions (all UTC; primary universe = tasks the user owns unless noted
 - **Outcomes**: owned completions in the window with / without ``outcome_json``.
 - **Shared**: owned completions vs completions on tasks shared with the user
   (membership, not owner) in the window.
+- **completions_by_day**: owned completions per UTC calendar day for the last
+  ``window_days`` days ending today (zeros filled for empty days).
 """
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -102,6 +104,11 @@ class SharedStatsOut(BaseModel):
     shared_with_me_completions: int
 
 
+class DayCountOut(BaseModel):
+    day: date
+    count: int
+
+
 class UserStatsOut(BaseModel):
     """Per-authenticated-user progress stats. See module docstring for definitions."""
 
@@ -120,4 +127,7 @@ class UserStatsOut(BaseModel):
     outcomes: OutcomesStatsOut
     shared: SharedStatsOut = Field(
         description="Owned vs shared-with-me completions in the window."
+    )
+    completions_by_day: list[DayCountOut] = Field(
+        description="Owned completions per UTC day for the last window_days days."
     )

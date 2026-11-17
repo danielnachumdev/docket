@@ -131,6 +131,8 @@ export type StorageOverview = {
   top_tasks: StorageTask[]
 }
 
+export type DayCount = { day: string; count: number }
+
 export type UserStats = {
   window_days: number
   generated_at: string
@@ -151,6 +153,7 @@ export type UserStats = {
   claims: { active: number; expired: number }
   outcomes: { with_outcome: number; without_outcome: number }
   shared: { owned_completions: number; shared_with_me_completions: number }
+  completions_by_day: DayCount[]
 }
 
 export type BackupImportResult = {

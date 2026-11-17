@@ -107,6 +107,8 @@ def test_me_stats_empty_workspace_zeros() -> None:
         "owned_completions": 0,
         "shared_with_me_completions": 0,
     }
+    assert len(body["completions_by_day"]) == 7
+    assert all(point["count"] == 0 for point in body["completions_by_day"])
 
 
 def test_me_stats_throughput_wip_blocked_completion_rate() -> None:
@@ -187,6 +189,13 @@ def test_me_stats_throughput_wip_blocked_completion_rate() -> None:
     assert body["failed"]["in_window"] == 1
     assert body["priority"]["p1_p2_open"] >= 2
     assert body["priority"]["p1_p2_done_in_window"] == 1
+    assert len(body["completions_by_day"]) == 7
+    assert sum(point["count"] for point in body["completions_by_day"]) == 1
+    expected_day = (now - timedelta(days=2)).date().isoformat()
+    assert any(
+        point["day"] == expected_day and point["count"] == 1
+        for point in body["completions_by_day"]
+    )
 
 
 def test_me_stats_cycle_time_median() -> None:

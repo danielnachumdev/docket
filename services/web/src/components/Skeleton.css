@@ -153,6 +153,76 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* ---------- Progress graphs ---------- */
+
+.skeleton-progress {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.skeleton-progress-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.skeleton-progress-kpi {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.95rem 1.05rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton-progress-graphs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.skeleton-progress-graph {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 9rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton-progress-graph.is-wide {
+  grid-column: 1 / -1;
+  min-height: 10.5rem;
+}
+
+.skeleton-progress-graph .bone-block {
+  height: 5.5rem;
+  width: 100%;
+}
+
+.skeleton-progress-graph.is-wide .bone-block {
+  height: 6.5rem;
+}
+
+@media (max-width: 840px) {
+  .skeleton-progress-graphs {
+    grid-template-columns: 1fr;
+  }
+
+  .skeleton-progress-graph.is-wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .skeleton-progress-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---------- Form ---------- */
 
 .skeleton-form,
