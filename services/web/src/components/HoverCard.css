@@ -1,5 +1,4 @@
 .hover-card {
-  position: fixed;
   z-index: 70;
   display: grid;
   gap: 0.45rem;
