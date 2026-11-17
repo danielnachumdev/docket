@@ -26,7 +26,7 @@ from waymark.api import (
 )
 from waymark.auth import AuthnMiddleware
 from waymark.config import ROOT, get_settings
-from waymark.db import database
+from waymark.db import database, pool_timeout_handler
 from waymark.rate_limit import RateLimitMiddleware
 from waymark.seed import rbac_seeder
 
@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    pool_timeout_handler.register(app)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:

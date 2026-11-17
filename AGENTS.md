@@ -80,6 +80,19 @@ Create file artifacts via JSON with `content_base64`. Content streams through `G
 - **Caveat:** in-memory counters are per process; multi-worker uvicorn roughly multiplies effective capacity.
 - **Nginx safety net:** Compose/local `services/web/nginx.conf.template` (and waymark-deploy) apply a very high per-IP `limit_req` (~100 r/s, burst 200) on `/api/` so only pathological floods trip at the edge.
 
+## Database connection pool
+
+SQLAlchemy `QueuePool` (including SQLite file URLs on SQLAlchemy 2.1+). Exhausted checkout raises `sqlalchemy.exc.TimeoutError`, mapped to **HTTP 503** (`Database busy; try again shortly`) so the edge does not wait for a long pool timeout then return 504.
+
+| Env | Default | Meaning |
+| --- | ------- | ------- |
+| `DB_POOL_SIZE` | `15` | Persistent connections in the pool |
+| `DB_POOL_MAX_OVERFLOW` | `30` | Extra connections allowed above `pool_size` |
+| `DB_POOL_TIMEOUT_SECONDS` | `5` | Seconds to wait for a free connection before 503 |
+| `DB_POOL_RECYCLE_SECONDS` | `1800` | Recycle connections after this many seconds |
+
+Size the pool for concurrent request peak. On Postgres (Cloud SQL / PgBouncer), keep `pool_size + max_overflow` (× uvicorn workers) under the server / bouncer connection budget.
+
 ## User preferences
 
 Per-user UI prefs sync via `GET`/`PATCH /api/me/preferences` (authenticated). Stored as JSON text on `users.preferences_json` with an allowlist schema (`theme`, `locale`, …).

@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     rate_limit_token_enabled: bool = True
     rate_limit_token_requests: int = 120
     rate_limit_token_window_seconds: int = 60
+    # SQLAlchemy QueuePool (SQLite file DBs use QueuePool in SQLAlchemy 2.1+).
+    # Size for concurrent request peak; keep below Cloud SQL / PgBouncer caps when
+    # using Postgres. Short pool_timeout fails fast (HTTP 503) instead of edge 504.
+    db_pool_size: int = 15
+    db_pool_max_overflow: int = 30
+    db_pool_timeout_seconds: float = 5.0
+    db_pool_recycle_seconds: int = 1800
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -56,11 +56,12 @@ class TaskBulkUpdate(BaseModel):
     task_ids: list[str] = Field(min_length=1, max_length=200)
     status: str | None = Field(default=None, pattern=_STATUS_PATTERN)
     priority: int | None = Field(default=None, ge=1, le=4)
+    unread: bool | None = None
 
     @model_validator(mode="after")
-    def require_status_or_priority(self) -> Self:
-        if self.status is None and self.priority is None:
-            raise ValueError("Provide status and/or priority")
+    def require_patch_field(self) -> Self:
+        if self.status is None and self.priority is None and self.unread is None:
+            raise ValueError("Provide status, priority, and/or unread")
         return self
 
 

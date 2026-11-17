@@ -519,6 +519,7 @@ export const api = {
     task_ids: string[]
     status?: string
     priority?: number
+    unread?: boolean
   }) =>
     request<Task[]>('/api/tasks/bulk', {
       method: 'POST',
