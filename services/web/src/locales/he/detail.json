@@ -130,19 +130,7 @@
   },
   "activity": {
     "title": "פעילות",
-    "expand": "הרחבת פעילות",
-    "collapse": "כיווץ פעילות",
     "empty": "עדיין אין פעילות.",
-    "actor": "מבצע",
-    "payload": "פרטים",
-    "row": {
-      "user": "משתמש",
-      "token": "אסימון",
-      "tokenId": "מזהה אסימון",
-      "role": "תפקיד"
-    },
-    "roleFull": "הרשאות משתמש מלאות",
-    "roleSession": "סשן",
     "field": {
       "title": "כותרת",
       "priority": "עדיפות",

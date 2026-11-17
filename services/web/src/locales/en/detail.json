@@ -130,19 +130,7 @@
   },
   "activity": {
     "title": "Activity",
-    "expand": "Expand activity",
-    "collapse": "Collapse activity",
     "empty": "No activity yet.",
-    "actor": "Actor",
-    "payload": "Details",
-    "row": {
-      "user": "User",
-      "token": "Token",
-      "tokenId": "Token id",
-      "role": "Role"
-    },
-    "roleFull": "full user permissions",
-    "roleSession": "session",
     "field": {
       "title": "title",
       "priority": "priority",

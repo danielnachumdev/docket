@@ -1,127 +1,97 @@
+.activity-timeline-block {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.activity-timeline-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.activity-timeline-header h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.activity-timeline-header .count {
+  min-width: 1.25rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .activity-empty {
   margin: 0;
 }
 
-.activity-attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin: 0.35rem 0 0;
-  padding: 0;
-  list-style: none;
+.activity-timeline {
+  margin: 0;
 }
 
-.activity-attachment {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.45rem;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  font-size: 0.78rem;
+.activity-timeline .event {
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  align-items: flex-start;
 }
 
-.detail-main .activity-scroll {
-  max-height: min(28rem, 55vh);
-}
-
-.activity-scroll {
-  max-height: 14rem;
-  overflow-y: auto;
-  padding-inline-end: 0.15rem;
-}
-
-.activity-scroll .timeline::before {
-  top: 0.35rem;
-  bottom: 0.25rem;
-}
-
-.activity-scroll .event {
-  gap: 0.65rem;
-  padding: 0.12rem 0;
-}
-
-.activity-scroll .event-dot {
+.activity-timeline .event-dot {
   width: 0.55rem;
   height: 0.55rem;
-  margin-top: 0.28rem;
+  margin-top: 0.45rem;
 }
 
-.activity-scroll .event-body {
+.activity-timeline .event-body {
   gap: 0.08rem;
-  font-size: 0.82rem;
+  font-size: 0.86rem;
 }
 
-.activity-scroll .event-body > p {
+.activity-timeline .event-body > p {
   margin: 0;
 }
 
-.activity-scroll .event-body details {
-  margin: 0 0 0.2rem;
+.activity-timeline .event-comment .event-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
-.activity-scroll .event-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.75rem;
-}
-
-.actor-drilldown {
-  margin: 0;
-}
-
-.actor-meta {
-  display: grid;
-  gap: 0.35rem;
-  margin: 0.45rem 0 0;
-  padding: 0.55rem 0.7rem;
+.timeline-comment {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  font-size: 0.8rem;
+  background: var(--surface);
 }
 
-.actor-meta > div {
-  display: grid;
-  grid-template-columns: 5.5rem 1fr;
-  gap: 0.5rem;
+.timeline-comment .comment-meta {
+  margin-bottom: 0.35rem;
 }
 
-.actor-meta dt {
-  margin: 0;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.actor-meta dd {
-  margin: 0;
-  font-family: var(--mono);
-  overflow-wrap: anywhere;
-}
-
-.detail-side .activity-scroll {
-  max-height: 12rem;
-}
-
-.detail-side .actor-meta {
-  padding: 0.45rem 0.55rem;
-}
-
-.detail-side .actor-meta > div {
-  grid-template-columns: 4.5rem 1fr;
-  gap: 0.35rem;
+.timeline-comment .comment-body {
+  font-size: 0.9rem;
 }
 
 @media (max-width: 640px) {
-  /* Phone: activity lives in the main column — let it flow instead of a short pane. */
-  .detail-main .activity-scroll {
-    max-height: none;
+  .activity-timeline .event-body {
+    font-size: 0.82rem;
   }
 
-  .activity-scroll .event-body {
-    font-size: 0.8rem;
-  }
-
-  .actor-meta > div {
-    grid-template-columns: 4.75rem 1fr;
+  .timeline-comment {
+    padding: 0.55rem 0.65rem;
   }
 }

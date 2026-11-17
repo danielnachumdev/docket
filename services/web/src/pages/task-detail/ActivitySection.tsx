@@ -10,7 +10,6 @@ import {
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
-import { Section } from '../../components/Section'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 import { CommentAttachmentList } from './CommentAttachmentList'
@@ -128,7 +127,23 @@ function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
   }
 }
 
-function CommentRow({
+function refChipLabel(ref: {
+  kind: string
+  display_name?: string | null
+  label?: string | null
+  raw: string
+  number?: number | null
+  task_id?: string | null
+  artifact_id?: number | null
+  comment_id?: number | null
+}) {
+  if (ref.kind === 'user') return `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
+  if (ref.kind === 'task') return `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
+  if (ref.kind === 'artifact') return `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
+  return `~${ref.comment_id ?? ref.raw.slice(1)}`
+}
+
+function CommentTimelineItem({
   comment,
   actorLabel,
   taskId,
@@ -142,14 +157,14 @@ function CommentRow({
   return (
     <li id={`comment-${comment.id}`} className="event event-comment">
       <span className="event-dot" aria-hidden="true" />
-      <div className="event-body">
-        <p>
-          <strong>{actorLabel}</strong>{' '}
+      <article className="timeline-comment">
+        <header className="comment-meta">
+          <strong>{actorLabel}</strong>
           <span className="muted small" title={formatDateTime(comment.created_at)}>
             {formatRelative(comment.created_at)}
             {comment.updated_at !== comment.created_at ? ` · ${t('commentEdited')}` : ''}
           </span>
-        </p>
+        </header>
         {hasBody &&
           ((comment.refs ?? []).length > 0 ? (
             <MarkdownWithRefs
@@ -158,26 +173,22 @@ function CommentRow({
               className="comment-body"
               renderRef={(ref, key) => (
                 <span key={key} className={`comment-chip kind-${ref.kind}`}>
-                  {ref.kind === 'user'
-                    ? `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
-                    : ref.kind === 'task'
-                      ? `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
-                      : ref.kind === 'artifact'
-                        ? `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
-                        : `~${ref.comment_id ?? ref.raw.slice(1)}`}
+                  {refChipLabel(ref)}
                 </span>
               )}
             />
           ) : (
             <MarkdownView source={comment.body} className="comment-body" />
           ))}
-        <CommentAttachmentList taskId={taskId} attachments={comment.attachments ?? []} />
-      </div>
+        {(comment.attachments?.length ?? 0) > 0 && (
+          <CommentAttachmentList taskId={taskId} attachments={comment.attachments ?? []} />
+        )}
+      </article>
     </li>
   )
 }
 
-function EventRow({ item }: { item: ActivityItem }) {
+function EventTimelineItem({ item }: { item: ActivityItem }) {
   const { t } = useTranslation('detail')
   const event = item.event
   if (!event) return null
@@ -193,14 +204,6 @@ function EventRow({ item }: { item: ActivityItem }) {
             {formatRelative(event.created_at)}
           </span>
         </p>
-        {event.payload_json && (
-          <div className="event-details">
-            <details>
-              <summary>{t('activity.payload')}</summary>
-              <pre>{payload ? JSON.stringify(payload, null, 2) : event.payload_json}</pre>
-            </details>
-          </div>
-        )}
       </div>
     </li>
   )
@@ -209,7 +212,6 @@ function EventRow({ item }: { item: ActivityItem }) {
 type Props = {
   taskId: string
   refreshKey?: number
-  variant?: 'card' | 'plain'
 }
 
 const ORDER_KEY = 'waymark.activityOrder'
@@ -230,7 +232,8 @@ function writeOrder(order: 'asc' | 'desc') {
   }
 }
 
-export function ActivitySection({ taskId, refreshKey = 0, variant = 'card' }: Props) {
+/** Page-flow timeline: each activity is a row; comments render as comment cards. */
+export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
   const { t } = useTranslation('detail')
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
   const [items, setItems] = useState<ActivityItem[]>([])
@@ -256,12 +259,13 @@ export function ActivitySection({ taskId, refreshKey = 0, variant = 'card' }: Pr
   }
 
   return (
-    <Section
-      icon="activity"
-      title={t('activity.title')}
-      variant={variant}
-      count={items.length}
-      action={
+    <section className="activity-timeline-block" aria-labelledby="activity-heading">
+      <header className="activity-timeline-header">
+        <h2 id="activity-heading">
+          <Icon name="activity" />
+          {t('activity.title')}
+          {items.length > 0 && <span className="count">{items.length}</span>}
+        </h2>
         <button
           type="button"
           className="btn ghost small"
@@ -275,29 +279,27 @@ export function ActivitySection({ taskId, refreshKey = 0, variant = 'card' }: Pr
           <Icon name="activity" size={14} />
           {order === 'desc' ? t('activity.newestFirst') : t('activity.oldestFirst')}
         </button>
-      }
-    >
+      </header>
+
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {items.length === 0 ? (
         <p className="muted small activity-empty">{t('activity.empty')}</p>
       ) : (
-        <div className="activity-scroll">
-          <ol className="timeline activity-timeline">
-            {items.map((item) =>
-              item.kind === 'comment' && item.comment ? (
-                <CommentRow
-                  key={item.id}
-                  taskId={taskId}
-                  comment={item.comment}
-                  actorLabel={item.actor.label || item.comment.author_label}
-                />
-              ) : (
-                <EventRow key={item.id} item={item} />
-              ),
-            )}
-          </ol>
-        </div>
+        <ol className="timeline activity-timeline">
+          {items.map((item) =>
+            item.kind === 'comment' && item.comment ? (
+              <CommentTimelineItem
+                key={item.id}
+                taskId={taskId}
+                comment={item.comment}
+                actorLabel={item.actor.label || item.comment.author_label}
+              />
+            ) : (
+              <EventTimelineItem key={item.id} item={item} />
+            ),
+          )}
+        </ol>
       )}
-    </Section>
+    </section>
   )
 }
