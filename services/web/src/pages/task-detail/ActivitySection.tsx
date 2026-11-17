@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   api,
   type ActivityItem,
+  type Artifact,
   type TaskComment,
   type TaskEvent,
 } from '../../api'
@@ -13,6 +14,9 @@ import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 import { CommentAttachmentList } from './CommentAttachmentList'
+import { CommentRefChip } from './CommentRefChip'
+import { commentAnchorId } from './commentAnchors'
+import { useHashHighlight } from './useHashHighlight'
 import './ActivitySection.css'
 import './CommentsSection.css'
 
@@ -148,35 +152,24 @@ function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
   }
 }
 
-function refChipLabel(ref: {
-  kind: string
-  display_name?: string | null
-  label?: string | null
-  raw: string
-  number?: number | null
-  task_id?: string | null
-  artifact_id?: number | null
-  comment_id?: number | null
-}) {
-  if (ref.kind === 'user') return `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
-  if (ref.kind === 'task') return `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
-  if (ref.kind === 'artifact') return `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
-  return `~${ref.comment_id ?? ref.raw.slice(1)}`
-}
-
 function CommentTimelineItem({
   comment,
   actorLabel,
   taskId,
+  artifacts,
+  commentsById,
 }: {
   comment: TaskComment
   actorLabel: string
   taskId: string
+  artifacts: Artifact[]
+  commentsById: Map<number, TaskComment>
 }) {
   const { t } = useTranslation('tasks')
   const hasBody = Boolean(comment.body?.trim())
+  const permalink = `${window.location.pathname}#${commentAnchorId(comment.id)}`
   return (
-    <li id={`comment-${comment.id}`} className="event event-comment">
+    <li id={commentAnchorId(comment.id)} className="event event-comment">
       <span className="event-dot" aria-hidden="true" />
       <article className="timeline-comment">
         <header className="comment-meta">
@@ -185,6 +178,18 @@ function CommentTimelineItem({
             {formatRelative(comment.created_at)}
             {comment.updated_at !== comment.created_at ? ` · ${t('commentEdited')}` : ''}
           </span>
+          <a
+            className="comment-permalink"
+            href={permalink}
+            title={t('commentPermalink')}
+            aria-label={t('commentPermalink')}
+            onClick={(e) => {
+              e.preventDefault()
+              window.history.replaceState(null, '', permalink)
+            }}
+          >
+            <Icon name="link" size={12} />
+          </a>
         </header>
         {hasBody &&
           ((comment.refs ?? []).length > 0 ? (
@@ -193,9 +198,13 @@ function CommentTimelineItem({
               refs={comment.refs ?? []}
               className="comment-body"
               renderRef={(ref, key) => (
-                <span key={key} className={`comment-chip kind-${ref.kind}`}>
-                  {refChipLabel(ref)}
-                </span>
+                <CommentRefChip
+                  key={key}
+                  taskId={taskId}
+                  commentRef={ref}
+                  artifacts={artifacts}
+                  commentsById={commentsById}
+                />
               )}
             />
           ) : (
@@ -232,6 +241,7 @@ function EventTimelineItem({ item }: { item: ActivityItem }) {
 
 type Props = {
   taskId: string
+  artifacts?: Artifact[]
   refreshKey?: number
 }
 
@@ -254,7 +264,7 @@ function writeOrder(order: 'asc' | 'desc') {
 }
 
 /** Page-flow timeline: each activity is a row; comments render as comment cards. */
-export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
+export function ActivitySection({ taskId, artifacts = [], refreshKey = 0 }: Props) {
   const { t } = useTranslation('detail')
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
   const [showAll, setShowAll] = useState(false)
@@ -276,11 +286,30 @@ export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
     reload()
   }, [reload, refreshKey])
 
+  const commentsById = useMemo(() => {
+    const map = new Map<number, TaskComment>()
+    for (const item of items) {
+      if (item.kind === 'comment' && item.comment) map.set(item.comment.id, item.comment)
+    }
+    return map
+  }, [items])
+
+  const artifactsForRefs = useMemo(() => {
+    const byId = new Map<number, Artifact>()
+    for (const row of artifacts) byId.set(row.id, row)
+    for (const comment of commentsById.values()) {
+      for (const att of comment.attachments ?? []) byId.set(att.id, att)
+    }
+    return [...byId.values()]
+  }, [artifacts, commentsById])
+
   const visibleItems = useMemo(
     () => (showAll ? items : items.filter(isPrimaryActivityItem)),
     [items, showAll],
   )
   const hiddenCount = items.length - visibleItems.length
+
+  useHashHighlight(`${taskId}:${visibleItems.length}:${items.length}`)
 
   function toggleOrder() {
     setOrder((prev) => {
@@ -352,6 +381,8 @@ export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
                 taskId={taskId}
                 comment={item.comment}
                 actorLabel={item.actor.label || item.comment.author_label}
+                artifacts={artifactsForRefs}
+                commentsById={commentsById}
               />
             ) : (
               <EventTimelineItem key={item.id} item={item} />

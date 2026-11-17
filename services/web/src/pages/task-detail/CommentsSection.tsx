@@ -8,11 +8,9 @@ import {
   type FormEvent,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import {
   api,
   type Artifact,
-  type CommentRef,
   type MentionableUser,
   type Task,
   type TaskComment,
@@ -29,6 +27,7 @@ import { useConfirm } from '../../lib/dialogs'
 import { formatDateTime, formatRelative } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 import { CommentAttachmentList } from './CommentAttachmentList'
+import { CommentRefChip } from './CommentRefChip'
 import './CommentsSection.css'
 
 type TriggerKind = '@' | '#' | '&' | '~'
@@ -57,42 +56,11 @@ async function fileToBase64(file: File): Promise<string> {
   return btoa(binary)
 }
 
-function highlightComment(commentId: number) {
-  const el = document.getElementById(`comment-${commentId}`)
-  if (!el) return
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  el.classList.add('comment-flash')
-  window.setTimeout(() => el.classList.remove('comment-flash'), 1600)
-}
-
-function highlightArtifact(artifactId: number) {
-  const el = document.getElementById(`artifact-${artifactId}`)
-  if (!el) return
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  el.classList.add('comment-flash')
-  window.setTimeout(() => el.classList.remove('comment-flash'), 1600)
-}
-
-function highlightShare(userId: number) {
-  const el = document.getElementById(`share-user-${userId}`)
-  if (!el) return
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  el.classList.add('comment-flash')
-  window.setTimeout(() => el.classList.remove('comment-flash'), 1600)
-}
-
-function refChipLabel(ref: CommentRef) {
-  if (ref.kind === 'user') return `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
-  if (ref.kind === 'task') return `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
-  if (ref.kind === 'artifact') return `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
-  return `~${ref.comment_id ?? ref.raw.slice(1)}`
-}
-
 export function CommentsSection({
   taskId,
   artifacts,
   tasks,
-  shares,
+  shares: _shares,
   canComment,
   canAttach = false,
   composerOnly = false,
@@ -101,7 +69,6 @@ export function CommentsSection({
   const { t } = useTranslation(['tasks', 'common'])
   const confirm = useConfirm()
   const { status } = useAuth()
-  const navigate = useNavigate()
   const meId = status?.user?.id
   const [comments, setComments] = useState<TaskComment[]>([])
   const [mentionables, setMentionables] = useState<MentionableUser[]>([])
@@ -233,25 +200,11 @@ export function CommentsSection({
     })
   }
 
-  function onRefClick(ref: CommentRef) {
-    if (ref.kind === 'task' && ref.task_id) {
-      void navigate(`/tasks/${ref.task_id}`)
-      return
-    }
-    if (ref.kind === 'artifact' && ref.artifact_id != null) {
-      highlightArtifact(ref.artifact_id)
-      return
-    }
-    if (ref.kind === 'comment' && ref.comment_id != null) {
-      highlightComment(ref.comment_id)
-      return
-    }
-    if (ref.kind === 'user' && ref.user_id != null) {
-      const shared = shares.some((s) => s.user_id === ref.user_id)
-      if (shared) highlightShare(ref.user_id)
-      else if (ref.email) window.location.href = `mailto:${ref.email}`
-    }
-  }
+  const commentsById = useMemo(() => {
+    const map = new Map<number, TaskComment>()
+    for (const row of comments) map.set(row.id, row)
+    return map
+  }, [comments])
 
   function onPickFiles(e: ChangeEvent<HTMLInputElement>) {
     const list = e.target.files
@@ -330,14 +283,13 @@ export function CommentsSection({
                     refs={c.refs ?? []}
                     className="comment-body"
                     renderRef={(ref, key) => (
-                      <button
+                      <CommentRefChip
                         key={key}
-                        type="button"
-                        className={`comment-chip kind-${ref.kind}`}
-                        onClick={() => onRefClick(ref)}
-                      >
-                        {refChipLabel(ref)}
-                      </button>
+                        taskId={taskId}
+                        commentRef={ref}
+                        artifacts={artifacts}
+                        commentsById={commentsById}
+                      />
                     )}
                   />
                 ) : (

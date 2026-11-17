@@ -1,0 +1,56 @@
+.comment-ref-chip-wrap {
+  position: relative;
+  display: inline-flex;
+  vertical-align: baseline;
+}
+
+.comment-ref-chip-wrap > .comment-chip {
+  text-decoration: none;
+}
+
+.comment-ref-preview {
+  position: absolute;
+  z-index: 40;
+  inset-block-start: calc(100% + 0.35rem);
+  inset-inline-start: 0;
+  min-width: 10rem;
+  max-width: min(18rem, 70vw);
+  padding: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+.comment-ref-preview-img {
+  display: block;
+  max-width: 100%;
+  max-height: 9rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  object-fit: cover;
+}
+
+.comment-ref-preview-meta {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.15rem 0.25rem;
+}
+
+.comment-ref-preview-snippet {
+  margin: 0.15rem 0 0;
+  max-height: 4.5rem;
+  overflow: hidden;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+@media (max-width: 640px) {
+  .comment-ref-preview {
+    max-width: min(16rem, calc(100vw - 2rem));
+  }
+}

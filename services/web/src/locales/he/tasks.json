@@ -120,6 +120,14 @@
   "commentDeleteTitle": "למחוק תגובה?",
   "commentDeleteConfirm": "למחוק את התגובה הזו?",
   "commentEdited": "נערכה",
+  "commentPermalink": "קישור לתגובה זו",
+  "refPreview": {
+    "activate": "פתיחת {{label}}",
+    "openTask": "פתיחת משימה",
+    "openShare": "מעבר לשיתוף",
+    "openComment": "מעבר לתגובה",
+    "comment": "תגובה #{{id}}"
+  },
   "commentPicker": "הוספת הפניה",
   "commentReadOnly": "אפשר לקרוא את השרשור, אבל להגיב נדרשת הרשאת מגיב או גבוהה יותר.",
   "commentMarkdownHint": "נתמך Markdown (טבלאות, רשימות, קוד, קישורים).",

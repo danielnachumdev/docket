@@ -647,6 +647,7 @@ export function TaskDetailPage() {
           />
           <ActivitySection
             taskId={taskId}
+            artifacts={detail.artifacts}
             refreshKey={activityTick + detail.events.length + detail.artifacts.length}
           />
         </div>
