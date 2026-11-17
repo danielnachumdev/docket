@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { TFunction } from 'i18next'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import {
   api,
   type ActivityItem,
   type Artifact,
+  type CommentRef,
+  type Task,
   type TaskComment,
   type TaskEvent,
 } from '../../api'
@@ -12,6 +14,7 @@ import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Menu } from '../../components/Menu'
 import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
+import { linkEventTaskIds } from '../../lib/activityTaskRef'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 import { userBidiAttrs } from '../../lib/bidi'
@@ -22,6 +25,44 @@ import { commentAnchorId, highlightComment } from './commentAnchors'
 import { useHashHighlight } from './useHashHighlight'
 import './ActivitySection.css'
 import './CommentsSection.css'
+
+const EMPTY_ARTIFACTS: Artifact[] = []
+const EMPTY_COMMENTS = new Map<number, TaskComment>()
+
+type TaskSummary = Pick<Task, 'id' | 'number' | 'title'>
+
+function taskRefFromSummary(publicId: string, summary: TaskSummary | undefined): CommentRef {
+  return {
+    kind: 'task',
+    raw: `#${publicId}`,
+    start: 0,
+    end: 0,
+    task_id: publicId,
+    number: summary?.number,
+    title: summary?.title,
+    label: summary ? `#${summary.number}` : undefined,
+  }
+}
+
+function ActivityTaskChip({
+  pageTaskId,
+  publicId,
+  summary,
+}: {
+  pageTaskId: string
+  publicId: string
+  summary: TaskSummary | undefined
+}) {
+  return (
+    <CommentRefChip
+      taskId={pageTaskId}
+      commentRef={taskRefFromSummary(publicId, summary)}
+      artifacts={EMPTY_ARTIFACTS}
+      commentsById={EMPTY_COMMENTS}
+      showTitle
+    />
+  )
+}
 
 /** Traceability noise: claims/leases, artifact churn (also on comments / Artifacts), comment edits. */
 const SECONDARY_EVENT_TYPES = new Set([
@@ -105,16 +146,9 @@ function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
       return title ? e('artifactUpdated', { title }) : e('artifactUpdatedPlain')
     }
     case 'linked':
-    case 'unlinked': {
-      const key = event.type
-      if (!payload?.from_task_id || !payload.to_task_id) return e(`${key}Plain`)
-      const raw = String(payload.kind ?? 'related')
-      return e(key, {
-        from: String(payload.from_task_id),
-        to: String(payload.to_task_id),
-        kind: t(`activity.event.linkKind.${raw}`, { defaultValue: humanize(raw).toLowerCase() }),
-      })
-    }
+    case 'unlinked':
+      // Rendered as chips in EventTimelineItem (per-viewer #N + title).
+      return e(`${event.type}Plain`)
     case 'shared': {
       const email = text(payload?.email)
       return email ? e('shared', { email }) : e('sharedPlain')
@@ -302,17 +336,55 @@ function CommentTimelineItem({
   )
 }
 
-function EventTimelineItem({ item }: { item: ActivityItem }) {
+function describeLinkEvent(
+  t: TFunction,
+  event: TaskEvent,
+  payload: Payload | null,
+  pageTaskId: string,
+  summaries: Map<string, TaskSummary>,
+): ReactNode {
+  const { from, to, kind: rawKind } = linkEventTaskIds(payload)
+  if (!from || !to) return t(`activity.event.${event.type}Plain`)
+  const raw = rawKind ?? 'related'
+  const kind = t(`activity.event.linkKind.${raw}`, {
+    defaultValue: humanize(raw).toLowerCase(),
+  })
+  return (
+    <Trans
+      t={t}
+      i18nKey={`activity.event.${event.type}`}
+      values={{ kind }}
+      components={{
+        from: <ActivityTaskChip pageTaskId={pageTaskId} publicId={from} summary={summaries.get(from)} />,
+        to: <ActivityTaskChip pageTaskId={pageTaskId} publicId={to} summary={summaries.get(to)} />,
+      }}
+    />
+  )
+}
+
+function EventTimelineItem({
+  item,
+  taskId,
+  taskSummaries,
+}: {
+  item: ActivityItem
+  taskId: string
+  taskSummaries: Map<string, TaskSummary>
+}) {
   const { t } = useTranslation('detail')
   const event = item.event
   if (!event) return null
   const payload = parsePayload(event.payload_json)
+  const body =
+    event.type === 'linked' || event.type === 'unlinked'
+      ? describeLinkEvent(t, event, payload, taskId, taskSummaries)
+      : describe(t, event, payload)
   return (
     <li className={`event event-${event.type}`}>
       <span className="event-dot" aria-hidden="true" />
       <div className="event-body">
         <p>
-          <strong>{item.actor.label}</strong> {describe(t, event, payload)}
+          <strong>{item.actor.label}</strong> {body}
           <span className="muted small" title={formatDateTime(event.created_at)}>
             {' · '}
             {formatRelative(event.created_at)}
@@ -326,6 +398,8 @@ function EventTimelineItem({ item }: { item: ActivityItem }) {
 type Props = {
   taskId: string
   artifacts?: Artifact[]
+  /** Known tasks (from list) so link events can show viewer #N + title without extra fetches. */
+  tasksById?: Map<string, Task>
   refreshKey?: number
   onCommentsChanged: () => Promise<void>
 }
@@ -352,6 +426,7 @@ function writeOrder(order: 'asc' | 'desc') {
 export function ActivitySection({
   taskId,
   artifacts = [],
+  tasksById,
   refreshKey = 0,
   onCommentsChanged,
 }: Props) {
@@ -359,6 +434,8 @@ export function ActivitySection({
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
   const [showAll, setShowAll] = useState(false)
   const [items, setItems] = useState<ActivityItem[]>([])
+  const [fetchedTasks, setFetchedTasks] = useState<Map<string, TaskSummary>>(() => new Map())
+  const failedTaskIds = useRef(new Set<string>())
   const { busy, error, setError, run } = useAction()
 
   const reload = useCallback(() => {
@@ -370,6 +447,8 @@ export function ActivitySection({
 
   useEffect(() => {
     setShowAll(false)
+    setFetchedTasks(new Map())
+    failedTaskIds.current.clear()
   }, [taskId])
 
   useEffect(() => {
@@ -392,6 +471,67 @@ export function ActivitySection({
     }
     return [...byId.values()]
   }, [artifacts, commentsById])
+
+  const linkTaskIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const item of items) {
+      if (!item.event || (item.event.type !== 'linked' && item.event.type !== 'unlinked')) continue
+      const { from, to } = linkEventTaskIds(parsePayload(item.event.payload_json))
+      if (from) ids.add(from)
+      if (to) ids.add(to)
+    }
+    return [...ids].sort()
+  }, [items])
+
+  const linkTaskIdsKey = linkTaskIds.join(',')
+
+  useEffect(() => {
+    const missing = linkTaskIds.filter(
+      (id) => !tasksById?.has(id) && !fetchedTasks.has(id) && !failedTaskIds.current.has(id),
+    )
+    if (missing.length === 0) return
+    let cancelled = false
+    void (async () => {
+      const rows = await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const detail = await api.getTask(id)
+            return [id, { id: detail.task.id, number: detail.task.number, title: detail.task.title }] as const
+          } catch {
+            return [id, null] as const
+          }
+        }),
+      )
+      if (cancelled) return
+      setFetchedTasks((prev) => {
+        const next = new Map(prev)
+        for (const [id, summary] of rows) {
+          if (summary) next.set(id, summary)
+          else failedTaskIds.current.add(id)
+        }
+        return next
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+    // fetchedTasks intentionally omitted: we only kick off for newly missing ids.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- linkTaskIdsKey + tasksById drive refetch
+  }, [linkTaskIdsKey, tasksById])
+
+  const taskSummaries = useMemo(() => {
+    const map = new Map<string, TaskSummary>()
+    for (const id of linkTaskIds) {
+      const known = tasksById?.get(id)
+      if (known) {
+        map.set(id, { id: known.id, number: known.number, title: known.title })
+        continue
+      }
+      const fetched = fetchedTasks.get(id)
+      if (fetched) map.set(id, fetched)
+    }
+    return map
+  }, [fetchedTasks, linkTaskIds, tasksById])
 
   const visibleItems = useMemo(
     () => (showAll ? items : items.filter(isPrimaryActivityItem)),
@@ -476,7 +616,12 @@ export function ActivitySection({
                 onChanged={onCommentsChanged}
               />
             ) : (
-              <EventTimelineItem key={item.id} item={item} />
+              <EventTimelineItem
+                key={item.id}
+                item={item}
+                taskId={taskId}
+                taskSummaries={taskSummaries}
+              />
             ),
           )}
         </ol>

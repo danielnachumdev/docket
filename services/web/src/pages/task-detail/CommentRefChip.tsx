@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Artifact, CommentRef, TaskComment } from '../../api'
 import { HoverCard } from '../../components/HoverCard'
 import { Icon } from '../../components/Icon'
+import { formatActivityTaskChipLabel } from '../../lib/activityTaskRef'
 import { ArtifactHoverPreview } from './ArtifactHoverPreview'
 import { externalLinkUrl, isViewableArtifact } from '../../lib/artifactMedia'
 import { useHoverCard } from '../../lib/useHoverCard'
@@ -23,11 +24,20 @@ type Props = {
   commentRef: CommentRef
   artifacts: Artifact[]
   commentsById: Map<number, TaskComment>
+  /** When true, task chips include the resolved title beside #N (activity link events). */
+  showTitle?: boolean
 }
 
-function refChipLabel(ref: CommentRef) {
+function refChipLabel(ref: CommentRef, showTitle = false) {
   if (ref.kind === 'user') return `@${ref.display_name ?? ref.label ?? ref.raw.slice(1)}`
-  if (ref.kind === 'task') return `#${ref.number ?? ref.task_id ?? ref.raw.slice(1)}`
+  if (ref.kind === 'task') {
+    return formatActivityTaskChipLabel({
+      number: ref.number,
+      title: ref.title,
+      publicId: ref.task_id,
+      showTitle,
+    })
+  }
   if (ref.kind === 'artifact') return `&${ref.label ?? ref.artifact_id ?? ref.raw.slice(1)}`
   return `~${ref.comment_id ?? ref.raw.slice(1)}`
 }
@@ -57,11 +67,17 @@ function MetaCard({
   )
 }
 
-export function CommentRefChip({ taskId, commentRef, artifacts, commentsById }: Props) {
+export function CommentRefChip({
+  taskId,
+  commentRef,
+  artifacts,
+  commentsById,
+  showTitle = false,
+}: Props) {
   const { t } = useTranslation('tasks')
   const navigate = useNavigate()
   const [fullView, setFullView] = useState(false)
-  const label = refChipLabel(commentRef)
+  const label = refChipLabel(commentRef, showTitle)
   const artifact =
     commentRef.kind === 'artifact' && commentRef.artifact_id != null
       ? (artifacts.find((row) => row.id === commentRef.artifact_id) ?? null)

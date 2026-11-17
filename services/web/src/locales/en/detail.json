@@ -153,9 +153,9 @@
       "artifactAddedPlain": "attached an artifact",
       "artifactDeleted": "removed artifact “{{title}}”",
       "artifactDeletedPlain": "removed an artifact",
-      "linked": "linked #{{from}} {{kind}} #{{to}}",
+      "linked": "linked <from></from> {{kind}} <to></to>",
       "linkedPlain": "linked a task",
-      "unlinked": "unlinked #{{from}} {{kind}} #{{to}}",
+      "unlinked": "unlinked <from></from> {{kind}} <to></to>",
       "unlinkedPlain": "unlinked a task",
       "linkKind": {
         "blocks": "blocks",

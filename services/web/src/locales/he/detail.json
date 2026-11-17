@@ -153,9 +153,9 @@
       "artifactAddedPlain": "צירף/ה קובץ",
       "artifactDeleted": "הסיר/ה את \"{{title}}\"",
       "artifactDeletedPlain": "הסיר/ה קובץ מצורף",
-      "linked": "קישר/ה את #{{from}} ({{kind}}) ל־#{{to}}",
+      "linked": "קישר/ה את <from></from> ({{kind}}) ל־<to></to>",
       "linkedPlain": "קישר/ה משימה",
-      "unlinked": "ביטל/ה קישור #{{from}} ({{kind}}) ל־#{{to}}",
+      "unlinked": "ביטל/ה קישור <from></from> ({{kind}}) ל־<to></to>",
       "unlinkedPlain": "ביטל/ה קישור משימה",
       "linkKind": {
         "blocks": "חוסמת",
