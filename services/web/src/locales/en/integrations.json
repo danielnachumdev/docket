@@ -96,14 +96,14 @@
     "fromGraph": "From your collaboration graph",
     "loadFailed": "Could not load people",
     "nicknameLabel": "Nickname",
-    "nicknamePlaceholder": "Private @handle (e.g. dana or דני)",
-    "nicknameHint": "Letters in any language, digits, and . _ - — no spaces. Used for @mentions.",
+    "nicknamePlaceholder": "Private alias (e.g. dana or Blake Friend)",
+    "nicknameHint": "Letters in any language, digits, spaces, and . _ -. Single-word nicknames work in @mentions.",
     "nicknameUnset": "No nickname",
     "nicknameValue": "@{{nickname}}",
     "setNickname": "Set nickname",
     "editNickname": "Edit nickname",
     "clearNickname": "Clear",
-    "nicknameSaveFailed": "Could not save nickname",
+    "nicknameSaveFailed": "Nickname can’t be saved — check the format and try again",
     "inviteAction": "Invite someone"
   },
   "storage": {

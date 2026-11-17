@@ -224,13 +224,20 @@ def test_contact_nickname_patch_search_and_uniqueness() -> None:
     spaced = client.patch(
         f"/api/me/contacts/{blake.id}", json={"nickname": "Blake Friend"}
     )
-    assert spaced.status_code == 422
+    assert spaced.status_code == 200, spaced.text
+    assert spaced.json()["nickname"] == "Blake Friend"
+
+    collapsed = client.patch(
+        f"/api/me/contacts/{blake.id}", json={"nickname": "  Blake   Friend  "}
+    )
+    assert collapsed.status_code == 200, collapsed.text
+    assert collapsed.json()["nickname"] == "Blake Friend"
 
     hebrew = client.patch(
-        f"/api/me/contacts/{blake.id}", json={"nickname": "בלייק"}
+        f"/api/me/contacts/{blake.id}", json={"nickname": "בלייק כהן"}
     )
     assert hebrew.status_code == 200, hebrew.text
-    assert hebrew.json()["nickname"] == "בלייק"
+    assert hebrew.json()["nickname"] == "בלייק כהן"
 
     with_at = client.patch(
         f"/api/me/contacts/{alex.id}", json={"nickname": "@אלכס"}

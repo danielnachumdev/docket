@@ -52,7 +52,13 @@ export function ContactsPage() {
       setEditingId(null)
       setDraft('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('contacts.nicknameSaveFailed'))
+      const raw = err instanceof Error ? err.message.trim() : ''
+      const looksRaw =
+        !raw ||
+        /^HTTP\s*\d+/i.test(raw) ||
+        /^request failed$/i.test(raw) ||
+        /unprocessable entity/i.test(raw)
+      setError(looksRaw ? t('contacts.nicknameSaveFailed') : raw)
     } finally {
       setSavingId(null)
     }
@@ -60,7 +66,7 @@ export function ContactsPage() {
 
   function onSubmit(event: FormEvent, contact: Contact) {
     event.preventDefault()
-    const trimmed = draft.trim().replace(/^@+/, '')
+    const trimmed = draft.trim().replace(/^@+/, '').replace(/\s+/g, ' ')
     void saveNickname(contact, trimmed.length ? trimmed : null)
   }
 
