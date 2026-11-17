@@ -96,14 +96,14 @@
     "fromGraph": "מגרף השיתוף שלכם",
     "loadFailed": "לא ניתן לטעון אנשים",
     "nicknameLabel": "כינוי",
-    "nicknamePlaceholder": "כינוי @ פרטי (למשל dana או דני)",
-    "nicknameHint": "אותיות בכל שפה, ספרות, ו־. _ - — בלי רווחים. משמש ל־@אזכורים.",
+    "nicknamePlaceholder": "כינוי פרטי (למשל דני או בלייק כהן)",
+    "nicknameHint": "אותיות בכל שפה, ספרות, רווחים, ו־. _ -. כינוי בן מילה אחת עובד ב־@אזכורים.",
     "nicknameUnset": "אין כינוי",
     "nicknameValue": "@{{nickname}}",
     "setNickname": "הגדרת כינוי",
     "editNickname": "עריכת כינוי",
     "clearNickname": "נקה",
-    "nicknameSaveFailed": "לא ניתן לשמור כינוי",
+    "nicknameSaveFailed": "לא ניתן לשמור כינוי — בדקו את הפורמט ונסו שוב",
     "inviteAction": "הזמנת מישהו"
   },
   "storage": {

@@ -2,8 +2,9 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-# Unicode letters/digits (handles Hebrew etc.) plus . _ - ; no spaces (mention handle).
-_NICKNAME_RE = re.compile(r"^[\w.-]+$", re.UNICODE)
+# Display alias: Unicode letters/digits, . _ -, words separated by single spaces.
+_NICKNAME_RE = re.compile(r"^[\w.-]+(?: [\w.-]+)*$", re.UNICODE)
+_MULTI_SPACE_RE = re.compile(r"\s+")
 
 
 class ContactOut(BaseModel):
@@ -32,12 +33,11 @@ class ContactNicknamePatch(BaseModel):
     def validate_nickname(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        nickname = value.strip().lstrip("@")
+        nickname = _MULTI_SPACE_RE.sub(" ", value.strip().lstrip("@"))
         if len(nickname) < 1 or len(nickname) > 32:
             raise ValueError("Nickname must be 1–32 characters")
         if not _NICKNAME_RE.fullmatch(nickname):
             raise ValueError(
-                "Nickname may use letters (any language), digits, and . _ - "
-                "(no spaces)"
+                "Nickname may use letters (any language), digits, spaces, and . _ -"
             )
         return nickname

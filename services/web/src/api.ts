@@ -363,15 +363,33 @@ export type UserPreferences = {
   task_sort_mode: TaskSortMode | null
 }
 
+function formatValidationItem(item: unknown): string {
+  if (typeof item === 'string') return item
+  if (item && typeof item === 'object' && 'msg' in item) {
+    const msg = String((item as { msg: unknown }).msg)
+    return msg.replace(/^Value error,\s*/i, '')
+  }
+  return ''
+}
+
+/** Flatten FastAPI `detail` (string or validation error array) for UI. */
+function formatApiDetail(detail: unknown): string {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map(formatValidationItem).filter(Boolean).join('; ')
+  }
+  return ''
+}
+
 async function requestError(res: Response): Promise<never> {
-  let detail = res.statusText
+  let detail = ''
   try {
-    const body = (await res.json()) as { detail?: string }
-    if (typeof body.detail === 'string') detail = body.detail
+    const body = (await res.json()) as { detail?: unknown }
+    detail = formatApiDetail(body.detail)
   } catch {
     /* ignore */
   }
-  throw new Error(detail || `HTTP ${res.status}`)
+  throw new Error(detail || 'Request failed')
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
