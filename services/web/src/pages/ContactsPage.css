@@ -14,7 +14,11 @@
   max-width: 100%;
 }
 
-.contact-nick-form > input {
+.contact-nick-form-row > input {
   min-width: 0;
   max-width: 12rem;
+}
+
+.contact-nick-hint {
+  margin: 0.35rem 0 0;
 }

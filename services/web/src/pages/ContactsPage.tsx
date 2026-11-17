@@ -60,7 +60,7 @@ export function ContactsPage() {
 
   function onSubmit(event: FormEvent, contact: Contact) {
     event.preventDefault()
-    const trimmed = draft.trim()
+    const trimmed = draft.trim().replace(/^@+/, '')
     void saveNickname(contact, trimmed.length ? trimmed : null)
   }
 
@@ -139,34 +139,39 @@ export function ContactsPage() {
             >
               {editingId === contact.id ? (
                 <form
-                  className="inline-form contact-nick-form"
+                  className="contact-nick-form"
                   onSubmit={(event) => onSubmit(event, contact)}
                 >
-                  <label className="sr-only" htmlFor={`nick-${contact.id}`}>
-                    {t('contacts.nicknameLabel')}
-                  </label>
-                  <input
-                    id={`nick-${contact.id}`}
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    placeholder={t('contacts.nicknamePlaceholder')}
-                    maxLength={32}
-                    pattern="[A-Za-z0-9._-]*"
-                    autoComplete="off"
-                    autoFocus
-                    disabled={savingId === contact.id}
-                  />
-                  <button type="submit" className="btn small" disabled={savingId === contact.id}>
-                    {t('common:save')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn ghost small"
-                    onClick={cancelEdit}
-                    disabled={savingId === contact.id}
-                  >
-                    {t('common:cancel')}
-                  </button>
+                  <div className="inline-form contact-nick-form-row">
+                    <label className="sr-only" htmlFor={`nick-${contact.id}`}>
+                      {t('contacts.nicknameLabel')}
+                    </label>
+                    <input
+                      id={`nick-${contact.id}`}
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      placeholder={t('contacts.nicknamePlaceholder')}
+                      maxLength={32}
+                      autoComplete="off"
+                      autoFocus
+                      disabled={savingId === contact.id}
+                      aria-describedby={`nick-hint-${contact.id}`}
+                    />
+                    <button type="submit" className="btn small" disabled={savingId === contact.id}>
+                      {t('common:save')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn ghost small"
+                      onClick={cancelEdit}
+                      disabled={savingId === contact.id}
+                    >
+                      {t('common:cancel')}
+                    </button>
+                  </div>
+                  <p id={`nick-hint-${contact.id}`} className="muted small contact-nick-hint">
+                    {t('contacts.nicknameHint')}
+                  </p>
                 </form>
               ) : contact.nickname ? (
                 <span className="tag nick-tag">

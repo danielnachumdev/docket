@@ -14,7 +14,8 @@ class RawCommentToken:
 _TOKEN_RE = re.compile(
     r"(?<!\w)(?:"
     r"@(?P<email>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})"
-    r"|@(?P<handle>[A-Za-z0-9._-]+)"
+    # Unicode word chars so private nicknames like @דני resolve as mentions.
+    r"|@(?P<handle>[\w.-]+)"
     r"|#(?P<task_pid>[A-Za-z0-9]{12})"
     r"|#(?P<task_num>\d{1,11})"
     r"|&(?P<artifact>\d+)"
