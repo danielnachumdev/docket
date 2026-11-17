@@ -1,6 +1,7 @@
 import json
 import statistics
-from datetime import UTC, datetime, timedelta
+from collections import Counter
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ from waymark.schemas.user_stats import (
     ClaimsStatsOut,
     CompletionRateStatsOut,
     CycleTimeStatsOut,
+    DayCountOut,
     FailedStatsOut,
     OutcomesStatsOut,
     PriorityStatsOut,
@@ -79,6 +81,7 @@ class MeStatsService:
         claims = self._claims(accessible, now)
         outcomes = self._outcomes(owned_completed)
         shared = self._shared(owned_completed, accessible, shared_ids, user_id, window_start, now)
+        by_day = self._completions_by_day(owned, window_days=window_days, now=now)
 
         return UserStatsOut(
             window_days=window_days,
@@ -115,6 +118,7 @@ class MeStatsService:
             claims=claims,
             outcomes=outcomes,
             shared=shared,
+            completions_by_day=by_day,
         )
 
     def _cycle_time(self, completed: list[Task]) -> CycleTimeStatsOut:
@@ -219,6 +223,24 @@ class MeStatsService:
         with_outcome = sum(1 for t in completed if t.outcome_json)
         without = len(completed) - with_outcome
         return OutcomesStatsOut(with_outcome=with_outcome, without_outcome=without)
+
+    def _completions_by_day(
+        self, owned: list[Task], *, window_days: int, now: datetime
+    ) -> list[DayCountOut]:
+        end = now.date()
+        start = end - timedelta(days=window_days - 1)
+        counts: Counter[date] = Counter()
+        for task in owned:
+            if task.completed_at is None:
+                continue
+            day = self._as_utc(task.completed_at).date()
+            if start <= day <= end:
+                counts[day] += 1
+        series: list[DayCountOut] = []
+        for offset in range(window_days):
+            day = start + timedelta(days=offset)
+            series.append(DayCountOut(day=day, count=counts[day]))
+        return series
 
     def _shared(
         self,
