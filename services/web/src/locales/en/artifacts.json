@@ -75,5 +75,6 @@
     "attach": "Could not attach artifact",
     "delete": "Could not delete artifact",
     "download": "Download failed"
-  }
+  },
+  "openOn": "Open on {{host}}"
 }

@@ -1,7 +1,9 @@
 /** Scroll/highlight helpers for in-page comment refs and attachments. */
 
 export function highlightById(elementId: string) {
-  const el = document.getElementById(elementId)
+  const el =
+    document.getElementById(elementId) ??
+    document.querySelector<HTMLElement>(`[data-anchor="${CSS.escape(elementId)}"]`)
   if (!el) return
   el.scrollIntoView({ behavior: 'smooth', block: 'center' })
   el.classList.add('comment-flash')

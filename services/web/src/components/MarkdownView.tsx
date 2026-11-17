@@ -1,8 +1,9 @@
-import { useMemo, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import {
   protectRefs,
   renderMarkdown,
-  splitRefPlaceholders,
+  slotRefPlaceholders,
 } from '../lib/markdown'
 import { userBidiAttrs } from '../lib/bidi'
 import './MarkdownView.css'
@@ -39,6 +40,7 @@ type MarkdownWithRefsProps<T extends RefLike> = {
 
 /**
  * Render markdown while preserving interactive mention/ref chips at original spans.
+ * Chips are portalled into inline slots so they stay inside their paragraph.
  */
 export function MarkdownWithRefs<T extends RefLike>({
   source,
@@ -46,32 +48,32 @@ export function MarkdownWithRefs<T extends RefLike>({
   className,
   renderRef,
 }: MarkdownWithRefsProps<T>) {
-  const parts = useMemo(() => {
-    if (!refs.length) {
-      return [{ type: 'html' as const, value: renderMarkdown(source) }]
-    }
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [slots, setSlots] = useState<{ index: number; el: HTMLElement }[]>([])
+  const html = useMemo(() => {
     const { markdown } = protectRefs(source, refs)
-    const html = renderMarkdown(markdown)
-    return splitRefPlaceholders(html)
+    return slotRefPlaceholders(renderMarkdown(markdown))
   }, [source, refs])
+
+  useLayoutEffect(() => {
+    const found = [
+      ...(rootRef.current?.querySelectorAll<HTMLElement>('.wm-ref-slot') ?? []),
+    ].map((el) => ({ index: Number(el.dataset.refIndex), el }))
+    setSlots(found)
+  }, [html])
 
   const classes = className ? `wm-md ${className}` : 'wm-md'
   return (
-    <div {...userBidiAttrs(source, classes)}>
-      {parts.map((part, i) => {
-        if (part.type === 'html') {
-          if (!part.value) return null
-          return (
-            <span
-              key={`h-${i}`}
-              dangerouslySetInnerHTML={{ __html: part.value }}
-            />
-          )
-        }
-        const ref = refs[part.index]
-        if (!ref) return null
-        return <span key={`r-${i}`}>{renderRef(ref, `ref-${part.index}-${i}`)}</span>
+    <>
+      <div
+        ref={rootRef}
+        {...userBidiAttrs(source, classes)}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      {slots.map(({ index, el }, i) => {
+        const ref = refs[index]
+        return ref ? createPortal(renderRef(ref, `ref-${index}-${i}`), el, `ref-${index}-${i}`) : null
       })}
-    </div>
+    </>
   )
 }

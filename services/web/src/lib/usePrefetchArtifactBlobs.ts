@@ -2,39 +2,40 @@ import { useEffect } from 'react'
 import type { Artifact } from '../api'
 import { getArtifactPreviewKind } from './artifactMedia'
 import {
-  clearArtifactBlobCache,
   prefetchArtifactBlobs,
+  retainArtifactBlobScope,
   type ArtifactBlobKey,
 } from './artifactObjectUrlCache'
 
+/** Images, documents, and audio warm up front; video streams on demand. */
 function shouldPrefetch(artifact: Artifact): boolean {
-  if (artifact.kind === 'link') return false
-  if (artifact.kind === 'text' || artifact.kind === 'json') return true
-  if (artifact.kind !== 'file' || !artifact.storage_key) return false
+  if (!artifact.storage_key) return false
   const kind = getArtifactPreviewKind(artifact)
+  if (artifact.kind === 'link') return kind === 'image'
+  if (artifact.kind !== 'file') return false
   return (
     kind === 'image' ||
     kind === 'pdf' ||
     kind === 'audio' ||
-    kind === 'video' ||
     kind === 'markdown' ||
     kind === 'text'
   )
 }
 
-/** Warm the blob cache for comment/timeline media; clear when leaving the task. */
-export function usePrefetchArtifactBlobs(taskId: string, artifacts: Artifact[]) {
+/**
+ * Keep the page's artifact blobs cached while mounted and warm the previewable ones,
+ * so hover previews and inline cards render without re-fetching until the page is left.
+ */
+export function usePrefetchArtifactBlobs(scope: string, artifacts: Artifact[]) {
+  useEffect(() => retainArtifactBlobScope(scope), [scope])
+
   useEffect(() => {
     const keys: ArtifactBlobKey[] = artifacts.filter(shouldPrefetch).map((art) => ({
-      taskId,
+      taskId: art.task_id,
       artifactId: art.id,
       title: art.title,
       contentType: art.content_type,
     }))
     prefetchArtifactBlobs(keys)
-  }, [taskId, artifacts])
-
-  useEffect(() => {
-    return () => clearArtifactBlobCache()
-  }, [taskId])
+  }, [artifacts])
 }

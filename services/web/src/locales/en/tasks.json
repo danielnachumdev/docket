@@ -125,7 +125,11 @@
     "openTask": "Open task",
     "openShare": "Jump to sharing",
     "openComment": "Jump to comment",
-    "comment": "Comment #{{id}}"
+    "comment": "Comment #{{id}}",
+    "commentBy": "{{author}} · comment #{{id}}",
+    "clickOpen": "Click to open full size",
+    "clickPlay": "Play here, or click to open the player",
+    "clickLink": "Click to open {{host}}"
   },
   "commentPicker": "Insert reference",
   "commentReadOnly": "You can read this thread, but commenting needs the commentor role or higher.",
@@ -141,5 +145,6 @@
   "addFirstTask": "Add your first task",
   "createdToast": "Task #{{number}} created",
   "bulkUpdatedToast_one": "Updated {{count}} task",
-  "bulkUpdatedToast_other": "Updated {{count}} tasks"
+  "bulkUpdatedToast_other": "Updated {{count}} tasks",
+  "commentActions": "Comment actions"
 }

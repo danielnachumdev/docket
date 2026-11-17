@@ -138,23 +138,14 @@ export function protectRefs(body, refs) {
 }
 
 /**
- * Split sanitized HTML on ref placeholders into alternating html / ref-index parts.
+ * Swap ref placeholders in sanitized HTML for empty inline mount slots, keeping
+ * the surrounding block structure (paragraphs, lists, tables) in one document.
  * @param {string} html
- * @returns {Array<{ type: 'html', value: string } | { type: 'ref', index: number }>}
+ * @returns {string}
  */
-export function splitRefPlaceholders(html) {
-  const re = /\uE000(\d+)\uE001/g
-  /** @type {Array<{ type: 'html', value: string } | { type: 'ref', index: number }>} */
-  const parts = []
-  let last = 0
-  let match
-  while ((match = re.exec(html)) != null) {
-    if (match.index > last) {
-      parts.push({ type: 'html', value: html.slice(last, match.index) })
-    }
-    parts.push({ type: 'ref', index: Number(match[1]) })
-    last = match.index + match[0].length
-  }
-  if (last < html.length) parts.push({ type: 'html', value: html.slice(last) })
-  return parts
+export function slotRefPlaceholders(html) {
+  return html.replace(
+    /\uE000(\d+)\uE001/g,
+    (_, index) => `<span class="wm-ref-slot" data-ref-index="${index}"></span>`,
+  )
 }

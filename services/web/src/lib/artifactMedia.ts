@@ -118,3 +118,30 @@ export function getArtifactPreviewKind(artifact: ArtifactRef): ArtifactPreviewKi
   if (type.startsWith('text/') || (ext != null && TEXT_EXTENSIONS.has(ext))) return 'text'
   return null
 }
+
+type ViewableArtifact = ArtifactRef & {
+  kind: string
+  storage_key: string | null
+  content_text: string | null
+}
+
+/** The http(s) target of a link artifact, or null for anything else. */
+export function externalLinkUrl(artifact: ViewableArtifact): string | null {
+  if (artifact.kind !== 'link') return null
+  const url = artifact.content_text?.trim() ?? ''
+  return /^https?:\/\//i.test(url) ? url : null
+}
+
+/**
+ * Whether the artifact has viewable content (hover card + full-size view).
+ * Links only qualify with an attached screenshot; otherwise they just open.
+ */
+export function isViewableArtifact(artifact: ViewableArtifact): boolean {
+  if (artifact.kind === 'text' || artifact.kind === 'json') {
+    return Boolean(artifact.content_text?.trim())
+  }
+  if (!artifact.storage_key) return false
+  const kind = getArtifactPreviewKind(artifact)
+  if (artifact.kind === 'link') return kind === 'image'
+  return artifact.kind === 'file' && kind != null
+}

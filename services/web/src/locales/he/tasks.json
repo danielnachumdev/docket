@@ -126,7 +126,11 @@
     "openTask": "פתיחת משימה",
     "openShare": "מעבר לשיתוף",
     "openComment": "מעבר לתגובה",
-    "comment": "תגובה #{{id}}"
+    "comment": "תגובה #{{id}}",
+    "commentBy": "{{author}} · תגובה #{{id}}",
+    "clickOpen": "לחיצה לפתיחה בגודל מלא",
+    "clickPlay": "אפשר לנגן כאן, או ללחוץ לפתיחת הנגן",
+    "clickLink": "לחיצה לפתיחת {{host}}"
   },
   "commentPicker": "הוספת הפניה",
   "commentReadOnly": "אפשר לקרוא את השרשור, אבל להגיב נדרשת הרשאת מגיב או גבוהה יותר.",
@@ -143,5 +147,6 @@
   "createdToast": "משימה #{{number}} נוצרה",
   "bulkUpdatedToast_one": "משימה אחת עודכנה",
   "bulkUpdatedToast_two": "שתי משימות עודכנו",
-  "bulkUpdatedToast_other": "{{count}} משימות עודכנו"
+  "bulkUpdatedToast_other": "{{count}} משימות עודכנו",
+  "commentActions": "פעולות תגובה"
 }

@@ -1,90 +1,84 @@
-.comment-ref-chip-wrap {
-  position: relative;
+.comment-chip {
   display: inline-flex;
-  vertical-align: baseline;
-}
-
-.comment-ref-chip-wrap > .comment-chip {
-  text-decoration: none;
-}
-
-.comment-ref-preview {
-  position: absolute;
-  z-index: 40;
-  inset-block-start: calc(100% + 0.35rem);
-  inset-inline-start: 0;
-  min-width: 10rem;
-  max-width: min(18rem, 70vw);
-  padding: 0.45rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
-  /* Allow interacting with audio/video controls inside the tooltip. */
-  pointer-events: auto;
-}
-
-.comment-ref-preview-img {
-  display: block;
-  max-width: 100%;
-  max-height: 9rem;
-  border-radius: calc(var(--radius-sm) - 2px);
-  object-fit: cover;
-}
-
-.comment-ref-preview-audio,
-.comment-ref-preview-video {
-  display: block;
-  width: 100%;
-  max-width: 16rem;
-}
-
-.comment-ref-preview-video {
-  max-height: 9rem;
-  background: #000;
-}
-
-.comment-ref-preview-doc {
-  display: block;
-  width: min(16rem, 70vw);
-  height: 11rem;
-  border: 0;
-  border-radius: calc(var(--radius-sm) - 2px);
-  background: var(--surface-2);
-}
-
-.comment-ref-preview-text {
-  margin: 0;
-  max-height: 9rem;
-  overflow: auto;
-  padding: 0.35rem 0.4rem;
-  border-radius: calc(var(--radius-sm) - 2px);
-  background: var(--surface-2);
-  font-size: 0.75rem;
-  line-height: 1.35;
-  white-space: pre-wrap;
-}
-
-.comment-ref-preview-meta {
-  display: grid;
+  align-items: center;
   gap: 0.2rem;
-  padding: 0.15rem 0.25rem;
+  max-width: 100%;
+  margin-inline: 0.05rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.86em;
+  font-weight: 600;
+  line-height: 1.6;
+  vertical-align: baseline;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  cursor: pointer;
 }
 
-.comment-ref-preview-snippet {
-  margin: 0.15rem 0 0;
-  max-height: 4.5rem;
-  overflow: hidden;
-  font-size: 0.82rem;
-  line-height: 1.35;
+.comment-chip.kind-task,
+.comment-chip.kind-artifact,
+.comment-chip.kind-comment {
+  background: var(--surface-2);
   color: var(--text-2);
+}
+
+.comment-chip:hover,
+.comment-chip:focus-visible {
+  text-decoration: none;
+  filter: brightness(0.96);
+}
+
+.comment-chip.is-missing {
+  cursor: default;
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.ref-card {
+  max-width: min(18rem, calc(100vw - 1rem));
+}
+
+.ref-card-media {
+  max-width: min(20rem, calc(100vw - 1rem));
+}
+
+.ref-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.15rem 0.2rem 0;
+}
+
+.ref-meta > svg {
+  flex: none;
+  margin-top: 0.15rem;
+  color: var(--muted);
+}
+
+.ref-meta-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ref-meta-title {
+  overflow-wrap: anywhere;
+}
+
+.ref-meta-snippet {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.82rem;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-@media (max-width: 640px) {
-  .comment-ref-preview {
-    max-width: min(16rem, calc(100vw - 2rem));
-  }
+.ref-card .hover-card-hint {
+  margin: 0;
+  padding-inline-start: 0.2rem;
 }

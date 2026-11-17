@@ -1,74 +1,101 @@
 .comment-attachment-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  align-items: start;
   gap: 0.5rem;
-  margin: 0.5rem 0 0;
+  margin: 0.6rem 0 0;
   padding: 0;
   list-style: none;
 }
 
 .comment-attachment-card {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.45rem 0.5rem 0.5rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--surface-2);
 }
 
 .comment-attachment-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 0.5rem;
   align-items: center;
-  font-size: 0.82rem;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.8rem;
 }
 
-.comment-attachment-title,
-.comment-attachment-title-btn {
-  font-weight: 600;
+.comment-attachment-meta > .icon {
+  flex: none;
+  color: var(--muted);
 }
 
-.comment-attachment-title-btn {
+.comment-attachment-title {
+  display: inline-flex;
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--accent);
+  color: var(--text);
   font: inherit;
   font-weight: 600;
   text-align: start;
+  text-decoration: none;
+}
+
+button.comment-attachment-title,
+a.comment-attachment-title {
+  color: var(--accent);
   cursor: pointer;
 }
 
-.comment-attachment-title-btn:hover,
-.comment-attachment-title-btn:focus-visible {
+button.comment-attachment-title:hover,
+button.comment-attachment-title:focus-visible,
+a.comment-attachment-title:hover,
+a.comment-attachment-title:focus-visible {
   text-decoration: underline;
   outline: none;
 }
 
-.comment-attachment-hint {
-  margin: 0.15rem 0 0;
+/* The type / hostname gives way before the title does. */
+.comment-attachment-type {
+  flex: 0 4 auto;
+  min-width: 2rem;
+  margin-inline-start: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.comment-attachment-preview {
-  max-width: min(100%, 28rem);
+.comment-attachment-ext {
+  flex: none;
+  color: var(--muted);
 }
 
-.comment-attachment-preview .artifact-preview {
-  max-height: 12rem;
-  width: auto;
-  border-radius: var(--radius-sm);
+.comment-attachment-preview:empty {
+  display: none;
 }
 
-.comment-attachment-link {
-  font-size: 0.85rem;
-  overflow-wrap: anywhere;
+/* A player bar needs no picture-sized well. */
+.comment-attachment-card .artifact-body:has(> .artifact-preview-audio) {
+  aspect-ratio: auto;
+  height: 3.25rem;
 }
 
 .comment-attachment-text {
+  max-height: 8rem;
   margin: 0;
+  overflow: auto;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.4;
   white-space: pre-wrap;
-  font-size: 0.82rem;
   overflow-wrap: anywhere;
 }
 
@@ -109,13 +136,5 @@
 
   .comment-pending-file {
     font-size: 0.8rem;
-  }
-
-  .comment-attachment-preview {
-    max-width: 100%;
-  }
-
-  .comment-attachment-preview .artifact-preview {
-    max-height: 9rem;
   }
 }

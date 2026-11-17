@@ -1,0 +1,105 @@
+.hover-media {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.hover-media:has(.hover-media-audio) {
+  background: none;
+}
+
+.hover-media-img {
+  display: block;
+  max-width: 100%;
+  max-height: 12rem;
+  object-fit: contain;
+}
+
+.hover-media-audio {
+  display: block;
+  width: 18rem;
+  max-width: 100%;
+}
+
+.hover-media-video {
+  display: block;
+  width: 18rem;
+  max-width: 100%;
+  max-height: 11rem;
+  background: #000;
+}
+
+.hover-media-pdf {
+  display: block;
+  width: 18rem;
+  max-width: 100%;
+  height: 12rem;
+  border: 0;
+  background: var(--surface-2);
+}
+
+.hover-media-text,
+.hover-media-doc {
+  justify-self: stretch;
+  width: 18rem;
+  max-width: 100%;
+  max-height: 10rem;
+  margin: 0;
+  overflow: hidden;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  mask-image: linear-gradient(to bottom, #000 75%, transparent);
+}
+
+.hover-media-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+}
+
+.hover-media-doc > :first-child {
+  margin-top: 0;
+}
+
+.hover-media-doc h1,
+.hover-media-doc h2,
+.hover-media-doc h3 {
+  font-size: 0.9rem;
+}
+
+.hover-media > .muted {
+  margin: 0;
+  padding: 0.6rem;
+}
+
+.hover-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.8rem;
+}
+
+.hover-card-foot > svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.hover-card-title {
+  min-width: 0;
+  font-weight: 600;
+}
+
+.hover-card-foot > .muted {
+  flex: none;
+  margin-inline-start: auto;
+  font-size: 0.75rem;
+}
+
+.hover-card-hint {
+  margin: -0.2rem 0 0;
+  font-size: 0.72rem;
+}

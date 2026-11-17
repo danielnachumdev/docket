@@ -9,6 +9,7 @@ import { useConfirm } from '../../lib/dialogs'
 import { formatBytes, formatDateTime, formatRelative, humanize } from '../../lib/format'
 import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { ArtifactFilePreview } from './ArtifactFilePreview'
+import { artifactAnchorId } from './commentAnchors'
 import './ArtifactRow.css'
 
 function isUrl(value: string | null) {
@@ -31,6 +32,8 @@ type Props = {
   onDeleted: () => Promise<void>
   context?: ReactNode
   layout?: 'list' | 'grid'
+  /** `data` when another element on the page owns the `#artifact-N` id (comment cards). */
+  anchor?: 'id' | 'data'
 }
 
 export function ArtifactRow({
@@ -40,6 +43,7 @@ export function ArtifactRow({
   onDeleted,
   context,
   layout = 'list',
+  anchor = 'id',
 }: Props) {
   const { t } = useTranslation('artifacts')
   const confirm = useConfirm()
@@ -195,7 +199,11 @@ export function ArtifactRow({
   )
 
   return (
-    <li id={`artifact-${a.id}`} className={isGrid ? 'artifact artifact-card' : 'artifact'}>
+    <li
+      id={anchor === 'id' ? artifactAnchorId(a.id) : undefined}
+      data-anchor={anchor === 'data' ? artifactAnchorId(a.id) : undefined}
+      className={isGrid ? 'artifact artifact-card' : 'artifact'}
+    >
       {isGrid ? (
         <div className="artifact-card-head">
           <span className="row-icon">

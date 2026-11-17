@@ -30,6 +30,4 @@ export function protectRefs(
   refs: { start: number; end: number }[],
 ): { markdown: string; order: number[] }
 
-export function splitRefPlaceholders(
-  html: string,
-): Array<{ type: 'html'; value: string } | { type: 'ref'; index: number }>
+export function slotRefPlaceholders(html: string): string

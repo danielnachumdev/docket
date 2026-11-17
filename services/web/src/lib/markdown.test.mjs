@@ -8,7 +8,7 @@ import {
   protectRefs,
   renderMarkdown,
   sanitizeMarkdownHtml,
-  splitRefPlaceholders,
+  slotRefPlaceholders,
 } from './markdown.mjs'
 
 /**
@@ -106,16 +106,22 @@ describe('sanitizeMarkdownHtml', () => {
   })
 })
 
-describe('protectRefs / splitRefPlaceholders', () => {
-  it('round-trips ref placeholders around markdown', () => {
-    const body = 'Hello @alice see table'
-    const refs = [{ start: 6, end: 12 }]
+describe('protectRefs / slotRefPlaceholders', () => {
+  it('keeps refs inline inside the paragraph they were written in', () => {
+    const body = 'Shot &5, memo &6.\n\nSee ~2'
+    const refs = [
+      { start: 5, end: 7 },
+      { start: 14, end: 16 },
+      { start: 23, end: 25 },
+    ]
     const { markdown } = protectRefs(body, refs)
-    assert.equal(markdown.includes('@alice'), false)
-    assert.match(markdown, /\uE0000\uE001/)
-    const parts = splitRefPlaceholders(`<p>Hello \uE0000\uE001 see</p>`)
-    assert.equal(parts.length, 3)
-    assert.equal(parts[1].type, 'ref')
-    assert.equal(parts[1].index, 0)
+    assert.equal(markdown.includes('&5'), false)
+    const html = slotRefPlaceholders(
+      renderMarkdown(markdown, { sanitize: stubPurifySanitize }),
+    )
+    const slot = (i) => `<span class="wm-ref-slot" data-ref-index="${i}"></span>`
+    assert.ok(html.includes(`<p>Shot ${slot(0)}, memo ${slot(1)}.</p>`), html)
+    assert.ok(html.includes(`<p>See ${slot(2)}</p>`), html)
+    assert.equal((html.match(/<p>/g) ?? []).length, 2)
   })
 })
