@@ -4,9 +4,6 @@
 }
 
 .menu-list {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  inset-inline-end: 0;
   z-index: 50;
   display: grid;
   min-width: 13rem;
@@ -16,6 +13,17 @@
   background: var(--surface);
   box-shadow: var(--shadow-md);
   animation: pop 0.12s ease-out;
+}
+
+.menu-list[data-placement='above'] {
+  animation-name: pop-above;
+}
+
+@keyframes pop-above {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
 }
 
 .menu-item {
@@ -64,5 +72,12 @@
 
   .menu-item {
     min-height: var(--tap, 2.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-list,
+  .menu-list[data-placement='above'] {
+    animation: none;
   }
 }
