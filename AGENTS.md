@@ -82,7 +82,7 @@ Create file artifacts via JSON with `content_base64`. Content streams through `G
 
 ## Database connection pool
 
-SQLAlchemy `QueuePool` (including SQLite file URLs on SQLAlchemy 2.1+). Exhausted checkout raises `sqlalchemy.exc.TimeoutError`, mapped to **HTTP 503** (`Database busy; try again shortly`) so the edge does not wait for a long pool timeout then return 504.
+SQLAlchemy `QueuePool` (including SQLite file URLs on SQLAlchemy 2.1+). Exhausted checkout raises `sqlalchemy.exc.TimeoutError`, mapped to **HTTP 503** (`Database busy; try again shortly`) so clients fail fast instead of hanging on a long pool checkout.
 
 | Env | Default | Meaning |
 | --- | ------- | ------- |
