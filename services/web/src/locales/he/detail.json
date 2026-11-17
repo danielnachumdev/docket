@@ -130,19 +130,7 @@
   },
   "activity": {
     "title": "פעילות",
-    "expand": "הרחבת פעילות",
-    "collapse": "כיווץ פעילות",
     "empty": "עדיין אין פעילות.",
-    "actor": "מבצע",
-    "payload": "פרטים",
-    "row": {
-      "user": "משתמש",
-      "token": "אסימון",
-      "tokenId": "מזהה אסימון",
-      "role": "תפקיד"
-    },
-    "roleFull": "הרשאות משתמש מלאות",
-    "roleSession": "סשן",
     "field": {
       "title": "כותרת",
       "priority": "עדיפות",
@@ -195,6 +183,10 @@
     "oldestFirst": "ישן קודם",
     "sortOldest": "הצג פעילות מהישנה לחדשה",
     "sortNewest": "הצג פעילות מהחדשה לישנה",
+    "showAll": "הצג הכל",
+    "showAllHidden": "הצג הכל ({{count}} מוסתרים)",
+    "showImportant": "רק חשובים",
+    "emptyFiltered": "אין פעילות חשובה בתצוגה זו.",
     "loadFailed": "טעינת הפעילות נכשלה"
   },
   "completion": {

@@ -131,6 +131,7 @@ export function TaskDetailPage() {
   const [notesMode, setNotesMode] = useState<'edit' | 'preview'>('preview')
   const [sideCollapsed, setSideCollapsed] = useState(false)
   const [railWidthPx, setRailWidthPx] = useState(DETAIL_RAIL_DEFAULT_PX)
+  const [activityTick, setActivityTick] = useState(0)
   const railStacked = useMediaQuery('(max-width: 1100px)')
   const { busy, error, setError, run } = useAction()
   const dueInputRef = useRef<HTMLInputElement>(null)
@@ -639,9 +640,15 @@ export function TaskDetailPage() {
             canComment={canComment}
             canAttach={canAttachArtifacts}
             composerOnly
-            onChanged={load}
+            onChanged={async () => {
+              await load()
+              setActivityTick((n) => n + 1)
+            }}
           />
-          <ActivitySection taskId={taskId} refreshKey={detail.events.length} />
+          <ActivitySection
+            taskId={taskId}
+            refreshKey={activityTick + detail.events.length + detail.artifacts.length}
+          />
         </div>
 
         <aside

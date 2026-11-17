@@ -306,6 +306,7 @@ export function CommentsSection({
       icon="message"
       title={composerOnly ? t('commentSubmit') : t('comments')}
       count={composerOnly ? undefined : comments.length}
+      variant={composerOnly ? 'plain' : 'card'}
     >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 

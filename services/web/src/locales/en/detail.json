@@ -130,19 +130,7 @@
   },
   "activity": {
     "title": "Activity",
-    "expand": "Expand activity",
-    "collapse": "Collapse activity",
     "empty": "No activity yet.",
-    "actor": "Actor",
-    "payload": "Details",
-    "row": {
-      "user": "User",
-      "token": "Token",
-      "tokenId": "Token id",
-      "role": "Role"
-    },
-    "roleFull": "full user permissions",
-    "roleSession": "session",
     "field": {
       "title": "title",
       "priority": "priority",
@@ -195,6 +183,10 @@
     "oldestFirst": "Oldest first",
     "sortOldest": "Show oldest activity first",
     "sortNewest": "Show newest activity first",
+    "showAll": "Show all",
+    "showAllHidden": "Show all ({{count}} hidden)",
+    "showImportant": "Important only",
+    "emptyFiltered": "No important activity in this view.",
     "loadFailed": "Could not load activity"
   },
   "completion": {
