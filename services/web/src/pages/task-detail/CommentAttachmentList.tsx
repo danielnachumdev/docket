@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Artifact } from '../../api'
 import { Icon } from '../../components/Icon'
-import { getArtifactPreviewKind } from '../../lib/artifactMedia'
+import { UserBidiText } from '../../components/UserBidiText'
+import { artifactKindIcon, externalLinkUrl, isViewableArtifact } from '../../lib/artifactMedia'
+import { hostnameOf } from '../../lib/markdown'
 import { ArtifactFilePreview } from './ArtifactFilePreview'
-import { ArtifactFullView } from './ArtifactFullView'
+import { ArtifactLightbox } from './ArtifactLightbox'
 import { artifactAnchorId } from './commentAnchors'
+import './ArtifactRow.css'
 import './CommentAttachmentList.css'
 
 type Props = {
@@ -16,80 +19,52 @@ type Props = {
 function AttachmentCard({ taskId, art }: { taskId: string; art: Artifact }) {
   const { t } = useTranslation('artifacts')
   const [fullView, setFullView] = useState(false)
-  const [hover, setHover] = useState(false)
-  const previewKind = getArtifactPreviewKind(art)
-  const showPreview =
-    art.kind === 'file' &&
-    Boolean(art.storage_key) &&
-    (previewKind === 'image' ||
-      previewKind === 'pdf' ||
-      previewKind === 'video' ||
-      previewKind === 'audio' ||
-      previewKind === 'markdown' ||
-      previewKind === 'text')
-  const canLightbox = showPreview || art.kind === 'text'
+  const linkUrl = externalLinkUrl(art)
+  const viewable = isViewableArtifact(art)
+  const inlineText = art.kind === 'text' || art.kind === 'json' ? art.content_text : null
+  const typeLabel = linkUrl ? hostnameOf(linkUrl) : t(`kind.${art.kind}`, { defaultValue: art.kind })
 
   return (
-    <li
-      id={artifactAnchorId(art.id)}
-      className="comment-attachment-card"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
+    <li id={artifactAnchorId(art.id)} className="artifact-card comment-attachment-card">
       <div className="comment-attachment-meta">
-        <Icon name="paperclip" size={12} />
-        {canLightbox ? (
+        <Icon name={artifactKindIcon(art.kind)} size={13} />
+        {linkUrl ? (
+          <a
+            className="comment-attachment-title"
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={linkUrl}
+          >
+            <UserBidiText text={art.title} className="truncate" />
+          </a>
+        ) : viewable ? (
           <button
             type="button"
-            className="comment-attachment-title-btn"
+            className="comment-attachment-title"
             onClick={() => setFullView(true)}
             aria-label={t('enlargeNamed', { title: art.title })}
             title={t('enlarge')}
           >
-            {art.title}
+            <UserBidiText text={art.title} className="truncate" />
           </button>
         ) : (
-          <span className="comment-attachment-title">{art.title}</span>
+          <UserBidiText text={art.title} className="comment-attachment-title truncate" />
         )}
-        <span className="muted small">
-          {t(`kind.${art.kind}`, { defaultValue: art.kind })}
-        </span>
+        <span className="muted small comment-attachment-type">{typeLabel}</span>
+        {linkUrl && <Icon name="external" size={12} className="comment-attachment-ext" />}
       </div>
-      {showPreview && (
+      {inlineText ? (
+        <pre className="comment-attachment-text" dir="auto">
+          {inlineText}
+        </pre>
+      ) : (
         <div className="comment-attachment-preview">
           <ArtifactFilePreview taskId={taskId} artifact={art} />
         </div>
       )}
-      {art.kind === 'link' && art.content_text && (
-        <a
-          className="comment-attachment-link"
-          href={art.content_text}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {art.content_text}
-        </a>
-      )}
-      {art.kind === 'text' && art.content_text && (
-        <pre className="comment-attachment-text">{art.content_text}</pre>
-      )}
-      {hover && showPreview && previewKind === 'image' && (
-        <p className="muted small comment-attachment-hint">{t('enlarge')}</p>
-      )}
       {fullView && (
-        <ArtifactFullView
-          title={art.title}
-          onClose={() => setFullView(false)}
-          bodyClassName={
-            art.kind === 'text' ? 'artifact-fullview-text' : 'artifact-fullview-media'
-          }
-        >
-          {art.kind === 'text' && art.content_text ? (
-            <pre className="artifact-fullview-pre">{art.content_text}</pre>
-          ) : (
-            <ArtifactFilePreview taskId={taskId} artifact={art} />
-          )}
-        </ArtifactFullView>
+        <ArtifactLightbox taskId={taskId} artifact={art} onClose={() => setFullView(false)} />
       )}
     </li>
   )

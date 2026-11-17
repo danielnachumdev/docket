@@ -128,6 +128,7 @@ export function ArtifactsSection({
               run={run}
               onDeleted={onChanged}
               layout={compact ? 'list' : 'grid'}
+              anchor="data"
             />
           ))}
         </ul>

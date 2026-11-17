@@ -10,13 +10,15 @@ import {
 } from '../../api'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
+import { Menu } from '../../components/Menu'
 import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
-import { usePrefetchArtifactBlobs } from '../../lib/usePrefetchArtifactBlobs'
 import { useAction } from '../../lib/useAction'
+import { userBidiAttrs } from '../../lib/bidi'
+import { useConfirm } from '../../lib/dialogs'
 import { CommentAttachmentList } from './CommentAttachmentList'
 import { CommentRefChip } from './CommentRefChip'
-import { commentAnchorId } from './commentAnchors'
+import { commentAnchorId, highlightComment } from './commentAnchors'
 import { useHashHighlight } from './useHashHighlight'
 import './ActivitySection.css'
 import './CommentsSection.css'
@@ -159,16 +161,45 @@ function CommentTimelineItem({
   taskId,
   artifacts,
   commentsById,
+  onChanged,
 }: {
   comment: TaskComment
   actorLabel: string
   taskId: string
   artifacts: Artifact[]
   commentsById: Map<number, TaskComment>
+  onChanged: () => Promise<void>
 }) {
-  const { t } = useTranslation('tasks')
+  const { t } = useTranslation(['tasks', 'common'])
+  const confirm = useConfirm()
+  const { busy, error, setError, run } = useAction()
+  const [draft, setDraft] = useState<string | null>(null)
   const hasBody = Boolean(comment.body?.trim())
   const permalink = `${window.location.pathname}#${commentAnchorId(comment.id)}`
+
+  function save() {
+    if (draft == null || !draft.trim()) return
+    void run(async () => {
+      await api.updateComment(taskId, comment.id, draft.trim())
+      setDraft(null)
+      await onChanged()
+    }, t('commentUpdateFailed'))
+  }
+
+  async function remove() {
+    const ok = await confirm({
+      title: t('commentDeleteTitle'),
+      description: t('commentDeleteConfirm'),
+      confirmLabel: t('common:delete'),
+      danger: true,
+    })
+    if (!ok) return
+    void run(async () => {
+      await api.deleteComment(taskId, comment.id)
+      await onChanged()
+    }, t('commentDeleteFailed'))
+  }
+
   return (
     <li id={commentAnchorId(comment.id)} className="event event-comment">
       <span className="event-dot" aria-hidden="true" />
@@ -179,24 +210,75 @@ function CommentTimelineItem({
             {formatRelative(comment.created_at)}
             {comment.updated_at !== comment.created_at ? ` · ${t('commentEdited')}` : ''}
           </span>
-          <a
-            className="comment-permalink"
-            href={permalink}
-            title={t('commentPermalink')}
-            aria-label={t('commentPermalink')}
-            onClick={(e) => {
+          <span className="comment-meta-actions">
+            <a
+              className="icon-btn comment-permalink"
+              href={permalink}
+              title={t('commentPermalink')}
+              aria-label={t('commentPermalink')}
+              onClick={(e) => {
+                e.preventDefault()
+                window.history.replaceState(null, '', permalink)
+                highlightComment(comment.id)
+              }}
+            >
+              <Icon name="link" size={14} />
+            </a>
+            {comment.can_edit && draft == null && (
+              <Menu
+                label={t('commentActions')}
+                className="comment-menu"
+                items={[
+                  { label: t('commentEdit'), onSelect: () => setDraft(comment.body), disabled: busy },
+                  {
+                    label: t('commentDelete'),
+                    icon: 'trash',
+                    danger: true,
+                    disabled: busy,
+                    onSelect: () => void remove(),
+                  },
+                ]}
+              />
+            )}
+          </span>
+        </header>
+        {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
+        {draft != null ? (
+          <form
+            className="comment-edit"
+            onSubmit={(e) => {
               e.preventDefault()
-              window.history.replaceState(null, '', permalink)
+              save()
             }}
           >
-            <Icon name="link" size={12} />
-          </a>
-        </header>
-        {hasBody &&
+            <textarea
+              {...userBidiAttrs(draft)}
+              aria-label={t('commentEdit')}
+              rows={Math.min(12, Math.max(3, draft.split('\n').length + 1))}
+              value={draft}
+              disabled={busy}
+              autoFocus
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setDraft(null)
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save()
+              }}
+            />
+            <div className="comment-edit-actions">
+              <button type="button" className="btn ghost small" disabled={busy} onClick={() => setDraft(null)}>
+                {t('commentCancel')}
+              </button>
+              <button type="submit" className="btn primary small" disabled={busy || !draft.trim()}>
+                {t('commentSave')}
+              </button>
+            </div>
+          </form>
+        ) : (
+          hasBody &&
           ((comment.refs ?? []).length > 0 ? (
             <MarkdownWithRefs
               source={comment.body}
-              refs={comment.refs ?? []}
+              refs={comment.refs}
               className="comment-body"
               renderRef={(ref, key) => (
                 <CommentRefChip
@@ -210,7 +292,8 @@ function CommentTimelineItem({
             />
           ) : (
             <MarkdownView source={comment.body} className="comment-body" />
-          ))}
+          ))
+        )}
         {(comment.attachments?.length ?? 0) > 0 && (
           <CommentAttachmentList taskId={taskId} attachments={comment.attachments ?? []} />
         )}
@@ -244,6 +327,7 @@ type Props = {
   taskId: string
   artifacts?: Artifact[]
   refreshKey?: number
+  onCommentsChanged: () => Promise<void>
 }
 
 const ORDER_KEY = 'waymark.activityOrder'
@@ -265,7 +349,12 @@ function writeOrder(order: 'asc' | 'desc') {
 }
 
 /** Page-flow timeline: each activity is a row; comments render as comment cards. */
-export function ActivitySection({ taskId, artifacts = [], refreshKey = 0 }: Props) {
+export function ActivitySection({
+  taskId,
+  artifacts = [],
+  refreshKey = 0,
+  onCommentsChanged,
+}: Props) {
   const { t } = useTranslation('detail')
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
   const [showAll, setShowAll] = useState(false)
@@ -303,8 +392,6 @@ export function ActivitySection({ taskId, artifacts = [], refreshKey = 0 }: Prop
     }
     return [...byId.values()]
   }, [artifacts, commentsById])
-
-  usePrefetchArtifactBlobs(taskId, artifactsForRefs)
 
   const visibleItems = useMemo(
     () => (showAll ? items : items.filter(isPrimaryActivityItem)),
@@ -386,6 +473,7 @@ export function ActivitySection({ taskId, artifacts = [], refreshKey = 0 }: Prop
                 actorLabel={item.actor.label || item.comment.author_label}
                 artifacts={artifactsForRefs}
                 commentsById={commentsById}
+                onChanged={onCommentsChanged}
               />
             ) : (
               <EventTimelineItem key={item.id} item={item} />

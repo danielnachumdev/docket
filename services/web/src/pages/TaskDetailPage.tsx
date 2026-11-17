@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, type Task, type TaskDetail, type TaskShare } from '../api'
+import { api, type Artifact, type Task, type TaskDetail, type TaskShare } from '../api'
 import { useAuth } from '../auth'
 import { useMediaQuery } from '../lib/useMediaQuery'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
@@ -38,6 +38,7 @@ import {
 import { HorizonDueChips, type HorizonDueChoice } from '../components/HorizonDueMenu'
 import { dueAtIsoForHorizon, type HorizonId } from '../lib/localDay'
 import { useAction } from '../lib/useAction'
+import { usePrefetchArtifactBlobs } from '../lib/usePrefetchArtifactBlobs'
 import { ActivitySection } from './task-detail/ActivitySection'
 import { ArtifactsSection } from './task-detail/ArtifactsSection'
 import { ClaimLeaseSection } from './task-detail/ClaimLeaseSection'
@@ -93,6 +94,7 @@ function draftFrom(task: Task): Draft {
   }
 }
 
+const NO_ARTIFACTS: Artifact[] = []
 const DETAIL_RAIL_DEFAULT_PX = 352
 const DETAIL_RAIL_MIN_PX = 256
 const DETAIL_RAIL_MAX_PX = 640
@@ -242,12 +244,18 @@ export function TaskDetailPage() {
   }, [allTasks, taskId])
 
   usePageTitle(detail?.task.title)
+  usePrefetchArtifactBlobs(taskId, detail?.artifacts ?? NO_ARTIFACTS)
 
   const original = detail ? draftFrom(detail.task) : null
   const dirty =
     draft != null &&
     original != null &&
     (Object.keys(draft) as (keyof Draft)[]).some((k) => draft[k] !== original[k])
+
+  const onCommentsChanged = useCallback(async () => {
+    await load()
+    setActivityTick((n) => n + 1)
+  }, [load])
 
   const save = useCallback(() => {
     if (!detail || !draft || !draft.title.trim()) return
@@ -640,15 +648,13 @@ export function TaskDetailPage() {
             canComment={canComment}
             canAttach={canAttachArtifacts}
             composerOnly
-            onChanged={async () => {
-              await load()
-              setActivityTick((n) => n + 1)
-            }}
+            onChanged={onCommentsChanged}
           />
           <ActivitySection
             taskId={taskId}
             artifacts={detail.artifacts}
             refreshKey={activityTick + detail.events.length + detail.artifacts.length}
+            onCommentsChanged={onCommentsChanged}
           />
         </div>
 

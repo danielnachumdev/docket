@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
-import { api } from '../../api'
-import i18n from '../../i18n'
+import { useState } from 'react'
+import { useArtifactText } from '../../lib/useArtifactText'
 import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
 import './ArtifactPlainTextPreview.css'
@@ -9,38 +8,12 @@ type Props = {
   taskId: string
   artifactId: number
   title: string
+  contentType: string | null
 }
 
-type State =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; text: string }
-
-export function ArtifactPlainTextPreview({ taskId, artifactId, title }: Props) {
-  const [state, setState] = useState<State>({ status: 'loading' })
+export function ArtifactPlainTextPreview({ taskId, artifactId, title, contentType }: Props) {
+  const state = useArtifactText({ taskId, artifactId, title, contentType })
   const [fullView, setFullView] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ status: 'loading' })
-    void (async () => {
-      try {
-        const blob = await api.fetchArtifactContentBlob(taskId, artifactId, title)
-        const text = await blob.text()
-        if (cancelled) return
-        setState({ status: 'ready', text })
-      } catch (err) {
-        if (cancelled) return
-        setState({
-          status: 'error',
-          message: err instanceof Error ? err.message : i18n.t('previewFailed', { ns: 'artifacts' }),
-        })
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [taskId, artifactId, title])
 
   if (state.status === 'error') {
     return <p className="muted small artifact-preview-error">{state.message}</p>

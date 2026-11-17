@@ -35,32 +35,6 @@
   line-height: 1.45;
 }
 
-.comment-body .comment-chip {
-  vertical-align: baseline;
-}
-
-.comment-chip {
-  display: inline-flex;
-  align-items: center;
-  margin: 0 0.1rem;
-  padding: 0.05rem 0.4rem;
-  border: 0;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font: inherit;
-  font-size: 0.86em;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.comment-chip.kind-task,
-.comment-chip.kind-artifact,
-.comment-chip.kind-comment {
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
 .comment-picker {
   list-style: none;
   margin: 0;

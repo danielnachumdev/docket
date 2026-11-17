@@ -16,6 +16,7 @@ import {
   type ArtifactKindFilter,
   type ArtifactSort,
 } from '../lib/artifactsLibrary'
+import { ALL_TASKS_SCOPE, retainArtifactBlobScope } from '../lib/artifactObjectUrlCache'
 import { useAction } from '../lib/useAction'
 import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
 import { ArtifactRow } from './task-detail/ArtifactRow'
@@ -54,6 +55,7 @@ export function ArtifactsPage() {
   const loadingMoreLock = useRef(false)
 
   useKeyboardShortcut('/', () => searchRef.current?.focus())
+  useEffect(() => retainArtifactBlobScope(ALL_TASKS_SCOPE), [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS)

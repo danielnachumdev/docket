@@ -53,21 +53,9 @@ function PreviewBody({
     case 'video':
       return <ArtifactVideoPreview {...common} />
     case 'markdown':
-      return (
-        <ArtifactMarkdownPreview
-          taskId={taskId}
-          artifactId={artifact.id}
-          title={artifact.title}
-        />
-      )
+      return <ArtifactMarkdownPreview {...common} />
     case 'text':
-      return (
-        <ArtifactPlainTextPreview
-          taskId={taskId}
-          artifactId={artifact.id}
-          title={artifact.title}
-        />
-      )
+      return <ArtifactPlainTextPreview {...common} />
   }
 }
 

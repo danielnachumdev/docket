@@ -1,0 +1,40 @@
+.hover-card {
+  position: fixed;
+  z-index: 70;
+  display: grid;
+  gap: 0.45rem;
+  width: max-content;
+  min-width: 12rem;
+  max-width: min(20rem, calc(100vw - 1rem));
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.85rem;
+  animation: hover-card-in 0.12s ease-out;
+}
+
+@keyframes hover-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+.hover-card[data-placement='above'] {
+  animation-name: hover-card-in-above;
+}
+
+@keyframes hover-card-in-above {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-card {
+    animation: none;
+  }
+}

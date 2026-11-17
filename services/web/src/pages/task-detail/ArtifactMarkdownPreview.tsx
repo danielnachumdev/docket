@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
-import { api } from '../../api'
-import i18n from '../../i18n'
+import { useMemo, useState } from 'react'
 import { userBidiAttrs } from '../../lib/bidi'
 import { renderMarkdown } from '../../lib/markdown'
+import { useArtifactText } from '../../lib/useArtifactText'
 import { ArtifactEnlargeButton, ArtifactFullView } from './ArtifactFullView'
 import { PreviewLoading } from './PreviewLoading'
 import '../../components/MarkdownView.css'
@@ -12,39 +11,14 @@ type Props = {
   taskId: string
   artifactId: number
   title: string
+  contentType: string | null
 }
 
-type State =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; html: string; source: string }
-
-export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
-  const [state, setState] = useState<State>({ status: 'loading' })
+export function ArtifactMarkdownPreview({ taskId, artifactId, title, contentType }: Props) {
+  const state = useArtifactText({ taskId, artifactId, title, contentType })
   const [fullView, setFullView] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ status: 'loading' })
-    void (async () => {
-      try {
-        const blob = await api.fetchArtifactContentBlob(taskId, artifactId, title)
-        const text = await blob.text()
-        if (cancelled) return
-        const html = renderMarkdown(text)
-        setState({ status: 'ready', html, source: text })
-      } catch (err) {
-        if (cancelled) return
-        setState({
-          status: 'error',
-          message: err instanceof Error ? err.message : i18n.t('previewFailed', { ns: 'artifacts' }),
-        })
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [taskId, artifactId, title])
+  const source = state.status === 'ready' ? state.text : ''
+  const html = useMemo(() => renderMarkdown(source), [source])
 
   if (state.status === 'error') {
     return <p className="muted small artifact-preview-error">{state.message}</p>
@@ -54,8 +28,8 @@ export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
   }
 
   const mdProps = {
-    ...userBidiAttrs(state.source, 'wm-md artifact-preview-md'),
-    dangerouslySetInnerHTML: { __html: state.html },
+    ...userBidiAttrs(source, 'wm-md artifact-preview-md'),
+    dangerouslySetInnerHTML: { __html: html },
   }
 
   return (
@@ -66,10 +40,7 @@ export function ArtifactMarkdownPreview({ taskId, artifactId, title }: Props) {
       </div>
       {fullView && (
         <ArtifactFullView title={title} onClose={() => setFullView(false)} bodyClassName="artifact-fullview-md">
-          <div
-            {...userBidiAttrs(state.source, 'wm-md artifact-preview-md')}
-            dangerouslySetInnerHTML={{ __html: state.html }}
-          />
+          <div {...mdProps} />
         </ArtifactFullView>
       )}
     </>
