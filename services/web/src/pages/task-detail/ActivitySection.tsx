@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { TFunction } from 'i18next'
 import { Trans, useTranslation } from 'react-i18next'
 import {
@@ -21,6 +21,7 @@ import { userBidiAttrs } from '../../lib/bidi'
 import { useConfirm } from '../../lib/dialogs'
 import { CommentAttachmentList } from './CommentAttachmentList'
 import { CommentRefChip } from './CommentRefChip'
+import { InaccessibleRefChip } from './InaccessibleRefChip'
 import { commentAnchorId, highlightComment } from './commentAnchors'
 import { useHashHighlight } from './useHashHighlight'
 import './ActivitySection.css'
@@ -30,6 +31,9 @@ const EMPTY_ARTIFACTS: Artifact[] = []
 const EMPTY_COMMENTS = new Map<number, TaskComment>()
 
 type TaskSummary = Pick<Task, 'id' | 'number' | 'title'>
+type TaskRefLookup =
+  | { status: 'ok'; summary: TaskSummary }
+  | { status: 'private' }
 
 function taskRefFromSummary(publicId: string, summary: TaskSummary | undefined): CommentRef {
   return {
@@ -41,22 +45,26 @@ function taskRefFromSummary(publicId: string, summary: TaskSummary | undefined):
     number: summary?.number,
     title: summary?.title,
     label: summary ? `#${summary.number}` : undefined,
+    accessible: true,
   }
 }
 
 function ActivityTaskChip({
   pageTaskId,
   publicId,
-  summary,
+  lookup,
 }: {
   pageTaskId: string
   publicId: string
-  summary: TaskSummary | undefined
+  lookup: TaskRefLookup | undefined
 }) {
+  if (lookup?.status === 'private') {
+    return <InaccessibleRefChip />
+  }
   return (
     <CommentRefChip
       taskId={pageTaskId}
-      commentRef={taskRefFromSummary(publicId, summary)}
+      commentRef={taskRefFromSummary(publicId, lookup?.summary)}
       artifacts={EMPTY_ARTIFACTS}
       commentsById={EMPTY_COMMENTS}
       showTitle
@@ -341,7 +349,7 @@ function describeLinkEvent(
   event: TaskEvent,
   payload: Payload | null,
   pageTaskId: string,
-  summaries: Map<string, TaskSummary>,
+  lookups: Map<string, TaskRefLookup>,
 ): ReactNode {
   const { from, to, kind: rawKind } = linkEventTaskIds(payload)
   if (!from || !to) return t(`activity.event.${event.type}Plain`)
@@ -355,8 +363,8 @@ function describeLinkEvent(
       i18nKey={`activity.event.${event.type}`}
       values={{ kind }}
       components={{
-        from: <ActivityTaskChip pageTaskId={pageTaskId} publicId={from} summary={summaries.get(from)} />,
-        to: <ActivityTaskChip pageTaskId={pageTaskId} publicId={to} summary={summaries.get(to)} />,
+        from: <ActivityTaskChip pageTaskId={pageTaskId} publicId={from} lookup={lookups.get(from)} />,
+        to: <ActivityTaskChip pageTaskId={pageTaskId} publicId={to} lookup={lookups.get(to)} />,
       }}
     />
   )
@@ -365,11 +373,11 @@ function describeLinkEvent(
 function EventTimelineItem({
   item,
   taskId,
-  taskSummaries,
+  taskLookups,
 }: {
   item: ActivityItem
   taskId: string
-  taskSummaries: Map<string, TaskSummary>
+  taskLookups: Map<string, TaskRefLookup>
 }) {
   const { t } = useTranslation('detail')
   const event = item.event
@@ -377,7 +385,7 @@ function EventTimelineItem({
   const payload = parsePayload(event.payload_json)
   const body =
     event.type === 'linked' || event.type === 'unlinked'
-      ? describeLinkEvent(t, event, payload, taskId, taskSummaries)
+      ? describeLinkEvent(t, event, payload, taskId, taskLookups)
       : describe(t, event, payload)
   return (
     <li className={`event event-${event.type}`}>
@@ -434,8 +442,9 @@ export function ActivitySection({
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
   const [showAll, setShowAll] = useState(false)
   const [items, setItems] = useState<ActivityItem[]>([])
-  const [fetchedTasks, setFetchedTasks] = useState<Map<string, TaskSummary>>(() => new Map())
-  const failedTaskIds = useRef(new Set<string>())
+  const [fetchedLookups, setFetchedLookups] = useState<Map<string, TaskRefLookup>>(
+    () => new Map(),
+  )
   const { busy, error, setError, run } = useAction()
 
   const reload = useCallback(() => {
@@ -447,8 +456,7 @@ export function ActivitySection({
 
   useEffect(() => {
     setShowAll(false)
-    setFetchedTasks(new Map())
-    failedTaskIds.current.clear()
+    setFetchedLookups(new Map())
   }, [taskId])
 
   useEffect(() => {
@@ -486,9 +494,7 @@ export function ActivitySection({
   const linkTaskIdsKey = linkTaskIds.join(',')
 
   useEffect(() => {
-    const missing = linkTaskIds.filter(
-      (id) => !tasksById?.has(id) && !fetchedTasks.has(id) && !failedTaskIds.current.has(id),
-    )
+    const missing = linkTaskIds.filter((id) => !tasksById?.has(id) && !fetchedLookups.has(id))
     if (missing.length === 0) return
     let cancelled = false
     void (async () => {
@@ -496,18 +502,23 @@ export function ActivitySection({
         missing.map(async (id) => {
           try {
             const detail = await api.getTask(id)
-            return [id, { id: detail.task.id, number: detail.task.number, title: detail.task.title }] as const
+            const summary: TaskSummary = {
+              id: detail.task.id,
+              number: detail.task.number,
+              title: detail.task.title,
+            }
+            return [id, { status: 'ok', summary } as TaskRefLookup] as const
           } catch {
-            return [id, null] as const
+            // Authz returns 404 for unshared tasks; treat as Slack-style private.
+            return [id, { status: 'private' } as TaskRefLookup] as const
           }
         }),
       )
       if (cancelled) return
-      setFetchedTasks((prev) => {
+      setFetchedLookups((prev) => {
         const next = new Map(prev)
-        for (const [id, summary] of rows) {
-          if (summary) next.set(id, summary)
-          else failedTaskIds.current.add(id)
+        for (const [id, lookup] of rows) {
+          if (!next.has(id)) next.set(id, lookup)
         }
         return next
       })
@@ -515,23 +526,26 @@ export function ActivitySection({
     return () => {
       cancelled = true
     }
-    // fetchedTasks intentionally omitted: we only kick off for newly missing ids.
+    // fetchedLookups intentionally omitted: we only kick off for newly missing ids.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- linkTaskIdsKey + tasksById drive refetch
   }, [linkTaskIdsKey, tasksById])
 
-  const taskSummaries = useMemo(() => {
-    const map = new Map<string, TaskSummary>()
+  const taskLookups = useMemo(() => {
+    const map = new Map<string, TaskRefLookup>()
     for (const id of linkTaskIds) {
       const known = tasksById?.get(id)
       if (known) {
-        map.set(id, { id: known.id, number: known.number, title: known.title })
+        map.set(id, {
+          status: 'ok',
+          summary: { id: known.id, number: known.number, title: known.title },
+        })
         continue
       }
-      const fetched = fetchedTasks.get(id)
+      const fetched = fetchedLookups.get(id)
       if (fetched) map.set(id, fetched)
     }
     return map
-  }, [fetchedTasks, linkTaskIds, tasksById])
+  }, [fetchedLookups, linkTaskIds, tasksById])
 
   const visibleItems = useMemo(
     () => (showAll ? items : items.filter(isPrimaryActivityItem)),
@@ -620,7 +634,7 @@ export function ActivitySection({
                 key={item.id}
                 item={item}
                 taskId={taskId}
-                taskSummaries={taskSummaries}
+                taskLookups={taskLookups}
               />
             ),
           )}

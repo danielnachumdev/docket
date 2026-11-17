@@ -381,7 +381,9 @@ class TaskCommentService:
         event_id: int | None = None,
         attachments: list[ArtifactOut] | None = None,
     ) -> TaskCommentOut:
-        refs = self._load_refs(comment.refs_json)
+        refs = self._refs.project_for_viewer(
+            principal, self._load_refs(comment.refs_json)
+        )
         mentioned = mention_resolver.resolve_user_ids_from_refs(refs)
         self._mapper.remember([task])
         label = actor_label.label(

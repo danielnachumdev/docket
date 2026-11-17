@@ -36,6 +36,20 @@
   text-decoration: line-through;
 }
 
+.comment-chip.is-private {
+  cursor: default;
+  opacity: 0.85;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.comment-chip.is-private:hover,
+.comment-chip.is-private:focus-visible {
+  filter: none;
+}
+
 .ref-card {
   max-width: min(18rem, calc(100vw - 1rem));
 }

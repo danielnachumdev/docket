@@ -5,6 +5,10 @@ export function formatActivityTaskChipLabel(opts?: {
   showTitle?: boolean
 }): string
 
+export function isInaccessibleTaskRef(
+  ref: { kind?: string; accessible?: boolean } | null | undefined,
+): boolean
+
 export function linkEventTaskIds(payload: Record<string, unknown> | null | undefined): {
   from: string | null
   to: string | null

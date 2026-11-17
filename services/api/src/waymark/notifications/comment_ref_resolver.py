@@ -33,6 +33,12 @@ class CommentRefResolver:
             for token in tokens
         ]
 
+    def project_for_viewer(
+        self, principal: Principal, refs: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Scrub stored refs so viewers never see titles/ids they cannot open."""
+        return [self._project_ref(principal, ref) for ref in refs]
+
     def mentionable_users(self, task: Task) -> list[User]:
         return self._people_on_task(task)
 
@@ -56,6 +62,52 @@ class CommentRefResolver:
         if token.kind == "artifact":
             return self._resolve_artifact(task, token)
         return self._resolve_comment(task, token)
+
+    def _project_ref(
+        self, principal: Principal, ref: dict[str, Any]
+    ) -> dict[str, Any]:
+        if ref.get("kind") != "task":
+            return ref
+        public_id = ref.get("task_id")
+        if not isinstance(public_id, str) or not public_id:
+            return self._private_task_ref(ref)
+        target = self._db.scalar(select(Task).where(Task.public_id == public_id))
+        if target is None:
+            return self._span_only_task_ref(ref)
+        if not self._access.may_access(principal, target, "tasks:read"):
+            return self._private_task_ref(ref)
+        number = self._viewer_number(principal.user_id, target)
+        return {
+            "kind": "task",
+            "raw": ref.get("raw", f"#{public_id}"),
+            "start": ref.get("start", 0),
+            "end": ref.get("end", 0),
+            "task_id": target.public_id,
+            "number": number,
+            "title": target.title,
+            "label": f"#{number}",
+            "accessible": True,
+        }
+
+    @staticmethod
+    def _private_task_ref(ref: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "kind": "task",
+            "raw": ref.get("raw", "#"),
+            "start": ref.get("start", 0),
+            "end": ref.get("end", 0),
+            "accessible": False,
+        }
+
+    @staticmethod
+    def _span_only_task_ref(ref: dict[str, Any]) -> dict[str, Any]:
+        """Deleted / unknown target: keep chip span, no navigation payload."""
+        return {
+            "kind": "task",
+            "raw": ref.get("raw", "#"),
+            "start": ref.get("start", 0),
+            "end": ref.get("end", 0),
+        }
 
     def _resolve_user(
         self,

@@ -234,6 +234,8 @@ export type CommentRef = {
   title?: string
   artifact_id?: number
   comment_id?: number
+  /** False when the target exists but is not shared with the viewer (Slack-style). */
+  accessible?: boolean
 }
 
 export type TaskComment = {

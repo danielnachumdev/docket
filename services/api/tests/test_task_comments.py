@@ -183,6 +183,47 @@ def test_comment_ref_validation_and_mentions() -> None:
     assert "alex@example.com" in emails
 
 
+def test_shared_viewer_sees_private_task_ref_chip() -> None:
+    """Author can mention a private task; sharee gets scrubbed accessible=false."""
+    client = TestClient(create_app())
+    _bootstrap(client)
+    shared_id = client.post("/api/tasks", json={"title": "Shared board"}).json()["id"]
+    private_id = client.post("/api/tasks", json={"title": "Owner-only secret"}).json()["id"]
+    _create_user("alex@example.com", "Alex", "password123")
+    assert (
+        client.post(
+            f"/api/tasks/{shared_id}/shares",
+            json={"email": "alex@example.com", "role": "commentor"},
+        ).status_code
+        == 201
+    )
+
+    created = client.post(
+        f"/api/tasks/{shared_id}/comments",
+        json={"body": f"See private #{private_id}"},
+    )
+    assert created.status_code == 201, created.text
+    owner_refs = created.json()["refs"]
+    assert len(owner_refs) == 1
+    assert owner_refs[0]["kind"] == "task"
+    assert owner_refs[0]["task_id"] == private_id
+    assert owner_refs[0].get("accessible") is True
+    assert owner_refs[0]["title"] == "Owner-only secret"
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    listed = client.get(f"/api/tasks/{shared_id}/comments")
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    sharee_refs = listed.json()[0]["refs"]
+    assert len(sharee_refs) == 1
+    assert sharee_refs[0]["kind"] == "task"
+    assert sharee_refs[0].get("accessible") is False
+    assert "task_id" not in sharee_refs[0]
+    assert "title" not in sharee_refs[0]
+    assert "number" not in sharee_refs[0]
+
+
 def test_share_commentor_role_roundtrip() -> None:
     client = TestClient(create_app())
     _bootstrap(client)

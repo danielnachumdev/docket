@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import type { Artifact, CommentRef, TaskComment } from '../../api'
 import { HoverCard } from '../../components/HoverCard'
 import { Icon } from '../../components/Icon'
-import { formatActivityTaskChipLabel } from '../../lib/activityTaskRef'
+import { formatActivityTaskChipLabel, isInaccessibleTaskRef } from '../../lib/activityTaskRef'
 import { ArtifactHoverPreview } from './ArtifactHoverPreview'
 import { externalLinkUrl, isViewableArtifact } from '../../lib/artifactMedia'
 import { useHoverCard } from '../../lib/useHoverCard'
 import { ArtifactLightbox } from './ArtifactLightbox'
+import { InaccessibleRefChip } from './InaccessibleRefChip'
 import {
   artifactAnchorId,
   commentAnchorId,
@@ -78,6 +79,7 @@ export function CommentRefChip({
   const navigate = useNavigate()
   const [fullView, setFullView] = useState(false)
   const label = refChipLabel(commentRef, showTitle)
+  const privateTask = isInaccessibleTaskRef(commentRef)
   const artifact =
     commentRef.kind === 'artifact' && commentRef.artifact_id != null
       ? (artifacts.find((row) => row.id === commentRef.artifact_id) ?? null)
@@ -90,7 +92,8 @@ export function CommentRefChip({
   const viewable = artifact ? isViewableArtifact(artifact) : false
 
   const hasCard =
-    commentRef.kind === 'artifact'
+    !privateTask &&
+    (commentRef.kind === 'artifact'
       ? viewable
       : commentRef.kind === 'comment'
         ? Boolean(linkedComment?.body?.trim())
@@ -98,8 +101,12 @@ export function CommentRefChip({
           ? Boolean(commentRef.task_id)
           : commentRef.kind === 'user'
             ? commentRef.user_id != null
-            : false
+            : false)
   const hover = useHoverCard({ enabled: hasCard && !fullView })
+
+  if (privateTask) {
+    return <InaccessibleRefChip />
+  }
 
   const href =
     linkUrl ??

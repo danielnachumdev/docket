@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { formatActivityTaskChipLabel, linkEventTaskIds } from './activityTaskRef.mjs'
+import {
+  formatActivityTaskChipLabel,
+  isInaccessibleTaskRef,
+  linkEventTaskIds,
+} from './activityTaskRef.mjs'
 
 describe('formatActivityTaskChipLabel', () => {
   it('prefers viewer number plus title', () => {
@@ -52,5 +56,15 @@ describe('linkEventTaskIds', () => {
   it('returns nulls for missing payload fields', () => {
     assert.deepEqual(linkEventTaskIds(null), { from: null, to: null, kind: null })
     assert.deepEqual(linkEventTaskIds({}), { from: null, to: null, kind: null })
+  })
+})
+
+describe('isInaccessibleTaskRef', () => {
+  it('is true only for task refs marked accessible=false', () => {
+    assert.equal(isInaccessibleTaskRef({ kind: 'task', accessible: false }), true)
+    assert.equal(isInaccessibleTaskRef({ kind: 'task', accessible: true }), false)
+    assert.equal(isInaccessibleTaskRef({ kind: 'task' }), false)
+    assert.equal(isInaccessibleTaskRef({ kind: 'user', accessible: false }), false)
+    assert.equal(isInaccessibleTaskRef(null), false)
   })
 })
