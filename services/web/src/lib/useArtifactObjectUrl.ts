@@ -1,55 +1,61 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api'
 import i18n from '../i18n'
-import { inferArtifactMediaType } from './artifactMedia'
+import {
+  loadArtifactBlob,
+  peekArtifactBlob,
+  type ArtifactBlobKey,
+} from './artifactObjectUrlCache'
 
-type Args = {
-  taskId: string
-  artifactId: number
-  title: string
-  contentType: string | null
-}
+type Args = ArtifactBlobKey
 
 type State = {
   src: string | null
   error: string | null
+  blob: Blob | null
 }
 
+/** Resolves a blob object URL via the page-scoped cache (no re-fetch while warm). */
 export function useArtifactObjectUrl({
   taskId,
   artifactId,
   title,
   contentType,
 }: Args): State {
-  const [src, setSrc] = useState<string | null>(null)
+  const key = { taskId, artifactId, title, contentType }
+  const cached = peekArtifactBlob(key)
+  const [src, setSrc] = useState<string | null>(cached?.objectUrl ?? null)
+  const [blob, setBlob] = useState<Blob | null>(cached?.blob ?? null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    let objectUrl: string | null = null
+    const request = { taskId, artifactId, title, contentType }
+    const warm = peekArtifactBlob(request)
+    if (warm) {
+      setSrc(warm.objectUrl)
+      setBlob(warm.blob)
+      setError(null)
+      return
+    }
     setSrc(null)
+    setBlob(null)
     setError(null)
-    void (async () => {
-      try {
-        const blob = await api.fetchArtifactContentBlob(taskId, artifactId, title)
+    void loadArtifactBlob(request)
+      .then((entry) => {
         if (cancelled) return
-        const inferred = inferArtifactMediaType({ content_type: contentType, title })
-        const typed =
-          inferred && (!blob.type || blob.type === 'application/octet-stream')
-            ? new Blob([blob], { type: inferred })
-            : blob
-        objectUrl = URL.createObjectURL(typed)
-        setSrc(objectUrl)
-      } catch (err) {
+        setSrc(entry.objectUrl)
+        setBlob(entry.blob)
+      })
+      .catch((err) => {
         if (cancelled) return
-        setError(err instanceof Error ? err.message : i18n.t('previewFailed', { ns: 'artifacts' }))
-      }
-    })()
+        setError(
+          err instanceof Error ? err.message : i18n.t('previewFailed', { ns: 'artifacts' }),
+        )
+      })
     return () => {
       cancelled = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
   }, [taskId, artifactId, title, contentType])
 
-  return { src, error }
+  return { src, error, blob }
 }

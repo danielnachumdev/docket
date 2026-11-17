@@ -12,6 +12,7 @@ import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
+import { usePrefetchArtifactBlobs } from '../../lib/usePrefetchArtifactBlobs'
 import { useAction } from '../../lib/useAction'
 import { CommentAttachmentList } from './CommentAttachmentList'
 import { CommentRefChip } from './CommentRefChip'
@@ -302,6 +303,8 @@ export function ActivitySection({ taskId, artifacts = [], refreshKey = 0 }: Prop
     }
     return [...byId.values()]
   }, [artifacts, commentsById])
+
+  usePrefetchArtifactBlobs(taskId, artifactsForRefs)
 
   const visibleItems = useMemo(
     () => (showAll ? items : items.filter(isPrimaryActivityItem)),
