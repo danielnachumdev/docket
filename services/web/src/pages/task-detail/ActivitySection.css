@@ -12,6 +12,19 @@
   gap: 0.5rem 0.75rem;
 }
 
+.activity-timeline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.activity-timeline-actions .btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .activity-timeline-header h2 {
   display: inline-flex;
   align-items: center;

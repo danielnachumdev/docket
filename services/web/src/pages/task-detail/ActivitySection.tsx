@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import {
@@ -15,6 +15,27 @@ import { useAction } from '../../lib/useAction'
 import { CommentAttachmentList } from './CommentAttachmentList'
 import './ActivitySection.css'
 import './CommentsSection.css'
+
+/** Traceability noise: claims/leases, artifact churn (also on comments / Artifacts), comment edits. */
+const SECONDARY_EVENT_TYPES = new Set([
+  'claimed',
+  'claim_renewed',
+  'released',
+  'claim_failed',
+  'release_failed',
+  'heartbeat_failed',
+  'artifact_added',
+  'artifact_deleted',
+  'artifact_updated',
+  'comment_updated',
+])
+
+function isPrimaryActivityItem(item: ActivityItem): boolean {
+  if (item.kind === 'comment') return true
+  const type = item.event?.type
+  if (!type) return true
+  return !SECONDARY_EVENT_TYPES.has(type)
+}
 
 type Payload = Record<string, unknown>
 
@@ -215,6 +236,7 @@ type Props = {
 }
 
 const ORDER_KEY = 'waymark.activityOrder'
+const SHOW_ALL_KEY = 'waymark.activityShowAll'
 
 function readOrder(): 'asc' | 'desc' {
   try {
@@ -232,10 +254,27 @@ function writeOrder(order: 'asc' | 'desc') {
   }
 }
 
+function readShowAll(): boolean {
+  try {
+    return sessionStorage.getItem(SHOW_ALL_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeShowAll(showAll: boolean) {
+  try {
+    sessionStorage.setItem(SHOW_ALL_KEY, showAll ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Page-flow timeline: each activity is a row; comments render as comment cards. */
 export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
   const { t } = useTranslation('detail')
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
+  const [showAll, setShowAll] = useState(readShowAll)
   const [items, setItems] = useState<ActivityItem[]>([])
   const { busy, error, setError, run } = useAction()
 
@@ -250,10 +289,24 @@ export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
     reload()
   }, [reload, refreshKey])
 
+  const visibleItems = useMemo(
+    () => (showAll ? items : items.filter(isPrimaryActivityItem)),
+    [items, showAll],
+  )
+  const hiddenCount = items.length - visibleItems.length
+
   function toggleOrder() {
     setOrder((prev) => {
       const next = prev === 'desc' ? 'asc' : 'desc'
       writeOrder(next)
+      return next
+    })
+  }
+
+  function toggleShowAll() {
+    setShowAll((prev) => {
+      const next = !prev
+      writeShowAll(next)
       return next
     })
   }
@@ -264,29 +317,52 @@ export function ActivitySection({ taskId, refreshKey = 0 }: Props) {
         <h2 id="activity-heading">
           <Icon name="activity" />
           {t('activity.title')}
-          {items.length > 0 && <span className="count">{items.length}</span>}
+          {visibleItems.length > 0 && <span className="count">{visibleItems.length}</span>}
         </h2>
-        <button
-          type="button"
-          className="btn ghost small"
-          aria-label={
-            order === 'desc' ? t('activity.sortOldest') : t('activity.sortNewest')
-          }
-          title={order === 'desc' ? t('activity.sortOldest') : t('activity.sortNewest')}
-          disabled={busy}
-          onClick={toggleOrder}
-        >
-          <Icon name="activity" size={14} />
-          {order === 'desc' ? t('activity.newestFirst') : t('activity.oldestFirst')}
-        </button>
+        <div className="activity-timeline-actions">
+          {(hiddenCount > 0 || showAll) && (
+            <button
+              type="button"
+              className={showAll ? 'btn ghost small active' : 'btn ghost small'}
+              aria-pressed={showAll}
+              title={showAll ? t('activity.showImportant') : t('activity.showAll')}
+              disabled={busy}
+              onClick={toggleShowAll}
+            >
+              {showAll
+                ? t('activity.showImportant')
+                : t('activity.showAllHidden', { count: hiddenCount })}
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn ghost small"
+            aria-label={
+              order === 'desc' ? t('activity.sortOldest') : t('activity.sortNewest')
+            }
+            title={order === 'desc' ? t('activity.sortOldest') : t('activity.sortNewest')}
+            disabled={busy}
+            onClick={toggleOrder}
+          >
+            <Icon name="activity" size={14} />
+            {order === 'desc' ? t('activity.newestFirst') : t('activity.oldestFirst')}
+          </button>
+        </div>
       </header>
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {items.length === 0 ? (
         <p className="muted small activity-empty">{t('activity.empty')}</p>
+      ) : visibleItems.length === 0 ? (
+        <p className="muted small activity-empty">
+          {t('activity.emptyFiltered')}{' '}
+          <button type="button" className="btn ghost small" onClick={toggleShowAll}>
+            {t('activity.showAll')}
+          </button>
+        </p>
       ) : (
         <ol className="timeline activity-timeline">
-          {items.map((item) =>
+          {visibleItems.map((item) =>
             item.kind === 'comment' && item.comment ? (
               <CommentTimelineItem
                 key={item.id}
