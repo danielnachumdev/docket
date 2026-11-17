@@ -20,7 +20,8 @@
   border-radius: var(--radius-sm);
   background: var(--surface);
   box-shadow: var(--shadow-md);
-  pointer-events: none;
+  /* Allow interacting with audio/video controls inside the tooltip. */
+  pointer-events: auto;
 }
 
 .comment-ref-preview-img {
@@ -29,6 +30,39 @@
   max-height: 9rem;
   border-radius: calc(var(--radius-sm) - 2px);
   object-fit: cover;
+}
+
+.comment-ref-preview-audio,
+.comment-ref-preview-video {
+  display: block;
+  width: 100%;
+  max-width: 16rem;
+}
+
+.comment-ref-preview-video {
+  max-height: 9rem;
+  background: #000;
+}
+
+.comment-ref-preview-doc {
+  display: block;
+  width: min(16rem, 70vw);
+  height: 11rem;
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: var(--surface-2);
+}
+
+.comment-ref-preview-text {
+  margin: 0;
+  max-height: 9rem;
+  overflow: auto;
+  padding: 0.35rem 0.4rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: var(--surface-2);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
 }
 
 .comment-ref-preview-meta {
