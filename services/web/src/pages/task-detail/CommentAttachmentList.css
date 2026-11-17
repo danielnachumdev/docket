@@ -23,8 +23,31 @@
   font-size: 0.82rem;
 }
 
-.comment-attachment-title {
+.comment-attachment-title,
+.comment-attachment-title-btn {
   font-weight: 600;
+}
+
+.comment-attachment-title-btn {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.comment-attachment-title-btn:hover,
+.comment-attachment-title-btn:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.comment-attachment-hint {
+  margin: 0.15rem 0 0;
 }
 
 .comment-attachment-preview {

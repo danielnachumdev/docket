@@ -92,7 +92,37 @@
 }
 
 .timeline-comment .comment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  align-items: center;
   margin-bottom: 0.35rem;
+}
+
+.comment-permalink {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: auto;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+.timeline-comment:hover .comment-permalink,
+.comment-permalink:focus-visible {
+  opacity: 1;
+}
+
+.comment-permalink:hover,
+.comment-permalink:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+@media (hover: none) {
+  .comment-permalink {
+    opacity: 0.7;
+  }
 }
 
 .timeline-comment .comment-body {

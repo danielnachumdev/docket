@@ -119,6 +119,14 @@
   "commentDeleteTitle": "Delete comment?",
   "commentDeleteConfirm": "Delete this comment?",
   "commentEdited": "edited",
+  "commentPermalink": "Copy link to this comment",
+  "refPreview": {
+    "activate": "Open {{label}}",
+    "openTask": "Open task",
+    "openShare": "Jump to sharing",
+    "openComment": "Jump to comment",
+    "comment": "Comment #{{id}}"
+  },
   "commentPicker": "Insert reference",
   "commentReadOnly": "You can read this thread, but commenting needs the commentor role or higher.",
   "commentMarkdownHint": "Markdown supported (tables, lists, code, links).",
