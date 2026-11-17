@@ -4,6 +4,7 @@ import {
   dueAtIsoForHorizon,
   dueAtIsoForLocalEndOfDay,
   dueSectionForDueAt,
+  dueSectionForTask,
   endOfHorizon,
   endOfLocalDay,
   groupTasksByDueSection,
@@ -116,6 +117,42 @@ describe('dueSectionForDueAt / groupTasksByDueSection', () => {
     assert.equal(dueSectionForDueAt(localIso(2026, 6, 1, 12), march), 'year')
   })
 
+  it('prefers due_horizon=year over quarter when ends coincide (Q4)', () => {
+    const yearEnd = endOfHorizon('year', new Date(now)).toISOString()
+    assert.equal(dueSectionForDueAt(yearEnd, now), 'quarter')
+    assert.equal(
+      dueSectionForTask({ due_at: yearEnd, due_horizon: 'year' }, now),
+      'year',
+    )
+    assert.equal(
+      dueSectionForTask({ due_at: yearEnd, due_horizon: 'quarter' }, now),
+      'quarter',
+    )
+  })
+
+  it('falls back to timestamp when due_horizon is missing or exact', () => {
+    const yearEnd = endOfHorizon('year', new Date(now)).toISOString()
+    assert.equal(dueSectionForTask({ due_at: yearEnd }, now), 'quarter')
+    assert.equal(
+      dueSectionForTask({ due_at: yearEnd, due_horizon: null }, now),
+      'quarter',
+    )
+    assert.equal(
+      dueSectionForTask({ due_at: yearEnd, due_horizon: 'exact' }, now),
+      'quarter',
+    )
+  })
+
+  it('overdue wins even when due_horizon names a future section', () => {
+    assert.equal(
+      dueSectionForTask(
+        { due_at: localIso(2026, 11, 17, 18), due_horizon: 'year' },
+        now,
+      ),
+      'overdue',
+    )
+  })
+
   it('groups in section order and skips empty buckets', () => {
     const tasks = [
       { id: 'a', due_at: localIso(2026, 11, 19, 9) },
@@ -131,6 +168,27 @@ describe('dueSectionForDueAt / groupTasksByDueSection', () => {
     assert.deepEqual(
       sections.map((s) => s.tasks.map((t) => t.id)),
       [['c'], ['d'], ['a'], ['b']],
+    )
+  })
+
+  it('groups Q4 year-intent under year while quarter-intent stays quarter', () => {
+    const yearEnd = endOfHorizon('year', new Date(now)).toISOString()
+    const tasks = [
+      { id: 'q', due_at: yearEnd, due_horizon: 'quarter' },
+      { id: 'y', due_at: yearEnd, due_horizon: 'year' },
+      { id: 'legacy', due_at: yearEnd, due_horizon: null },
+    ]
+    const sections = groupTasksByDueSection(tasks, now)
+    assert.deepEqual(
+      sections.map((s) => s.id),
+      ['quarter', 'year'],
+    )
+    assert.deepEqual(
+      sections.map((s) => s.tasks.map((t) => t.id)),
+      [
+        ['q', 'legacy'],
+        ['y'],
+      ],
     )
   })
 

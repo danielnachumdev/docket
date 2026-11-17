@@ -50,6 +50,7 @@ class TaskResponseMapper:
             rank=task.rank,
             source=task.source,
             due_at=task.due_at,
+            due_horizon=task.due_horizon,
             claimed_by_token_id=task.claimed_by_token_id,
             claimed_by_token_name=task.claimed_by_token_name,
             claim_expires_at=task.claim_expires_at,

@@ -371,6 +371,7 @@ class TaskService:
                 self._gateway.max_rank_for_owner(owner_user_id=principal.user_id)
             ),
             due_at=body.due_at,
+            due_horizon=self._due_horizon_for_create(body),
             source="api" if principal.token else "ui",
             created_by_user_id=principal.user_id,
             created_by_token_id=principal.token_id,
@@ -537,10 +538,28 @@ class TaskService:
     ) -> None:
         if body.clear_due_at:
             task.due_at = None
+            task.due_horizon = None
             changes["due_at"] = None
-        elif body.due_at is not None:
+            changes["due_horizon"] = None
+            return
+        if body.due_at is not None:
             task.due_at = body.due_at
             changes["due_at"] = task.due_at.isoformat() if task.due_at else None
+            horizon = body.due_horizon if body.due_horizon is not None else "exact"
+            task.due_horizon = horizon
+            changes["due_horizon"] = horizon
+            return
+        if body.due_horizon is not None:
+            task.due_horizon = body.due_horizon
+            changes["due_horizon"] = body.due_horizon
+
+    @staticmethod
+    def _due_horizon_for_create(body: TaskCreate) -> str | None:
+        if body.due_at is None:
+            return None
+        if body.due_horizon is not None:
+            return body.due_horizon
+        return "exact"
 
     def _change_status(
         self, task: Task, principal: Principal, new_status: str

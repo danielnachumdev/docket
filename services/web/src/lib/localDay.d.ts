@@ -57,8 +57,13 @@ export function dueSectionForDueAt(
   nowMs?: number,
 ): DueSectionId
 
-/** Group tasks into date-mode sections (non-empty only). */
-export function groupTasksByDueSection<T extends { due_at?: string | null }>(
-  tasks: T[],
+/** Date-mode section preferring stored `due_horizon` when present. */
+export function dueSectionForTask(
+  task: { due_at?: string | null; due_horizon?: string | null },
   nowMs?: number,
-): { id: DueSectionId; tasks: T[] }[]
+): DueSectionId
+
+/** Group tasks into date-mode sections (non-empty only). */
+export function groupTasksByDueSection<
+  T extends { due_at?: string | null; due_horizon?: string | null },
+>(tasks: T[], nowMs?: number): { id: DueSectionId; tasks: T[] }[]

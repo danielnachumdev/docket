@@ -44,6 +44,8 @@ export type Task = {
   rank: number
   source: string
   due_at: string | null
+  /** Named chip / exact intent; null = legacy timestamp-only grouping. */
+  due_horizon: 'today' | 'tomorrow' | 'week' | 'month' | 'quarter' | 'year' | 'exact' | null
   claimed_by_token_id: number | null
   claimed_by_token_name: string | null
   claim_expires_at: string | null
