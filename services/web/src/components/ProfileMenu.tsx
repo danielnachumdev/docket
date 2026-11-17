@@ -7,6 +7,7 @@ import type { ColorScheme } from '../lib/theme'
 import { AppVersion, useAppVersion } from './AppVersion'
 import { Icon } from './Icon'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import './Menu.css'
 import './ProfileMenu.css'
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
   align?: 'start' | 'end'
   showIdentity?: boolean
   className?: string
+  unreadCount?: number
 }
 
 export function ProfileMenu({
@@ -27,8 +29,9 @@ export function ProfileMenu({
   align = 'start',
   showIdentity = false,
   className,
+  unreadCount = 0,
 }: Props) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation(['common', 'nav'])
   const version = useAppVersion()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -36,6 +39,12 @@ export function ProfileMenu({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuId = useId()
   const themeLabel = themeScheme === 'dark' ? t('themeToLight') : t('themeToDark')
+  const badge =
+    unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null
+  const triggerLabel =
+    badge != null
+      ? `${t('accountMenu')}, ${t('nav:unreadCount', { count: unreadCount })}`
+      : t('accountMenu')
 
   useEffect(() => {
     if (!open) return
@@ -80,14 +89,15 @@ export function ProfileMenu({
         ref={triggerRef}
         type="button"
         className={showIdentity ? 'avatar-btn profile-trigger' : 'avatar-btn'}
-        aria-label={t('accountMenu')}
+        aria-label={triggerLabel}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="avatar" aria-hidden="true">
-          {initials(user.display_name)}
+        <span className="profile-avatar-wrap" aria-hidden="true">
+          <span className="avatar">{initials(user.display_name)}</span>
+          {badge != null && <span className="profile-badge">{badge}</span>}
         </span>
         {showIdentity && (
           <>
@@ -113,6 +123,21 @@ export function ProfileMenu({
           </div>
 
           <Link
+            to="/notifications"
+            role="menuitem"
+            className="menu-item"
+            onClick={close}
+          >
+            <Icon name="bell" />
+            <span className="profile-menu-item-label">{t('nav:notifications')}</span>
+            {badge != null && (
+              <span className="profile-menu-count" aria-label={t('nav:unreadCount', { count: unreadCount })}>
+                {badge}
+              </span>
+            )}
+          </Link>
+
+          <Link
             to="/account"
             role="menuitem"
             className="menu-item"
@@ -121,7 +146,6 @@ export function ProfileMenu({
             <Icon name="users" />
             {t('account')}
           </Link>
-
           <div className="profile-menu-prefs" role="none">
             <div className="profile-menu-pref">
               <span>

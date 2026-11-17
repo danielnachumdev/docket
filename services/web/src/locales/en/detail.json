@@ -23,7 +23,7 @@
   "read": "Read",
   "watch": "Watch",
   "watching": "Watching",
-  "watchHint": "Get inbox updates when this task changes",
+  "watchHint": "Get notification updates when this task changes",
   "export": "Export audit pack",
   "exportHint": "Download immutable audit pack (zip)",
   "archive": "Archive",

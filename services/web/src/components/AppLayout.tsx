@@ -140,7 +140,6 @@ export function AppLayout({
           icon: 'tasks',
           match: (path) => (path === '/' && !isArchived) || path.startsWith('/tasks/'),
         },
-        page('/notifications', t('nav:inbox'), 'bell', unread),
         page('/artifacts', t('nav:artifacts'), 'paperclip'),
         page('/progress', t('nav:progress'), 'activity'),
         {
@@ -237,6 +236,7 @@ export function AppLayout({
               onToggleTheme={onToggleTheme}
               onLogout={onLogout}
               showIdentity={!navCollapsed}
+              unreadCount={unread}
             />
           </div>
         </div>
@@ -253,6 +253,7 @@ export function AppLayout({
           onToggleTheme={onToggleTheme}
           onLogout={onLogout}
           align="end"
+          unreadCount={unread}
         />
       </header>
 
