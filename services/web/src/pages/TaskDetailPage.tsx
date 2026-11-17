@@ -660,6 +660,7 @@ export function TaskDetailPage() {
           <ActivitySection
             taskId={taskId}
             artifacts={detail.artifacts}
+            tasksById={tasksById}
             refreshKey={activityTick + detail.events.length + detail.artifacts.length}
             onCommentsChanged={onCommentsChanged}
           />
