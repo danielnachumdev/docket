@@ -1,5 +1,5 @@
 {
-  "title": "Inbox",
+  "title": "Notifications",
   "caughtUp": "You're all caught up.",
   "unreadCount_one": "{{count}} unread notification",
   "unreadCount_other": "{{count}} unread notifications",
