@@ -129,7 +129,8 @@
     "commentBy": "{{author}} · comment #{{id}}",
     "clickOpen": "Click to open full size",
     "clickPlay": "Play here, or click to open the player",
-    "clickLink": "Click to open {{host}}"
+    "clickLink": "Click to open {{host}}",
+    "private": "This item is private"
   },
   "commentPicker": "Insert reference",
   "commentReadOnly": "You can read this thread, but commenting needs the commentor role or higher.",

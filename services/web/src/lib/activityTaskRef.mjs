@@ -21,6 +21,14 @@ export function formatActivityTaskChipLabel({
 }
 
 /**
+ * True when the API marked a task ref as not shared with the viewer.
+ * @param {{ kind?: string, accessible?: boolean } | null | undefined} ref
+ */
+export function isInaccessibleTaskRef(ref) {
+  return Boolean(ref && ref.kind === 'task' && ref.accessible === false)
+}
+
+/**
  * @param {Record<string, unknown> | null | undefined} payload
  * @returns {{ from: string | null, to: string | null, kind: string | null }}
  */
