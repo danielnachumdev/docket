@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import type { TFunction } from 'i18next'
 import { Trans, useTranslation } from 'react-i18next'
 import {
@@ -16,6 +24,7 @@ import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Menu } from '../../components/Menu'
 import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
+import { ActivitySkeleton } from '../../components/Skeleton'
 import { linkEventTaskIds } from '../../lib/activityTaskRef'
 import { formatDateTime, formatRelative, humanize, statusLabel } from '../../lib/format'
 import { mapPool } from '../../lib/mapPool'
@@ -586,21 +595,27 @@ export function ActivitySection({
   const meId = status?.user?.id
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
   const [showAll, setShowAll] = useState(false)
-  const [items, setItems] = useState<ActivityItem[]>([])
+  /** null = not yet loaded for this task (show skeleton; avoid empty flash). */
+  const [items, setItems] = useState<ActivityItem[] | null>(null)
   const [fetchedLookups, setFetchedLookups] = useState<Map<string, TaskRefLookup>>(
     () => new Map(),
   )
   const { busy, error, setError, run } = useAction()
+  const loadGen = useRef(0)
 
   const reload = useCallback(() => {
+    const gen = ++loadGen.current
     void run(async () => {
       const feed = await api.listActivity(taskId, order)
+      if (gen !== loadGen.current) return
       setItems(feed.items)
     }, t('activity.loadFailed'))
   }, [order, run, t, taskId])
 
   useEffect(() => {
+    loadGen.current += 1
     setShowAll(false)
+    setItems(null)
     setFetchedLookups(new Map())
   }, [taskId])
 
@@ -610,7 +625,7 @@ export function ActivitySection({
 
   const commentsById = useMemo(() => {
     const map = new Map<number, TaskComment>()
-    for (const item of items) {
+    for (const item of items ?? []) {
       if (item.kind === 'comment' && item.comment) map.set(item.comment.id, item.comment)
     }
     return map
@@ -627,7 +642,7 @@ export function ActivitySection({
 
   const linkTaskIds = useMemo(() => {
     const ids = new Set<string>()
-    for (const item of items) {
+    for (const item of items ?? []) {
       if (!item.event || (item.event.type !== 'linked' && item.event.type !== 'unlinked')) continue
       const { from, to } = linkEventTaskIds(parsePayload(item.event.payload_json))
       if (from) ids.add(from)
@@ -690,13 +705,13 @@ export function ActivitySection({
     return map
   }, [fetchedLookups, linkTaskIds, tasksById])
 
-  const visibleItems = useMemo(
-    () => (showAll ? items : items.filter(isPrimaryActivityItem)),
-    [items, showAll],
-  )
-  const hiddenCount = items.length - visibleItems.length
+  const visibleItems = useMemo(() => {
+    if (items == null) return []
+    return showAll ? items : items.filter(isPrimaryActivityItem)
+  }, [items, showAll])
+  const hiddenCount = items == null ? 0 : items.length - visibleItems.length
 
-  useHashHighlight(`${taskId}:${visibleItems.length}:${items.length}`)
+  useHashHighlight(`${taskId}:${visibleItems.length}:${items?.length ?? 0}`)
 
   function toggleOrder() {
     setOrder((prev) => {
@@ -750,7 +765,9 @@ export function ActivitySection({
       </header>
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
-      {items.length === 0 ? (
+      {items == null ? (
+        !error && <ActivitySkeleton rows={4} />
+      ) : items.length === 0 ? (
         <p className="muted small activity-empty">{t('activity.empty')}</p>
       ) : visibleItems.length === 0 ? (
         <p className="muted small activity-empty">

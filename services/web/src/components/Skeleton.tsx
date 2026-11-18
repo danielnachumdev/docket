@@ -156,3 +156,22 @@ export function DetailSkeleton() {
     </Frame>
   )
 }
+
+/** Task activity timeline rows (dot + summary line). */
+export function ActivitySkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <Frame className="skeleton-activity">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="skeleton-activity-row">
+          <Bone className="bone-dot" />
+          <span className="skeleton-lines">
+            <Bone className="bone-line" width={TITLE_WIDTHS[i % TITLE_WIDTHS.length]} />
+            {i % 3 === 1 && (
+              <Bone className="bone-line sm" width={META_WIDTHS[i % META_WIDTHS.length] + 20} />
+            )}
+          </span>
+        </div>
+      ))}
+    </Frame>
+  )
+}
