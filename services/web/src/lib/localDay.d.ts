@@ -63,7 +63,12 @@ export function dueSectionForTask(
   nowMs?: number,
 ): DueSectionId
 
-/** Group tasks into date-mode sections (non-empty only). */
+/** Group tasks into date-mode sections (non-empty only); within each, due then created. */
 export function groupTasksByDueSection<
-  T extends { due_at?: string | null; due_horizon?: string | null },
+  T extends {
+    due_at?: string | null
+    due_horizon?: string | null
+    created_at?: string | null
+    id?: string | number
+  },
 >(tasks: T[], nowMs?: number): { id: DueSectionId; tasks: T[] }[]

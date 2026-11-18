@@ -152,8 +152,33 @@ export function dueSectionForTask(task, nowMs = Date.now()) {
 }
 
 /**
- * Group tasks into date-mode sections (non-empty only), preserving relative order within each.
- * @template {{ due_at?: string | null, due_horizon?: string | null }} T
+ * Within a date-mode section: earlier `due_at` first, then older `created_at`
+ * (addition order). Missing timestamps sort last; `id` breaks remaining ties.
+ * @param {{ due_at?: string | null, created_at?: string | null, id?: string | number }} a
+ * @param {{ due_at?: string | null, created_at?: string | null, id?: string | number }} b
+ */
+function compareWithinDueSection(a, b) {
+  const dueA = parseDueAt(a?.due_at)?.getTime() ?? Number.POSITIVE_INFINITY
+  const dueB = parseDueAt(b?.due_at)?.getTime() ?? Number.POSITIVE_INFINITY
+  if (dueA !== dueB) return dueA - dueB
+
+  const createdA = parseDueAt(a?.created_at)?.getTime() ?? Number.POSITIVE_INFINITY
+  const createdB = parseDueAt(b?.created_at)?.getTime() ?? Number.POSITIVE_INFINITY
+  if (createdA !== createdB) return createdA - createdB
+
+  const idA = a?.id
+  const idB = b?.id
+  if (idA == null && idB == null) return 0
+  if (idA == null) return 1
+  if (idB == null) return -1
+  if (typeof idA === 'number' && typeof idB === 'number') return idA - idB
+  return String(idA).localeCompare(String(idB))
+}
+
+/**
+ * Group tasks into date-mode sections (non-empty only). Within each section,
+ * sort by due date ascending, then creation time ascending (oldest first).
+ * @template {{ due_at?: string | null, due_horizon?: string | null, created_at?: string | null, id?: string | number }} T
  * @param {T[]} tasks
  * @param {number} [nowMs]
  * @returns {{ id: (typeof DUE_SECTION_IDS)[number], tasks: T[] }[]}
@@ -165,6 +190,8 @@ export function groupTasksByDueSection(tasks, nowMs = Date.now()) {
     const id = dueSectionForTask(task, nowMs)
     buckets.get(id).push(task)
   }
-  return DUE_SECTION_IDS.map((id) => ({ id, tasks: buckets.get(id) }))
-    .filter((section) => section.tasks.length > 0)
+  return DUE_SECTION_IDS.map((id) => ({
+    id,
+    tasks: buckets.get(id).slice().sort(compareWithinDueSection),
+  })).filter((section) => section.tasks.length > 0)
 }
