@@ -171,12 +171,57 @@ describe('dueSectionForDueAt / groupTasksByDueSection', () => {
     )
   })
 
+  it('sorts within a section by due_at then created_at (oldest first)', () => {
+    const tasks = [
+      {
+        id: 'late-new',
+        due_at: localIso(2026, 11, 25, 18),
+        due_horizon: 'week',
+        created_at: localIso(2026, 11, 10, 12),
+      },
+      {
+        id: 'early-old',
+        due_at: localIso(2026, 11, 22, 9),
+        due_horizon: 'week',
+        created_at: localIso(2026, 11, 1, 8),
+      },
+      {
+        id: 'early-new',
+        due_at: localIso(2026, 11, 22, 9),
+        due_horizon: 'week',
+        created_at: localIso(2026, 11, 5, 8),
+      },
+      {
+        id: 'none-new',
+        due_at: null,
+        created_at: localIso(2026, 11, 12, 9),
+      },
+      {
+        id: 'none-old',
+        due_at: null,
+        created_at: localIso(2026, 11, 2, 9),
+      },
+    ]
+    const sections = groupTasksByDueSection(tasks, now)
+    assert.deepEqual(
+      sections.map((s) => s.id),
+      ['week', 'none'],
+    )
+    assert.deepEqual(
+      sections.map((s) => s.tasks.map((t) => t.id)),
+      [
+        ['early-old', 'early-new', 'late-new'],
+        ['none-old', 'none-new'],
+      ],
+    )
+  })
+
   it('groups Q4 year-intent under year while quarter-intent stays quarter', () => {
     const yearEnd = endOfHorizon('year', new Date(now)).toISOString()
     const tasks = [
-      { id: 'q', due_at: yearEnd, due_horizon: 'quarter' },
-      { id: 'y', due_at: yearEnd, due_horizon: 'year' },
-      { id: 'legacy', due_at: yearEnd, due_horizon: null },
+      { id: 'q', due_at: yearEnd, due_horizon: 'quarter', created_at: localIso(2026, 1, 2) },
+      { id: 'y', due_at: yearEnd, due_horizon: 'year', created_at: localIso(2026, 1, 1) },
+      { id: 'legacy', due_at: yearEnd, due_horizon: null, created_at: localIso(2026, 1, 3) },
     ]
     const sections = groupTasksByDueSection(tasks, now)
     assert.deepEqual(
