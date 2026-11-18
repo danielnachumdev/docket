@@ -5,7 +5,6 @@ import { Alert, EmptyState } from '../components/Feedback'
 import { Skeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
 import { ListRow } from '../components/ListRow'
-import { PageHeader } from '../components/PageHeader'
 import { SecretReveal } from '../components/SecretReveal'
 import { SectionHeading } from '../components/SectionHeading'
 import { useConfirm } from '../lib/dialogs'
@@ -17,7 +16,7 @@ type Props = {
   canMint?: boolean
 }
 
-export function InvitesPage({ canMint = false }: Props) {
+export function InvitesSection({ canMint = false }: Props) {
   const { t } = useTranslation(['integrations', 'common'])
   const confirm = useConfirm()
   const toast = useToast()
@@ -69,8 +68,8 @@ export function InvitesPage({ canMint = false }: Props) {
   }
 
   return (
-    <main className="page narrow">
-      <PageHeader title={t('invites.title')} subtitle={t('invites.subtitle')} />
+    <section id="invites" className="collaborators-invites">
+      <SectionHeading title={t('invites.sectionTitle')} count={invites?.length} />
 
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
       {!canMint && <Alert tone="info">{t('invites.ownerOnlyHint')}</Alert>}
@@ -85,37 +84,34 @@ export function InvitesPage({ canMint = false }: Props) {
         </SecretReveal>
       )}
 
-      <form className="card create-form" onSubmit={onCreate}>
-        <label className="field grow">
-          <span>{t('invites.email')}</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={t('invites.emailPlaceholder')}
-            maxLength={320}
-            disabled={!canMint || busy}
-          />
-        </label>
-        <button
-          type="submit"
-          className="btn primary"
-          disabled={!canMint || busy}
-          title={!canMint ? t('invites.mintDisabled') : undefined}
-        >
-          <Icon name="plus" />
-          {t('invites.create')}
-        </button>
-      </form>
-
-      <SectionHeading title={t('invites.historyTitle')} count={invites?.length} />
+      {canMint && (
+        <form className="card create-form" onSubmit={onCreate}>
+          <label className="field grow">
+            <span>{t('invites.email')}</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('invites.emailPlaceholder')}
+              maxLength={320}
+              disabled={busy}
+            />
+          </label>
+          <button type="submit" className="btn primary" disabled={busy}>
+            <Icon name="plus" />
+            {t('invites.create')}
+          </button>
+        </form>
+      )}
 
       {invites == null ? (
         <Skeleton rows={3} trailing />
       ) : invites.length === 0 ? (
-        <EmptyState icon="userPlus" title={t('invites.emptyTitle')}>
-          {canMint ? t('invites.emptyHint') : t('invites.ownerOnlyHint')}
-        </EmptyState>
+        canMint ? (
+          <EmptyState icon="userPlus" title={t('invites.emptyTitle')}>
+            {t('invites.emptyHint')}
+          </EmptyState>
+        ) : null
       ) : (
         <ul className="card list">
           {invites.map((invite) => {
@@ -161,6 +157,6 @@ export function InvitesPage({ canMint = false }: Props) {
           })}
         </ul>
       )}
-    </main>
+    </section>
   )
 }

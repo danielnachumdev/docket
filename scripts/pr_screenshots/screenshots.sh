@@ -12,7 +12,8 @@
 #   tasks          /
 #   notifications  /notifications
 #   artifacts      /artifacts
-#   people         /people
+#   collaborators  /collaborators
+#   people         /collaborators  (alias)
 #   account        /account
 #   storage        /storage          (admin)
 #   progress       /progress
@@ -79,7 +80,7 @@ done
 SHOTS_CSV=${SHOTS_CSV// /}
 if [[ -z "$SHOTS_CSV" ]]; then
   echo "No shots selected. Pass --shots name,name or set WAYMARK_SHOTS." >&2
-  echo "Built-ins: login tasks notifications artifacts people account storage progress task-detail" >&2
+  echo "Built-ins: login tasks notifications artifacts collaborators account storage progress task-detail" >&2
   echo "Agents: choose only surfaces changed by this PR (e.g. --shots progress)." >&2
   exit 1
 fi
@@ -121,7 +122,8 @@ declare -A BUILTIN_PATHS=(
   [tasks]=/
   [notifications]=/notifications
   [artifacts]=/artifacts
-  [people]=/people
+  [collaborators]=/collaborators
+  [people]=/collaborators
   [account]=/account
   [storage]=/storage
   [progress]=/progress
@@ -175,7 +177,7 @@ for name in "${SHOT_NAMES[@]}"; do
   fi
   path=$(path_for_shot "$name") || {
     echo "unknown shot: $name" >&2
-    echo "Built-ins: login tasks notifications artifacts people account storage progress task-detail" >&2
+    echo "Built-ins: login tasks notifications artifacts collaborators account storage progress task-detail" >&2
     echo "Or pass --extra name:/path" >&2
     exit 1
   }

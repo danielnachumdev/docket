@@ -157,8 +157,7 @@ export function AppLayout({
       id: 'team',
       label: t('nav:team'),
       items: [
-        page('/people', t('nav:people'), 'users'),
-        page('/invites', t('nav:invites'), 'userPlus'),
+        page('/collaborators', t('nav:collaborators'), 'users'),
       ],
     },
     {
