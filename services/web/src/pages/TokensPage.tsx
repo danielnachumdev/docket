@@ -12,6 +12,7 @@ import { useConfirm } from '../lib/dialogs'
 import { formatDateTime, formatRelative } from '../lib/format'
 import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
+import { TokenUsagePanel } from './TokenUsagePanel'
 
 export function TokensPage() {
   const { t } = useTranslation(['integrations', 'common'])
@@ -23,6 +24,7 @@ export function TokensPage() {
   const [roleId, setRoleId] = useState('')
   const [includeRevoked, setIncludeRevoked] = useState(false)
   const [createdRaw, setCreatedRaw] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
   const { busy, error, setError, run } = useAction()
 
   const load = useCallback(async () => {
@@ -64,9 +66,14 @@ export function TokensPage() {
     if (!ok) return
     void run(async () => {
       await api.revokeToken(token.id)
+      if (expandedId === token.id) setExpandedId(null)
       await load()
       toast(t('tokens.revokedToast', { name: token.name }))
     }, t('tokens.revokeFailed'))
+  }
+
+  function toggleUsage(tokenId: number) {
+    setExpandedId((prev) => (prev === tokenId ? null : tokenId))
   }
 
   return (
@@ -140,11 +147,13 @@ export function TokensPage() {
         <ul className="card list">
           {tokens.map((token) => {
             const revoked = token.revoked_at != null
+            const expanded = expandedId === token.id
             return (
               <ListRow
                 key={token.id}
                 icon="key"
                 muted={revoked}
+                className={expanded ? 'token-row-expanded' : undefined}
                 title={token.name}
                 meta={[
                   token.role_name
@@ -160,19 +169,30 @@ export function TokensPage() {
                   </span>,
                 ]}
                 trailing={
-                  revoked ? (
-                    <span className="tag">{t('tokens.revoked')}</span>
-                  ) : (
+                  <>
                     <button
                       type="button"
-                      className="btn ghost small danger"
-                      disabled={busy}
-                      onClick={() => void onRevoke(token)}
+                      className="btn ghost small"
+                      aria-expanded={expanded}
+                      onClick={() => toggleUsage(token.id)}
                     >
-                      {t('common:revoke')}
+                      {expanded ? t('tokens.hideUsage') : t('tokens.showUsage')}
                     </button>
-                  )
+                    {revoked ? (
+                      <span className="tag">{t('tokens.revoked')}</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn ghost small danger"
+                        disabled={busy}
+                        onClick={() => void onRevoke(token)}
+                      >
+                        {t('common:revoke')}
+                      </button>
+                    )}
+                  </>
                 }
+                detail={expanded ? <TokenUsagePanel tokenId={token.id} /> : null}
               />
             )
           })}

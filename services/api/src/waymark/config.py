@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     rate_limit_token_enabled: bool = True
     rate_limit_token_requests: int = 120
     rate_limit_token_window_seconds: int = 60
+    # Durable per-token request log (Bearer only). Path/method/status/IP/UA;
+    # never stores Authorization or raw token values. Pruned on write.
+    token_usage_log_enabled: bool = True
+    token_usage_log_retention_days: int = 14
+    token_usage_log_max_rows_per_token: int = 5000
     # SQLAlchemy QueuePool (SQLite file DBs use QueuePool in SQLAlchemy 2.1+).
     # Size for concurrent request peak; keep below Cloud SQL / PgBouncer caps when
     # using Postgres. Short pool_timeout fails fast (HTTP 503) instead of a long hang.

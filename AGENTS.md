@@ -80,6 +80,16 @@ Create file artifacts via JSON with `content_base64`. Content streams through `G
 - **Caveat:** in-memory counters are per process; multi-worker uvicorn roughly multiplies effective capacity.
 - **Nginx safety net:** Compose/local `services/web/nginx.conf.template` (and waymark-deploy) apply a very high per-IP `limit_req` (~100 r/s, burst 200) on `/api/` so only pathological floods trip at the edge.
 
+## API token usage log
+
+Bearer-authenticated requests are appended to `api_token_request_logs` (method, path, status, client IP, truncated user-agent, timestamp). No Authorization header or raw token value is stored. Owners with `tokens:manage` read trends via `GET /api/tokens/{id}/usage` and a paginated log via `GET /api/tokens/{id}/requests` for **any** of their tokens (independent of token `role_id`). Pruned on write.
+
+| Env | Default | Meaning |
+| --- | ------- | ------- |
+| `TOKEN_USAGE_LOG_ENABLED` | `true` | Record per-token request rows after Authn |
+| `TOKEN_USAGE_LOG_RETENTION_DAYS` | `14` | Drop rows older than this many days |
+| `TOKEN_USAGE_LOG_MAX_ROWS_PER_TOKEN` | `5000` | Cap rows kept per token (oldest deleted first) |
+
 ## Database connection pool
 
 SQLAlchemy `QueuePool` (including SQLite file URLs on SQLAlchemy 2.1+). Exhausted checkout raises `sqlalchemy.exc.TimeoutError`, mapped to **HTTP 503** (`Database busy; try again shortly`) so clients fail fast instead of hanging on a long pool checkout.
