@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import base64
+import json
 
 from fastapi.testclient import TestClient
 
-from tests.helpers import bootstrap_owner
+from tests.helpers import bootstrap_owner, invite_and_register_contact
 from waymark.main import create_app
 
 
@@ -139,3 +140,36 @@ def test_comment_artifact_attachment_inline() -> None:
         i["event"]["type"] for i in feed2["items"] if i["kind"] == "event" and i["event"]
     ]
     assert "artifact_added" in event_types2
+
+
+def test_share_activity_enriches_display_name() -> None:
+    client = TestClient(create_app())
+    bootstrap_owner(client)
+    task = client.post("/api/tasks", json={"title": "Share activity"}).json()
+    sharee = invite_and_register_contact(
+        client, email="alex@example.com", display_name="Alex Friend"
+    )
+    share = client.post(
+        f"/api/tasks/{task['id']}/shares",
+        json={"email": "alex@example.com", "role": "commentor"},
+    )
+    assert share.status_code == 201
+
+    nickname = client.patch(
+        f"/api/me/contacts/{sharee['id']}",
+        json={"nickname": "Al"},
+    )
+    assert nickname.status_code == 200, nickname.text
+
+    feed = client.get(f"/api/tasks/{task['id']}/activity").json()
+    shared = next(
+        i
+        for i in feed["items"]
+        if i["kind"] == "event" and i["event"] and i["event"]["type"] == "shared"
+    )
+    payload = json.loads(shared["event"]["payload_json"])
+    assert payload["user_id"] == sharee["id"]
+    assert payload["role"] == "commentor"
+    assert payload["display_name"] == "Alex Friend"
+    assert payload["nickname"] == "Al"
+    assert payload["email"] == "alex@example.com"
