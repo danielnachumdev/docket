@@ -225,6 +225,12 @@
   color: inherit;
 }
 
+.task-main .task-title-row {
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
 .task-main:hover {
   color: inherit;
 }
@@ -271,6 +277,11 @@
 .due-horizon-toggle.active,
 .due-horizon-toggle:focus-within {
   opacity: 1;
+}
+
+.task-meta .parent-chip {
+  max-width: 6.5rem;
+  padding: 0.08rem 0.4rem;
 }
 
 .unread-toggle.active,
@@ -347,6 +358,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem 0.9rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .task-status {
@@ -466,11 +479,15 @@
 
   .task-row {
     gap: 0.3rem;
-    padding-inline: 0.15rem 0.6rem;
+    padding-inline: 0 0.5rem;
   }
 
   .task-row .drag-handle {
-    width: 1.4rem;
+    width: 1rem;
+  }
+
+  .task-row .drag-handle-spacer {
+    display: none;
   }
 
   .date-sections {
@@ -513,23 +530,103 @@
     margin-inline-start: auto;
   }
 
-  /* Status on top, parent chip under it: uses the row's two lines instead of
-     stealing title width. */
+  .task-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    column-gap: 0.35rem;
+    row-gap: 0.2rem;
+    align-items: center;
+    padding-block: 0.4rem;
+  }
+
+  .task-row > .drag-handle,
+  .task-row > .drag-handle-spacer {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .task-row > .task-select {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .task-row > .check {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    margin-top: 0;
+  }
+
+  .task-main {
+    display: contents;
+    padding: 0;
+  }
+
+  .task-title-row {
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 0;
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .task-title-row .task-title {
+    direction: inherit;
+    unicode-bidi: plaintext;
+    text-align: start;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .task-meta {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    min-width: 0;
+    flex-wrap: nowrap;
+    gap: 0.3rem 0.45rem;
+    overflow: visible;
+  }
+
   .task-row-end {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.3rem;
+    display: contents;
   }
 
   .task-row-end .task-status {
-    order: -1;
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: end;
+    align-self: center;
+  }
+
+  .task-row-end .due-horizon-toggle {
+    grid-column: 4;
+    grid-row: 2;
+    justify-self: end;
+    align-self: center;
+    opacity: 0.85;
+  }
+
+  .task-row-end .unread-toggle {
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: end;
   }
 
   .task-title {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     white-space: normal;
     line-height: 1.3;
+  }
+
+  .priority-badge .priority-label {
+    display: none;
+  }
+
+  .task-meta .parent-chip {
+    flex: none;
+    max-width: 5.5rem;
   }
 }

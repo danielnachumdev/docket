@@ -122,8 +122,8 @@ function TaskRow({
             >
               <Icon name="check" size={12} />
             </button>
-            <Link to={`/tasks/${task.id}`} className="task-main">
-              <span className="task-title-row">
+            <div className="task-main">
+              <Link to={`/tasks/${task.id}`} className="task-title-row">
                 {unread && <span className="unread-dot" aria-hidden="true" />}
                 {shared && (
                   <span className="shared-mark" title={t('shared')} aria-label={t('shared')}>
@@ -134,8 +134,9 @@ function TaskRow({
                   text={task.title}
                   className={unread ? 'task-title unread' : 'task-title'}
                 />
-              </span>
+              </Link>
               <span className="task-meta">
+                <span className="meta-item mono task-number">#{task.number}</span>
                 <PriorityBadge priority={task.priority} />
                 <DueBadge due={task.due_at} closed={closed} />
                 {childCount > 0 && (
@@ -144,29 +145,19 @@ function TaskRow({
                     {childDone}/{childCount}
                   </span>
                 )}
-                <span className="meta-item mono">#{task.number}</span>
+                {hasParent && (
+                  <Link
+                    to={`/tasks/${parent.id}`}
+                    className="parent-chip"
+                    title={t('subtaskOf', { number: parent.number, title: parent.title })}
+                  >
+                    <Icon name="subtasks" size={12} />
+                    {t('subtaskOfShort', { number: parent.number })}
+                  </Link>
+                )}
               </span>
-            </Link>
+            </div>
             <div className="task-row-end">
-              {hasParent && (
-                <Link
-                  to={`/tasks/${parent.id}`}
-                  className="parent-chip"
-                  title={t('subtaskOf', { number: parent.number, title: parent.title })}
-                >
-                  <Icon name="subtasks" size={12} />
-                  {t('subtaskOfShort', { number: parent.number })}
-                </Link>
-              )}
-              {!closed && (
-                <HorizonDueMenu
-                  label={t('horizon.setNamed', { title: task.title })}
-                  hasDue={hasDue}
-                  className={hasDue ? 'due-horizon-toggle active' : 'due-horizon-toggle'}
-                  omitExact
-                  onChoose={(choice) => onDueHorizon(task, choice)}
-                />
-              )}
               <button
                 type="button"
                 className={
@@ -208,6 +199,15 @@ function TaskRow({
                 </select>
                 <Icon name="chevronDown" size={12} />
               </label>
+              {!closed && (
+                <HorizonDueMenu
+                  label={t('horizon.setNamed', { title: task.title })}
+                  hasDue={hasDue}
+                  className={hasDue ? 'due-horizon-toggle active' : 'due-horizon-toggle'}
+                  omitExact
+                  onChoose={(choice) => onDueHorizon(task, choice)}
+                />
+              )}
             </div>
           </div>
         </li>
