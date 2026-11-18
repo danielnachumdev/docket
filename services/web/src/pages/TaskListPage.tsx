@@ -22,6 +22,7 @@ import {
   type Status,
 } from '../lib/format'
 import { HorizonDueMenu, type HorizonDueChoice } from '../components/HorizonDueMenu'
+import { TaskLinkShareMenu } from '../components/TaskLinkShareMenu'
 import {
   dueAtIsoForHorizon,
   groupTasksByDueSection,
@@ -158,47 +159,56 @@ function TaskRow({
               </span>
             </div>
             <div className="task-row-end">
-              <button
-                type="button"
-                className={
-                  unread ? 'icon-btn ghost unread-toggle active' : 'icon-btn ghost unread-toggle'
-                }
-                aria-label={
-                  unread
-                    ? t('markReadNamed', { title: task.title })
-                    : t('markUnreadNamed', { title: task.title })
-                }
-                aria-pressed={unread}
-                title={unread ? t('markRead') : t('markUnread')}
-                onClick={() => onToggleUnread(task)}
-              >
-                <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
-              </button>
-              {task.status_reason && isPauseStatus(task.status) && (
-                <UserBidiText
-                  text={task.status_reason}
-                  className={`status-reason status-${task.status}`}
-                  title={t('statusReasonHint', { reason: task.status_reason })}
+              <div className="task-row-end-top">
+                <TaskLinkShareMenu
+                  taskId={task.id}
+                  title={task.title}
+                  number={task.number}
+                  className="link-share-toggle"
+                  label={t('linkShare.buttonNamed', { title: task.title })}
                 />
-              )}
-              <label
-                className={`task-status status-badge status-select status-${task.status}`}
-                title={t('changeStatus')}
-              >
-                <span className="status-dot" aria-hidden="true" />
-                <select
-                  value={task.status}
-                  onChange={(e) => onStatusChange(task, e.target.value as Status)}
-                  aria-label={t('changeStatusNamed', { title: task.title })}
+                <button
+                  type="button"
+                  className={
+                    unread ? 'icon-btn ghost unread-toggle active' : 'icon-btn ghost unread-toggle'
+                  }
+                  aria-label={
+                    unread
+                      ? t('markReadNamed', { title: task.title })
+                      : t('markUnreadNamed', { title: task.title })
+                  }
+                  aria-pressed={unread}
+                  title={unread ? t('markRead') : t('markUnread')}
+                  onClick={() => onToggleUnread(task)}
                 >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {statusLabel(s)}
-                    </option>
-                  ))}
-                </select>
-                <Icon name="chevronDown" size={12} />
-              </label>
+                  <Icon name={unread ? 'mail' : 'mailOpen'} size={14} />
+                </button>
+                {task.status_reason && isPauseStatus(task.status) && (
+                  <UserBidiText
+                    text={task.status_reason}
+                    className={`status-reason status-${task.status}`}
+                    title={t('statusReasonHint', { reason: task.status_reason })}
+                  />
+                )}
+                <label
+                  className={`task-status status-badge status-select status-${task.status}`}
+                  title={t('changeStatus')}
+                >
+                  <span className="status-dot" aria-hidden="true" />
+                  <select
+                    value={task.status}
+                    onChange={(e) => onStatusChange(task, e.target.value as Status)}
+                    aria-label={t('changeStatusNamed', { title: task.title })}
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {statusLabel(s)}
+                      </option>
+                    ))}
+                  </select>
+                  <Icon name="chevronDown" size={12} />
+                </label>
+              </div>
               {!closed && (
                 <HorizonDueMenu
                   label={t('horizon.setNamed', { title: task.title })}
