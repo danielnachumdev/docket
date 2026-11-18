@@ -400,8 +400,9 @@
   gap: 0.5rem;
 }
 
-/* Flatten into the row flex on desktop; becomes a real cluster on narrow. */
-.task-row-end-top {
+/* Flatten into the row flex on desktop; become real clusters on narrow. */
+.task-row-end-top,
+.task-row-end-trailing {
   display: contents;
 }
 
@@ -609,7 +610,8 @@
     align-self: stretch;
   }
 
-  .task-row-end-top {
+  .task-row-end-top,
+  .task-row-end-trailing {
     display: flex;
     align-items: center;
     justify-content: flex-end;

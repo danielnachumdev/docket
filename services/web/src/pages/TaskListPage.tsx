@@ -160,13 +160,6 @@ function TaskRow({
             </div>
             <div className="task-row-end">
               <div className="task-row-end-top">
-                <TaskLinkShareMenu
-                  taskId={task.id}
-                  title={task.title}
-                  number={task.number}
-                  className="link-share-toggle"
-                  label={t('linkShare.buttonNamed', { title: task.title })}
-                />
                 <button
                   type="button"
                   className={
@@ -209,15 +202,24 @@ function TaskRow({
                   <Icon name="chevronDown" size={12} />
                 </label>
               </div>
-              {!closed && (
-                <HorizonDueMenu
-                  label={t('horizon.setNamed', { title: task.title })}
-                  hasDue={hasDue}
-                  className={hasDue ? 'due-horizon-toggle active' : 'due-horizon-toggle'}
-                  omitExact
-                  onChoose={(choice) => onDueHorizon(task, choice)}
+              <div className="task-row-end-trailing">
+                <TaskLinkShareMenu
+                  taskId={task.id}
+                  title={task.title}
+                  number={task.number}
+                  className="link-share-toggle"
+                  label={t('linkShare.buttonNamed', { title: task.title })}
                 />
-              )}
+                {!closed && (
+                  <HorizonDueMenu
+                    label={t('horizon.setNamed', { title: task.title })}
+                    hasDue={hasDue}
+                    className={hasDue ? 'due-horizon-toggle active' : 'due-horizon-toggle'}
+                    omitExact
+                    onChoose={(choice) => onDueHorizon(task, choice)}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </li>
