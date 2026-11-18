@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,3 +29,46 @@ class ApiTokenOut(BaseModel):
 
 class ApiTokenCreatedOut(ApiTokenOut):
     token: str
+
+
+class TokenUsageBucketOut(BaseModel):
+    bucket: datetime
+    count: int
+
+
+class TokenUsageStatusOut(BaseModel):
+    status_class: Literal["2xx", "3xx", "4xx", "5xx", "other"]
+    count: int
+
+
+class TokenUsagePathOut(BaseModel):
+    path: str
+    count: int
+
+
+class TokenUsageOut(BaseModel):
+    window_days: int
+    generated_at: datetime
+    granularity: Literal["hour", "day"]
+    total_requests: int
+    requests_by_bucket: list[TokenUsageBucketOut]
+    status_mix: list[TokenUsageStatusOut]
+    top_paths: list[TokenUsagePathOut]
+
+
+class TokenRequestLogOut(BaseModel):
+    id: int
+    created_at: datetime
+    method: str
+    path: str
+    status_code: int
+    client_ip: str | None
+    user_agent: str | None
+
+
+class TokenRequestPageOut(BaseModel):
+    total: int
+    offset: int
+    limit: int
+    has_more: bool
+    items: list[TokenRequestLogOut]

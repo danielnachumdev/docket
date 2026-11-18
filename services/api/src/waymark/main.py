@@ -29,6 +29,7 @@ from waymark.config import ROOT, get_settings
 from waymark.db import database, pool_timeout_handler
 from waymark.rate_limit import RateLimitMiddleware
 from waymark.seed import rbac_seeder
+from waymark.token_usage import TokenUsageMiddleware
 
 
 @asynccontextmanager
@@ -54,8 +55,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     # add_middleware wraps outward: last added runs first on the request.
-    # Request order: CORS → Authn → RateLimit → routes (principal set before limit).
+    # Request order: CORS → Authn → TokenUsage → RateLimit → routes
+    # (principal set before usage/limit; usage sees 429 from rate limit).
     app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(TokenUsageMiddleware)
     app.add_middleware(AuthnMiddleware)
     app.add_middleware(
         CORSMiddleware,

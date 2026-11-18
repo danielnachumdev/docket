@@ -11,6 +11,8 @@ type Props = {
   muted?: boolean
   className?: string
   children?: ReactNode
+  /** Full-width block below the main row (e.g. expandable panels). */
+  detail?: ReactNode
 }
 
 export function ListRow({
@@ -23,9 +25,17 @@ export function ListRow({
   muted = false,
   className,
   children,
+  detail,
 }: Props) {
   const metaItems = meta?.filter((item) => item != null && item !== false) ?? []
-  const rowClass = ['list-row', muted ? 'revoked' : '', className].filter(Boolean).join(' ')
+  const rowClass = [
+    'list-row',
+    muted ? 'revoked' : '',
+    detail != null ? 'with-detail' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
   return (
     <li className={rowClass}>
       {leading ??
@@ -47,6 +57,7 @@ export function ListRow({
         {children}
       </span>
       {trailing != null && <span className="row-actions">{trailing}</span>}
+      {detail != null && <div className="list-row-detail">{detail}</div>}
     </li>
   )
 }

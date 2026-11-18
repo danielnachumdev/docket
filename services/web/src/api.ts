@@ -324,6 +324,49 @@ export type ApiTokenCreated = ApiToken & {
   token: string
 }
 
+export type TokenUsageBucket = {
+  bucket: string
+  count: number
+}
+
+export type TokenUsageStatus = {
+  status_class: '2xx' | '3xx' | '4xx' | '5xx' | 'other'
+  count: number
+}
+
+export type TokenUsagePath = {
+  path: string
+  count: number
+}
+
+export type TokenUsage = {
+  window_days: number
+  generated_at: string
+  granularity: 'hour' | 'day'
+  total_requests: number
+  requests_by_bucket: TokenUsageBucket[]
+  status_mix: TokenUsageStatus[]
+  top_paths: TokenUsagePath[]
+}
+
+export type TokenRequestLog = {
+  id: number
+  created_at: string
+  method: string
+  path: string
+  status_code: number
+  client_ip: string | null
+  user_agent: string | null
+}
+
+export type TokenRequestPage = {
+  total: number
+  offset: number
+  limit: number
+  has_more: boolean
+  items: TokenRequestLog[]
+}
+
 export type Webhook = {
   id: number
   name: string
@@ -769,6 +812,15 @@ export const api = {
     }),
   revokeToken: (id: number) =>
     request<ApiToken>(`/api/tokens/${id}/revoke`, { method: 'POST' }),
+  tokenUsage: (id: number, windowDays = 7) =>
+    request<TokenUsage>(`/api/tokens/${id}/usage?window_days=${windowDays}`),
+  tokenRequests: (id: number, opts?: { offset?: number; limit?: number; windowDays?: number }) => {
+    const params = new URLSearchParams()
+    params.set('offset', String(opts?.offset ?? 0))
+    params.set('limit', String(opts?.limit ?? 50))
+    if (opts?.windowDays != null) params.set('window_days', String(opts.windowDays))
+    return request<TokenRequestPage>(`/api/tokens/${id}/requests?${params}`)
+  },
   listSavedViews: () => request<SavedView[]>('/api/saved-views'),
   createSavedView: (body: {
     name: string

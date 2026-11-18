@@ -19,6 +19,17 @@
   color: inherit;
 }
 
+.list-row.with-detail {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.list-row-detail {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+}
+
 a.list-row:hover {
   color: inherit;
 }

@@ -1,4 +1,5 @@
 from waymark.models.api_token import ApiToken
+from waymark.models.api_token_request_log import ApiTokenRequestLog
 from waymark.models.artifact import Artifact
 from waymark.models.comment_artifact import CommentArtifact
 from waymark.models.contact_nickname import ContactNickname
@@ -19,6 +20,7 @@ from waymark.models.webhook_subscription import WebhookSubscription
 
 __all__ = [
     "ApiToken",
+    "ApiTokenRequestLog",
     "Artifact",
     "CommentArtifact",
     "ContactNickname",
