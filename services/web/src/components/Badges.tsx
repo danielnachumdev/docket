@@ -21,7 +21,7 @@ export function PriorityBadge({ priority }: { priority: number }) {
         <i />
         <i />
       </span>
-      {priorityLabel(priority)}
+      <span className="priority-label">{priorityLabel(priority)}</span>
     </span>
   )
 }
