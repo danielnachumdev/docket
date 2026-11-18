@@ -6,13 +6,25 @@
   "markAllRead": "Mark all read",
   "markAllFailed": "Could not mark all read",
   "emptyTitle": "No notifications yet",
-  "emptyHint": "Watch a task to get updates when its status changes or someone mentions you.",
+  "emptyHint": "Watch a task to get updates when its status changes, someone comments, or an artifact is added.",
+  "emptyFilteredTitle": "No kinds selected",
+  "emptyFilteredHint": "Turn on one or more notification types above to see matching activity.",
+  "filterByKind": "Filter by notification type",
+  "sortLabel": "Sort notifications",
+  "sort": {
+    "newest": "Newest first",
+    "oldest": "Oldest first"
+  },
   "kind": {
     "status_changed": "Status",
     "commented": "Comment",
     "mentioned": "Mention",
     "shared": "Shared",
-    "invite_accepted": "Invite"
+    "invite_accepted": "Invite",
+    "artifact_added": "Artifact",
+    "task_updated": "Update",
+    "claimed": "Claimed",
+    "released": "Released"
   },
   "browseTasks": "Browse tasks",
   "markedAllRead": "All notifications marked as read"

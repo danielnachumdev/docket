@@ -14,6 +14,7 @@ from waymark.auth.task_access_service import TaskAccessService
 from waymark.config import Settings, get_settings
 from waymark.events import task_event_recorder
 from waymark.models import Artifact, CommentArtifact, Task, TaskComment
+from waymark.notifications import notification_dispatcher
 from waymark.schemas import ArtifactCreate, ArtifactUpdate
 
 
@@ -168,6 +169,16 @@ class ArtifactService:
             actor=principal,
             payload=payload,
         )
+        # Comment attachments already fan out via `commented` / `mentioned`.
+        if comment_id is None:
+            notification_dispatcher(self._db).notify_watchers(
+                task=task,
+                actor=principal,
+                kind="artifact_added",
+                title=f"Artifact added: {artifact.title}",
+                body=f"“{task.title}”",
+                payload=payload,
+            )
         if commit:
             self._gateway.commit()
             self._gateway.refresh(artifact)

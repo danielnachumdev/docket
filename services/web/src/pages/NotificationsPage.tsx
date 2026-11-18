@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { api, type Notification } from '../api'
+import {
+  api,
+  NOTIFICATION_KINDS,
+  type Notification,
+  type NotificationKind,
+} from '../api'
 import { Alert, EmptyState } from '../components/Feedback'
 import { Skeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
@@ -10,6 +15,7 @@ import { UserBidiText } from '../components/UserBidiText'
 import { formatDateTime, formatRelative, humanize } from '../lib/format'
 import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
+import { usePreferences } from '../preferences'
 import './NotificationsPage.css'
 
 function notifyChanged() {
@@ -19,19 +25,47 @@ function notifyChanged() {
 export function NotificationsPage() {
   const { t } = useTranslation('inbox')
   const toast = useToast()
+  const {
+    notificationKinds,
+    setNotificationKinds,
+    notificationSort,
+    setNotificationSort,
+    hydrated,
+  } = usePreferences()
   const [rows, setRows] = useState<Notification[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const { busy, error, setError, run } = useAction()
 
   const load = useCallback(async () => {
-    setRows(await api.listNotifications({ limit: 100 }))
-  }, [])
+    if (notificationKinds.length === 0) {
+      setRows([])
+      return
+    }
+    setRows(
+      await api.listNotifications({
+        limit: 100,
+        kinds: notificationKinds,
+        sort: notificationSort,
+      }),
+    )
+  }, [notificationKinds, notificationSort])
 
   useEffect(() => {
+    if (!hydrated) return
+    setRows(null)
     load().catch((err: Error) => setLoadError(err.message))
-  }, [load])
+  }, [hydrated, load])
 
   const unread = rows?.filter((n) => !n.read_at).length ?? 0
+  const selected = new Set(notificationKinds)
+
+  function toggleKind(kind: NotificationKind) {
+    if (selected.has(kind)) {
+      setNotificationKinds(notificationKinds.filter((k) => k !== kind))
+      return
+    }
+    setNotificationKinds([...notificationKinds, kind])
+  }
 
   function markRead(n: Notification) {
     if (n.read_at) return
@@ -55,7 +89,7 @@ export function NotificationsPage() {
               disabled={busy}
               onClick={() =>
                 void run(async () => {
-                  await api.markAllNotificationsRead()
+                  await api.markAllNotificationsRead({ kinds: notificationKinds })
                   await load()
                   notifyChanged()
                   toast(t('markedAllRead'))
@@ -69,15 +103,45 @@ export function NotificationsPage() {
         }
       />
 
+      <div className="toolbar notification-toolbar">
+        <label className="toolbar-sort">
+          <span className="sr-only">{t('sortLabel')}</span>
+          <select
+            className="compact-select"
+            value={notificationSort}
+            aria-label={t('sortLabel')}
+            onChange={(e) =>
+              setNotificationSort(e.target.value === 'oldest' ? 'oldest' : 'newest')
+            }
+          >
+            <option value="newest">{t('sort.newest')}</option>
+            <option value="oldest">{t('sort.oldest')}</option>
+          </select>
+        </label>
+        <div className="chips" role="group" aria-label={t('filterByKind')}>
+          {NOTIFICATION_KINDS.map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              aria-pressed={selected.has(kind)}
+              className={selected.has(kind) ? 'chip active' : 'chip'}
+              onClick={() => toggleKind(kind)}
+            >
+              {t(`kind.${kind}`, { defaultValue: humanize(kind) })}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loadError && <Alert>{loadError}</Alert>}
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
-      {rows == null ? (
+      {!hydrated || rows == null ? (
         !loadError && <Skeleton rows={5} leading="none" />
       ) : rows.length === 0 ? (
         <EmptyState
           icon="bell"
-          title={t('emptyTitle')}
+          title={notificationKinds.length === 0 ? t('emptyFilteredTitle') : t('emptyTitle')}
           action={
             <Link to="/" className="btn">
               <Icon name="tasks" />
@@ -85,7 +149,7 @@ export function NotificationsPage() {
             </Link>
           }
         >
-          {t('emptyHint')}
+          {notificationKinds.length === 0 ? t('emptyFilteredHint') : t('emptyHint')}
         </EmptyState>
       ) : (
         <ul className="notification-list">

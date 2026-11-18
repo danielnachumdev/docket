@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 
@@ -8,6 +8,7 @@ from waymark.db import DbSession
 from waymark.schemas.notifications import NotificationOut, UnreadCountOut
 
 CanRead = Annotated[Principal, Depends(RequirePermission("tasks:read"))]
+NotificationSortParam = Literal["newest", "oldest"]
 
 
 class NotificationsApi:
@@ -47,15 +48,24 @@ class NotificationsApi:
         principal: CanRead,
         unread_only: bool = Query(False),
         limit: int = Query(50, ge=1, le=200),
+        kind: list[str] | None = Query(None),
+        sort: NotificationSortParam = Query("newest"),
     ) -> list[NotificationOut]:
         return NotificationService(db).list_for_user(
-            principal, unread_only=unread_only, limit=limit
+            principal,
+            unread_only=unread_only,
+            limit=limit,
+            kinds=kind,
+            sort=sort,
         )
 
     def unread_count(
-        self, db: DbSession, principal: CanRead
+        self,
+        db: DbSession,
+        principal: CanRead,
+        kind: list[str] | None = Query(None),
     ) -> UnreadCountOut:
-        return NotificationService(db).unread_count(principal)
+        return NotificationService(db).unread_count(principal, kinds=kind)
 
     def mark_read(
         self, notification_id: int, db: DbSession, principal: CanRead
@@ -63,9 +73,12 @@ class NotificationsApi:
         return NotificationService(db).mark_read(principal, notification_id)
 
     def mark_all_read(
-        self, db: DbSession, principal: CanRead
+        self,
+        db: DbSession,
+        principal: CanRead,
+        kind: list[str] | None = Query(None),
     ) -> UnreadCountOut:
-        return NotificationService(db).mark_all_read(principal)
+        return NotificationService(db).mark_all_read(principal, kinds=kind)
 
 
 notifications_api = NotificationsApi()

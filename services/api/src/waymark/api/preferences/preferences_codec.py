@@ -2,9 +2,11 @@ import json
 
 from fastapi import HTTPException, status
 
+from waymark.schemas.notifications import ALLOWED_NOTIFICATION_KINDS
 from waymark.schemas.preferences import (
     ALLOWED_COLOR_SCHEMES,
     ALLOWED_LOCALES,
+    ALLOWED_NOTIFICATION_SORTS,
     ALLOWED_TASK_SORT_MODES,
     ALLOWED_THEME_TOKEN_KEYS,
     CUSTOM_THEME_ID_RE,
@@ -48,11 +50,27 @@ class PreferencesCodec:
             task_sort_mode = self._optional_task_sort_mode(data.get("task_sort_mode"))
         except HTTPException:
             task_sort_mode = None
+        notification_kinds: list[str] | None
+        try:
+            notification_kinds = self._optional_notification_kinds(
+                data.get("notification_kinds")
+            )
+        except HTTPException:
+            notification_kinds = None
+        notification_sort: str | None
+        try:
+            notification_sort = self._optional_notification_sort(
+                data.get("notification_sort")
+            )
+        except HTTPException:
+            notification_sort = None
         return UserPreferencesOut(
             theme=theme,
             locale=locale,
             custom_themes=customs,
             task_sort_mode=task_sort_mode,
+            notification_kinds=notification_kinds,
+            notification_sort=notification_sort,
         )
 
     def encode(self, prefs: UserPreferencesOut) -> str:
@@ -67,6 +85,10 @@ class PreferencesCodec:
             ]
         if prefs.task_sort_mode is not None:
             payload["task_sort_mode"] = prefs.task_sort_mode
+        if prefs.notification_kinds is not None:
+            payload["notification_kinds"] = list(prefs.notification_kinds)
+        if prefs.notification_sort is not None:
+            payload["notification_sort"] = prefs.notification_sort
         return json.dumps(payload, separators=(",", ":"), sort_keys=True)
 
     def merge(
@@ -77,6 +99,8 @@ class PreferencesCodec:
         locale = current.locale
         custom_themes = current.custom_themes
         task_sort_mode = current.task_sort_mode
+        notification_kinds = current.notification_kinds
+        notification_sort = current.notification_sort
         if "custom_themes" in patch:
             custom_themes = self._optional_custom_themes(patch["custom_themes"])
         if "theme" in patch:
@@ -85,6 +109,14 @@ class PreferencesCodec:
             locale = self._optional_locale(patch["locale"])
         if "task_sort_mode" in patch:
             task_sort_mode = self._optional_task_sort_mode(patch["task_sort_mode"])
+        if "notification_kinds" in patch:
+            notification_kinds = self._optional_notification_kinds(
+                patch["notification_kinds"]
+            )
+        if "notification_sort" in patch:
+            notification_sort = self._optional_notification_sort(
+                patch["notification_sort"]
+            )
         # Active theme must remain resolvable after catalog changes.
         if theme is not None and not is_builtin_theme_id(theme):
             ids = {t.id for t in (custom_themes or [])}
@@ -98,6 +130,8 @@ class PreferencesCodec:
             locale=locale,
             custom_themes=custom_themes,
             task_sort_mode=task_sort_mode,
+            notification_kinds=notification_kinds,
+            notification_sort=notification_sort,
         )
 
     @staticmethod
@@ -169,6 +203,40 @@ class PreferencesCodec:
                 "task_sort_mode must be 'custom' or 'date'",
             )
         return value
+
+    @staticmethod
+    def _optional_notification_sort(value: object | None) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str) or value not in ALLOWED_NOTIFICATION_SORTS:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "notification_sort must be 'newest' or 'oldest'",
+            )
+        return value
+
+    @staticmethod
+    def _optional_notification_kinds(value: object | None) -> list[str] | None:
+        if value is None:
+            return None
+        if not isinstance(value, list):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "notification_kinds must be a list",
+            )
+        cleaned: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            if not isinstance(item, str) or item not in ALLOWED_NOTIFICATION_KINDS:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "notification_kinds contains an unknown kind",
+                )
+            if item in seen:
+                continue
+            seen.add(item)
+            cleaned.append(item)
+        return cleaned
 
     @classmethod
     def _optional_custom_themes(

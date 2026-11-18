@@ -1,3 +1,11 @@
+.notification-toolbar {
+  margin-bottom: 0.85rem;
+}
+
+.notification-toolbar .toolbar-sort {
+  flex: none;
+}
+
 .notification-list {
   margin: 0;
   padding: 0;

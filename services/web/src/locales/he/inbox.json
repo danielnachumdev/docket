@@ -7,13 +7,25 @@
   "markAllRead": "סימון הכול כנקרא",
   "markAllFailed": "לא ניתן לסמן הכול כנקרא",
   "emptyTitle": "עדיין אין התראות",
-  "emptyHint": "עקבו אחרי משימה כדי לקבל עדכונים כשהסטטוס שלה משתנה או כשמישהו מזכיר אתכם.",
+  "emptyHint": "עקבו אחרי משימה כדי לקבל עדכונים כשהסטטוס משתנה, כשמישהו מגיב, או כשנוסף קובץ מצורף.",
+  "emptyFilteredTitle": "לא נבחרו סוגים",
+  "emptyFilteredHint": "הפעילו סוג התראה אחד או יותר למעלה כדי לראות פעילות מתאימה.",
+  "filterByKind": "סינון לפי סוג התראה",
+  "sortLabel": "מיון התראות",
+  "sort": {
+    "newest": "החדשות ביותר",
+    "oldest": "הישנות ביותר"
+  },
   "kind": {
     "status_changed": "סטטוס",
     "commented": "תגובה",
     "mentioned": "אזכור",
     "shared": "שיתוף",
-    "invite_accepted": "הזמנה"
+    "invite_accepted": "הזמנה",
+    "artifact_added": "קובץ מצורף",
+    "task_updated": "עדכון",
+    "claimed": "תפיסה",
+    "released": "שחרור"
   },
   "browseTasks": "מעבר למשימות",
   "markedAllRead": "כל ההתראות סומנו כנקראו"

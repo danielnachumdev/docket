@@ -2,11 +2,12 @@ from fastapi.testclient import TestClient
 
 from waymark.db import database
 from waymark.main import create_app
+from tests.helpers import bearer, link_as_contact, mint_api_token
 from waymark.models import User
 from waymark.security import password_hasher
 
 
-def _bootstrap(client: TestClient) -> None:
+def _bootstrap(client: TestClient) -> dict:
     res = client.post(
         "/api/auth/bootstrap",
         json={
@@ -16,6 +17,7 @@ def _bootstrap(client: TestClient) -> None:
         },
     )
     assert res.status_code == 200
+    return res.json()
 
 
 def _create_user(email: str, display_name: str, password: str) -> User:
@@ -42,10 +44,11 @@ def _login(client: TestClient, email: str, password: str) -> None:
 
 def test_watch_status_change_creates_notification() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Watched board"}).json()["id"]
 
     alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     share = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "editor"},
@@ -95,11 +98,13 @@ def test_watch_status_change_creates_notification() -> None:
 
 def test_comment_mentions_and_watchers() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Mention me"}).json()["id"]
 
     alex = _create_user("alex@example.com", "Alex", "password123")
-    _create_user("blair@example.com", "Blair", "password123")
+    blair = _create_user("blair@example.com", "Blair", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
+    link_as_contact(owner_user_id=owner["id"], contact=blair)
     client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "editor"},
@@ -148,9 +153,10 @@ def test_comment_mentions_and_watchers() -> None:
 
 def test_unwatch_stops_notifications_and_actor_skipped() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Quiet"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "editor"},
@@ -177,9 +183,10 @@ def test_unwatch_stops_notifications_and_actor_skipped() -> None:
 
 def test_mark_all_read() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Batch"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "viewer"},
@@ -202,3 +209,135 @@ def test_mark_all_read() -> None:
     assert cleared.status_code == 200
     assert cleared.json()["count"] == 0
     assert client.get("/api/notifications/unread-count").json()["count"] == 0
+
+
+def test_list_filter_sort_and_filtered_read_all() -> None:
+    client = TestClient(create_app())
+    owner = _bootstrap(client)
+    task_id = client.post("/api/tasks", json={"title": "Filter feed"}).json()["id"]
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
+    client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "alex@example.com", "role": "editor"},
+    )
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    assert client.post("/api/notifications/read-all").status_code == 200
+    assert client.put(f"/api/tasks/{task_id}/watch").status_code == 200
+
+    client.post("/api/auth/logout")
+    _login(client, "ops@example.com", "password1234")
+    assert (
+        client.post(
+            f"/api/tasks/{task_id}/status", json={"status": "in_progress"}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.patch(
+            f"/api/tasks/{task_id}", json={"priority": 1, "title": "Filter feed v2"}
+        ).status_code
+        == 200
+    )
+    artifact = client.post(
+        f"/api/tasks/{task_id}/artifacts",
+        json={"kind": "text", "title": "notes.txt", "content_text": "hello"},
+    )
+    assert artifact.status_code == 201, artifact.text
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+
+    all_feed = client.get("/api/notifications").json()
+    kinds = {row["kind"] for row in all_feed}
+    assert "status_changed" in kinds
+    assert "task_updated" in kinds
+    assert "artifact_added" in kinds
+
+    filtered = client.get(
+        "/api/notifications",
+        params=[("kind", "status_changed"), ("kind", "artifact_added"), ("sort", "oldest")],
+    )
+    assert filtered.status_code == 200
+    rows = filtered.json()
+    assert [row["kind"] for row in rows] == ["status_changed", "artifact_added"]
+
+    newest = client.get(
+        "/api/notifications",
+        params=[("kind", "status_changed"), ("kind", "artifact_added"), ("sort", "newest")],
+    ).json()
+    assert [row["kind"] for row in newest] == ["artifact_added", "status_changed"]
+
+    count = client.get(
+        "/api/notifications/unread-count",
+        params=[("kind", "status_changed")],
+    )
+    assert count.json()["count"] == 1
+
+    cleared = client.post(
+        "/api/notifications/read-all",
+        params=[("kind", "status_changed")],
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["count"] == 0
+    assert (
+        client.get(
+            "/api/notifications/unread-count",
+            params=[("kind", "status_changed")],
+        ).json()["count"]
+        == 0
+    )
+    assert (
+        client.get(
+            "/api/notifications/unread-count",
+            params=[("kind", "artifact_added")],
+        ).json()["count"]
+        == 1
+    )
+
+    # Explicit empty kind list matches nothing (vs omitting kind = all).
+    empty = client.get("/api/notifications", params=[("kind", "")])
+    assert empty.status_code == 200
+    # Unknown / blank kinds are ignored; if only blanks remain → empty match.
+    assert empty.json() == []
+
+
+def test_task_update_and_claim_notifications() -> None:
+    client = TestClient(create_app())
+    owner = _bootstrap(client)
+    task_id = client.post("/api/tasks", json={"title": "Lease watch"}).json()["id"]
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
+    client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "alex@example.com", "role": "viewer"},
+    )
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    assert client.post("/api/notifications/read-all").status_code == 200
+    assert client.put(f"/api/tasks/{task_id}/watch").status_code == 200
+
+    client.post("/api/auth/logout")
+    _login(client, "ops@example.com", "password1234")
+    raw, _ = mint_api_token(user_id=owner["id"], name="demo-api")
+    claim = client.post(
+        f"/api/tasks/{task_id}/claim",
+        headers=bearer(raw),
+        json={"lease_seconds": 60},
+    )
+    assert claim.status_code == 200, claim.text
+    release = client.post(
+        f"/api/tasks/{task_id}/release",
+        headers=bearer(raw),
+    )
+    assert release.status_code == 200, release.text
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    feed = client.get("/api/notifications?unread_only=true").json()
+    kinds = [row["kind"] for row in feed]
+    assert "claimed" in kinds
+    assert "released" in kinds
