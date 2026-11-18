@@ -36,11 +36,19 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "locale": None,
         "custom_themes": None,
         "task_sort_mode": None,
+        "notification_kinds": None,
+        "notification_sort": None,
     }
 
     patched = client.patch(
         "/api/me/preferences",
-        json={"theme": "dark", "locale": "he", "task_sort_mode": "date"},
+        json={
+            "theme": "dark",
+            "locale": "he",
+            "task_sort_mode": "date",
+            "notification_kinds": ["mentioned", "shared"],
+            "notification_sort": "oldest",
+        },
     )
     assert patched.status_code == 200, patched.text
     assert patched.json() == {
@@ -48,6 +56,8 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "locale": "he",
         "custom_themes": None,
         "task_sort_mode": "date",
+        "notification_kinds": ["mentioned", "shared"],
+        "notification_sort": "oldest",
     }
 
     again = client.get("/api/me/preferences")
@@ -57,6 +67,8 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "locale": "he",
         "custom_themes": None,
         "task_sort_mode": "date",
+        "notification_kinds": ["mentioned", "shared"],
+        "notification_sort": "oldest",
     }
 
     merge = client.patch("/api/me/preferences", json={"theme": "light"})
@@ -66,6 +78,8 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "locale": "he",
         "custom_themes": None,
         "task_sort_mode": "date",
+        "notification_kinds": ["mentioned", "shared"],
+        "notification_sort": "oldest",
     }
 
 
@@ -154,12 +168,24 @@ def test_preferences_reject_unknown_and_invalid() -> None:
     )
     assert bad_sort.status_code == 422
 
+    bad_kinds = client.patch(
+        "/api/me/preferences", json={"notification_kinds": ["heartbeat"]}
+    )
+    assert bad_kinds.status_code == 422
+
+    bad_notif_sort = client.patch(
+        "/api/me/preferences", json={"notification_sort": "priority"}
+    )
+    assert bad_notif_sort.status_code == 422
+
     still_empty = client.get("/api/me/preferences")
     assert still_empty.json() == {
         "theme": None,
         "locale": None,
         "custom_themes": None,
         "task_sort_mode": None,
+        "notification_kinds": None,
+        "notification_sort": None,
     }
 
 
@@ -197,5 +223,7 @@ def test_preferences_via_api_token() -> None:
         "theme": None,
         "locale": "en",
         "custom_themes": None,
+        "notification_kinds": None,
+        "notification_sort": None,
         "task_sort_mode": None,
     }

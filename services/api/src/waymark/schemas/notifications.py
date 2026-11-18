@@ -1,9 +1,37 @@
 from datetime import datetime
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from waymark.schemas.tasks import ArtifactCreate, ArtifactOut
+
+# Emitted notification kinds (in-app feed). claim_renewed is intentionally never emitted.
+NOTIFICATION_KINDS: tuple[str, ...] = (
+    "status_changed",
+    "commented",
+    "mentioned",
+    "shared",
+    "invite_accepted",
+    "artifact_added",
+    "task_updated",
+    "claimed",
+    "released",
+)
+ALLOWED_NOTIFICATION_KINDS: frozenset[str] = frozenset(NOTIFICATION_KINDS)
+
+# Sensible default: activity users care about; exclude claim/release lease noise.
+DEFAULT_NOTIFICATION_KINDS: tuple[str, ...] = (
+    "mentioned",
+    "shared",
+    "commented",
+    "status_changed",
+    "invite_accepted",
+    "artifact_added",
+    "task_updated",
+)
+
+NotificationSort = Literal["newest", "oldest"]
+ALLOWED_NOTIFICATION_SORTS: frozenset[str] = frozenset({"newest", "oldest"})
 
 
 class TaskWatchOut(BaseModel):

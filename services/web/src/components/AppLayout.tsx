@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { api, type User } from '../api'
 import type { ColorScheme } from '../lib/theme'
+import { usePreferences } from '../preferences'
 import { Dialog } from './Dialog'
 import waymarkIcon from '../assets/waymark-icon.svg'
 import { Icon, type IconName } from './Icon'
@@ -41,14 +42,16 @@ type Props = {
 }
 
 function useUnreadCount(pathname: string) {
+  const { notificationKinds, hydrated } = usePreferences()
   const [unread, setUnread] = useState(0)
 
   const refresh = useCallback(() => {
+    if (!hydrated) return
     void api
-      .unreadNotificationCount()
+      .unreadNotificationCount({ kinds: notificationKinds })
       .then((body) => setUnread(body.count))
       .catch(() => setUnread(0))
-  }, [])
+  }, [hydrated, notificationKinds])
 
   useEffect(() => {
     window.addEventListener('focus', refresh)

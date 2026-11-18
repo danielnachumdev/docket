@@ -10,7 +10,11 @@ import {
 } from 'react'
 import {
   api,
+  DEFAULT_NOTIFICATION_KINDS,
+  NOTIFICATION_KINDS,
   type CustomThemePreference,
+  type NotificationKind,
+  type NotificationSort,
   type TaskSortMode,
   type UserPreferences,
 } from './api'
@@ -49,6 +53,9 @@ import {
 const THEME_PERSIST_MS = 400
 /** First-paint / guest cache for list sort mode; server wins when authenticated. */
 export const TASK_SORT_MODE_STORAGE_KEY = 'waymark.taskSortMode'
+/** Guest / first-paint cache; authenticated users use `/api/me/preferences`. */
+export const NOTIFICATION_KINDS_STORAGE_KEY = 'waymark.notificationKinds'
+export const NOTIFICATION_SORT_STORAGE_KEY = 'waymark.notificationSort'
 
 type PreferencesContextValue = {
   theme: Theme
@@ -58,6 +65,10 @@ type PreferencesContextValue = {
   setLocale: (locale: string) => void
   taskSortMode: TaskSortMode
   setTaskSortMode: (mode: TaskSortMode) => void
+  notificationKinds: NotificationKind[]
+  setNotificationKinds: (kinds: NotificationKind[]) => void
+  notificationSort: NotificationSort
+  setNotificationSort: (sort: NotificationSort) => void
   customThemes: CustomTheme[]
   addCustomTheme: (fromThemeId?: Theme) => CustomTheme | null
   renameCustomTheme: (id: string, name: string) => void
@@ -85,6 +96,26 @@ function isTaskSortMode(value: string): value is TaskSortMode {
   return value === 'custom' || value === 'date'
 }
 
+function isNotificationSort(value: string): value is NotificationSort {
+  return value === 'newest' || value === 'oldest'
+}
+
+function isNotificationKind(value: string): value is NotificationKind {
+  return (NOTIFICATION_KINDS as readonly string[]).includes(value)
+}
+
+function normalizeNotificationKinds(raw: unknown): NotificationKind[] | null {
+  if (!Array.isArray(raw)) return null
+  const out: NotificationKind[] = []
+  const seen = new Set<string>()
+  for (const item of raw) {
+    if (typeof item !== 'string' || !isNotificationKind(item) || seen.has(item)) continue
+    seen.add(item)
+    out.push(item)
+  }
+  return out
+}
+
 function storedTaskSortMode(): TaskSortMode | null {
   try {
     const value = localStorage.getItem(TASK_SORT_MODE_STORAGE_KEY)
@@ -98,6 +129,42 @@ function storedTaskSortMode(): TaskSortMode | null {
 function cacheTaskSortMode(mode: TaskSortMode) {
   try {
     localStorage.setItem(TASK_SORT_MODE_STORAGE_KEY, mode)
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function storedNotificationKinds(): NotificationKind[] | null {
+  try {
+    const value = localStorage.getItem(NOTIFICATION_KINDS_STORAGE_KEY)
+    if (!value) return null
+    return normalizeNotificationKinds(JSON.parse(value))
+  } catch {
+    return null
+  }
+}
+
+function cacheNotificationKinds(kinds: NotificationKind[]) {
+  try {
+    localStorage.setItem(NOTIFICATION_KINDS_STORAGE_KEY, JSON.stringify(kinds))
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function storedNotificationSort(): NotificationSort | null {
+  try {
+    const value = localStorage.getItem(NOTIFICATION_SORT_STORAGE_KEY)
+    if (!value || !isNotificationSort(value)) return null
+    return value
+  } catch {
+    return null
+  }
+}
+
+function cacheNotificationSort(sort: NotificationSort) {
+  try {
+    localStorage.setItem(NOTIFICATION_SORT_STORAGE_KEY, sort)
   } catch {
     /* ignore quota / private mode */
   }
@@ -140,6 +207,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [taskSortMode, setTaskSortModeState] = useState<TaskSortMode>(
     () => storedTaskSortMode() ?? 'date',
   )
+  const [notificationKinds, setNotificationKindsState] = useState<NotificationKind[]>(
+    () => storedNotificationKinds() ?? [...DEFAULT_NOTIFICATION_KINDS],
+  )
+  const [notificationSort, setNotificationSortState] = useState<NotificationSort>(
+    () => storedNotificationSort() ?? 'newest',
+  )
   const [hydrated, setHydrated] = useState(false)
   const hydratedUserId = useRef<number | null>(null)
   const persistSeq = useRef(0)
@@ -175,6 +248,17 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       if (next.task_sort_mode) {
         cacheTaskSortMode(next.task_sort_mode)
         setTaskSortModeState(next.task_sort_mode)
+      }
+      if (next.notification_kinds != null) {
+        const kinds = normalizeNotificationKinds(next.notification_kinds) ?? [
+          ...DEFAULT_NOTIFICATION_KINDS,
+        ]
+        cacheNotificationKinds(kinds)
+        setNotificationKindsState(kinds)
+      }
+      if (next.notification_sort) {
+        cacheNotificationSort(next.notification_sort)
+        setNotificationSortState(next.notification_sort)
       }
       if (next.custom_themes != null) {
         const normalized = normalizeCustomThemes(next.custom_themes)
@@ -260,6 +344,31 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setTaskSortModeState(mode)
     }
 
+    if (server.notification_kinds != null) {
+      const kinds = normalizeNotificationKinds(server.notification_kinds) ?? [
+        ...DEFAULT_NOTIFICATION_KINDS,
+      ]
+      cacheNotificationKinds(kinds)
+      setNotificationKindsState(kinds)
+    } else {
+      const local = storedNotificationKinds()
+      const kinds = local ?? [...DEFAULT_NOTIFICATION_KINDS]
+      seed.notification_kinds = kinds
+      cacheNotificationKinds(kinds)
+      setNotificationKindsState(kinds)
+    }
+
+    if (server.notification_sort) {
+      cacheNotificationSort(server.notification_sort)
+      setNotificationSortState(server.notification_sort)
+    } else {
+      const local = storedNotificationSort()
+      const sort = local ?? 'newest'
+      seed.notification_sort = sort
+      cacheNotificationSort(sort)
+      setNotificationSortState(sort)
+    }
+
     if (Object.keys(seed).length > 0) {
       await api.patchPreferences(seed)
     }
@@ -312,6 +421,25 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setTaskSortModeState(mode)
       cacheTaskSortMode(mode)
       void persist({ task_sort_mode: mode })
+    },
+    [persist],
+  )
+
+  const setNotificationKinds = useCallback(
+    (kinds: NotificationKind[]) => {
+      const cleaned = normalizeNotificationKinds(kinds) ?? []
+      setNotificationKindsState(cleaned)
+      cacheNotificationKinds(cleaned)
+      void persist({ notification_kinds: cleaned })
+    },
+    [persist],
+  )
+
+  const setNotificationSort = useCallback(
+    (sort: NotificationSort) => {
+      setNotificationSortState(sort)
+      cacheNotificationSort(sort)
+      void persist({ notification_sort: sort })
     },
     [persist],
   )
@@ -416,6 +544,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setLocale,
       taskSortMode,
       setTaskSortMode,
+      notificationKinds,
+      setNotificationKinds,
+      notificationSort,
+      setNotificationSort,
       customThemes,
       addCustomTheme,
       renameCustomTheme,
@@ -432,6 +564,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setLocale,
       taskSortMode,
       setTaskSortMode,
+      notificationKinds,
+      setNotificationKinds,
+      notificationSort,
+      setNotificationSort,
       customThemes,
       addCustomTheme,
       renameCustomTheme,

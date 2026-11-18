@@ -169,6 +169,7 @@ class TaskService:
                 actor=principal,
                 payload=changes,
             )
+            self._notify_task_updated(task, principal, changes)
         try:
             self._gateway.commit()
         except IntegrityError as exc:
@@ -278,6 +279,14 @@ class TaskService:
         task = self._access.get_task(principal, task_ref, "tasks:claim")
         lease_seconds = (body or TaskClaimIn()).lease_seconds
         event = self._claims.claim(task, principal, lease_seconds=lease_seconds)
+        notification_dispatcher(self._db).notify_watchers(
+            task=task,
+            actor=principal,
+            kind="claimed",
+            title=f"Claimed “{task.title}”",
+            body="An agent claimed this task",
+            payload={"event": "claimed"},
+        )
         return self._commit_and_dispatch(
             task, event, viewer_user_id=principal.user_id
         )
@@ -289,6 +298,14 @@ class TaskService:
             self._gateway.commit()
             self._gateway.refresh(task)
             return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        notification_dispatcher(self._db).notify_watchers(
+            task=task,
+            actor=principal,
+            kind="released",
+            title=f"Released “{task.title}”",
+            body="The claim on this task was released",
+            payload={"event": "released"},
+        )
         return self._commit_and_dispatch(
             task, event, viewer_user_id=principal.user_id
         )
@@ -454,6 +471,32 @@ class TaskService:
             task,
             outcome=outcome,
             artifact_count=artifact_count,
+        )
+
+    _NOTIFY_UPDATE_KEYS = frozenset(
+        {
+            "title",
+            "description",
+            "priority",
+            "due_at",
+            "due_horizon",
+            "parent_task_id",
+        }
+    )
+
+    def _notify_task_updated(
+        self, task: Task, principal: Principal, changes: dict
+    ) -> None:
+        keys = [key for key in changes if key in self._NOTIFY_UPDATE_KEYS]
+        if not keys:
+            return
+        notification_dispatcher(self._db).notify_watchers(
+            task=task,
+            actor=principal,
+            kind="task_updated",
+            title=f"Updated “{task.title}”",
+            body=", ".join(keys),
+            payload={key: changes[key] for key in keys},
         )
 
     def _apply_update(

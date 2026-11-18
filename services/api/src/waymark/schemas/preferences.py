@@ -9,6 +9,7 @@ BuiltinThemeId = Literal[
 ]
 LocalePreference = Literal["en", "he"]
 TaskSortMode = Literal["custom", "date"]
+NotificationSortPreference = Literal["newest", "oldest"]
 
 ALLOWED_COLOR_SCHEMES: frozenset[str] = frozenset({"light", "dark"})
 ALLOWED_BUILTIN_THEMES: frozenset[str] = frozenset(
@@ -20,8 +21,16 @@ _THEME_ID_ALIASES: dict[str, str] = {"pastel": "lilac"}
 ALLOWED_THEMES = ALLOWED_BUILTIN_THEMES
 ALLOWED_LOCALES: frozenset[str] = frozenset({"en", "he"})
 ALLOWED_TASK_SORT_MODES: frozenset[str] = frozenset({"custom", "date"})
+ALLOWED_NOTIFICATION_SORTS: frozenset[str] = frozenset({"newest", "oldest"})
 KNOWN_PREFERENCE_KEYS: frozenset[str] = frozenset(
-    {"theme", "locale", "custom_themes", "task_sort_mode"}
+    {
+        "theme",
+        "locale",
+        "custom_themes",
+        "task_sort_mode",
+        "notification_kinds",
+        "notification_sort",
+    }
 )
 
 CUSTOM_THEME_ID_RE = re.compile(r"^c_[a-z0-9]{8,24}$")
@@ -120,6 +129,8 @@ class UserPreferencesOut(BaseModel):
     locale: LocalePreference | None = None
     custom_themes: list[CustomThemeOut] | None = None
     task_sort_mode: TaskSortMode | None = None
+    notification_kinds: list[str] | None = None
+    notification_sort: NotificationSortPreference | None = None
 
 
 class UserPreferencesPatch(BaseModel):
@@ -131,3 +142,5 @@ class UserPreferencesPatch(BaseModel):
     locale: LocalePreference | None = Field(default=None)
     custom_themes: list[dict[str, Any]] | None = Field(default=None)
     task_sort_mode: TaskSortMode | None = Field(default=None)
+    notification_kinds: list[str] | None = Field(default=None)
+    notification_sort: NotificationSortPreference | None = Field(default=None)

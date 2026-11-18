@@ -356,11 +356,41 @@ export type CustomThemePreference = {
 
 export type TaskSortMode = 'custom' | 'date'
 
+export type NotificationSort = 'newest' | 'oldest'
+
+/** All in-app notification kinds the API can emit (claim_renewed is never emitted). */
+export const NOTIFICATION_KINDS = [
+  'status_changed',
+  'commented',
+  'mentioned',
+  'shared',
+  'invite_accepted',
+  'artifact_added',
+  'task_updated',
+  'claimed',
+  'released',
+] as const
+
+export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
+
+/** Default feed selection: meaningful activity, not claim/release lease noise. */
+export const DEFAULT_NOTIFICATION_KINDS: NotificationKind[] = [
+  'mentioned',
+  'shared',
+  'commented',
+  'status_changed',
+  'invite_accepted',
+  'artifact_added',
+  'task_updated',
+]
+
 export type UserPreferences = {
   theme: string | null
   locale: 'en' | 'he' | null
   custom_themes: CustomThemePreference[] | null
   task_sort_mode: TaskSortMode | null
+  notification_kinds: string[] | null
+  notification_sort: NotificationSort | null
 }
 
 function formatValidationItem(item: unknown): string {
@@ -636,7 +666,14 @@ export const api = {
   deleteLink: (id: string, linkId: number) =>
     request<void>(`/api/tasks/${id}/links/${linkId}`, { method: 'DELETE' }),
   listShares: (id: string) => request<TaskShare[]>(`/api/tasks/${id}/shares`),
-  shareTask: (id: string, body: { email: string; role: 'viewer' | 'commentor' | 'editor' }) =>
+  shareTask: (
+    id: string,
+    body: {
+      user_id?: number
+      email?: string
+      role: 'viewer' | 'commentor' | 'editor'
+    },
+  ) =>
     request<TaskShare>(`/api/tasks/${id}/shares`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -690,19 +727,38 @@ export const api = {
     }),
   deleteComment: (id: string, commentId: number) =>
     request<void>(`/api/tasks/${id}/comments/${commentId}`, { method: 'DELETE' }),
-  listNotifications: (opts?: { unreadOnly?: boolean; limit?: number }) => {
+  listNotifications: (opts?: {
+    unreadOnly?: boolean
+    limit?: number
+    kinds?: string[]
+    sort?: NotificationSort
+  }) => {
     const params = new URLSearchParams()
     if (opts?.unreadOnly) params.set('unread_only', 'true')
     if (opts?.limit != null) params.set('limit', String(opts.limit))
+    if (opts?.sort) params.set('sort', opts.sort)
+    for (const kind of opts?.kinds ?? []) params.append('kind', kind)
     const qs = params.toString()
     return request<Notification[]>(`/api/notifications${qs ? `?${qs}` : ''}`)
   },
-  unreadNotificationCount: () =>
-    request<UnreadCount>('/api/notifications/unread-count'),
+  unreadNotificationCount: async (opts?: { kinds?: string[] }) => {
+    if (opts?.kinds && opts.kinds.length === 0) return { count: 0 }
+    const params = new URLSearchParams()
+    for (const kind of opts?.kinds ?? []) params.append('kind', kind)
+    const qs = params.toString()
+    return request<UnreadCount>(`/api/notifications/unread-count${qs ? `?${qs}` : ''}`)
+  },
   markNotificationRead: (id: number) =>
     request<Notification>(`/api/notifications/${id}/read`, { method: 'POST' }),
-  markAllNotificationsRead: () =>
-    request<UnreadCount>('/api/notifications/read-all', { method: 'POST' }),
+  markAllNotificationsRead: async (opts?: { kinds?: string[] }) => {
+    if (opts?.kinds && opts.kinds.length === 0) return { count: 0 }
+    const params = new URLSearchParams()
+    for (const kind of opts?.kinds ?? []) params.append('kind', kind)
+    const qs = params.toString()
+    return request<UnreadCount>(`/api/notifications/read-all${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+    })
+  },
   listTokens: (includeRevoked = false) =>
     request<ApiToken[]>(`/api/tokens?include_revoked=${includeRevoked}`),
   listAssignableRoles: () => request<Role[]>('/api/tokens/roles'),
