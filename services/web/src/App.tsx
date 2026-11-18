@@ -7,8 +7,7 @@ import { ToastProvider } from './components/ToastProvider'
 import { PreferencesProvider, useTheme } from './preferences'
 import { AccountPage } from './pages/AccountPage'
 import { ArtifactsPage } from './pages/ArtifactsPage'
-import { ContactsPage } from './pages/ContactsPage'
-import { InvitesPage } from './pages/InvitesPage'
+import { CollaboratorsPage } from './pages/CollaboratorsPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { ProgressPage } from './pages/ProgressPage'
@@ -56,9 +55,13 @@ function Shell() {
         <Route path="/progress" element={<ProgressPage />} />
         <Route path="/tokens" element={<TokensPage />} />
         <Route path="/webhooks" element={<WebhooksPage />} />
-        <Route path="/people" element={<ContactsPage />} />
+        <Route
+          path="/collaborators"
+          element={<CollaboratorsPage canMint={canInvite} />}
+        />
+        <Route path="/people" element={<Navigate to="/collaborators" replace />} />
+        <Route path="/invites" element={<Navigate to="/collaborators#invites" replace />} />
         <Route path="/account" element={<AccountPage />} />
-        <Route path="/invites" element={<InvitesPage canMint={canInvite} />} />
         {canInvite && (
           <Route path="/storage" element={<StoragePage canAdmin={canInvite} />} />
         )}

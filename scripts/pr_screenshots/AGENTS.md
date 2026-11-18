@@ -33,7 +33,7 @@ scripts/pr_screenshots/attach_to_pr.sh <PR_NUMBER> \
 
 ## Built-in `--shots` names
 
-`login` · `tasks` · `notifications` · `artifacts` · `people` · `account` · `storage` · `progress` · `task-detail` (needs seed `detail_task_id` or `WAYMARK_DEMO_TASK_ID`)
+`login` · `tasks` · `notifications` · `artifacts` · `collaborators` · `account` · `storage` · `progress` · `task-detail` (needs seed `detail_task_id` or `WAYMARK_DEMO_TASK_ID`)
 
 Add permanent catalog entries in `screenshots.sh` when a page ships on `main`. Until then use `--extra name:/path` (or `WAYMARK_EXTRA_SHOTS`).
 

@@ -1,3 +1,14 @@
+.collaborators-directory,
+.collaborators-invites {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.collaborators-invites {
+  margin-top: 1.5rem;
+}
+
 .contact-row {
   align-items: flex-start;
 }
