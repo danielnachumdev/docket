@@ -6,10 +6,11 @@ from fastapi.testclient import TestClient
 from waymark.config import get_settings
 from waymark.db import database
 from waymark.main import create_app
+from tests.helpers import link_as_contact
 from waymark.models import Artifact
 
 
-def _bootstrap(client: TestClient) -> None:
+def _bootstrap(client: TestClient) -> dict:
     res = client.post(
         "/api/auth/bootstrap",
         json={
@@ -19,6 +20,7 @@ def _bootstrap(client: TestClient) -> None:
         },
     )
     assert res.status_code == 200
+    return res.json()
 
 
 def _create_task(client: TestClient) -> int:
@@ -511,7 +513,7 @@ def _login(client: TestClient, email: str, password: str) -> None:
 
 def test_list_accessible_artifacts_includes_owned_and_shared() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     owned_task = _create_task(client)
     owned = client.post(
         f"/api/tasks/{owned_task}/artifacts",
@@ -519,7 +521,8 @@ def test_list_accessible_artifacts_includes_owned_and_shared() -> None:
     )
     assert owned.status_code == 201
 
-    _create_member_user("alex@example.com", "Alex", "password1234")
+    alex = _create_member_user("alex@example.com", "Alex", "password1234")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     other = TestClient(create_app())
     _login(other, "alex@example.com", "password1234")
     other_task = other.post("/api/tasks", json={"title": "Alex task", "priority": 2})
@@ -572,7 +575,7 @@ def test_list_accessible_artifacts_includes_owned_and_shared() -> None:
 
 def test_shared_viewer_can_read_but_not_mutate_artifacts() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = _create_task(client)
     created = client.post(
         f"/api/tasks/{task_id}/artifacts",
@@ -582,7 +585,8 @@ def test_shared_viewer_can_read_but_not_mutate_artifacts() -> None:
     artifact_id = created.json()["id"]
     assert created.json()["can_modify"] is True
 
-    _create_user("alex@example.com", "Alex", "password1234")
+    alex = _create_user("alex@example.com", "Alex", "password1234")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     share = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "viewer"},
@@ -609,7 +613,7 @@ def test_shared_viewer_can_read_but_not_mutate_artifacts() -> None:
 
 def test_shared_editor_cannot_mutate_others_artifact() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = _create_task(client)
     created = client.post(
         f"/api/tasks/{task_id}/artifacts",
@@ -618,7 +622,8 @@ def test_shared_editor_cannot_mutate_others_artifact() -> None:
     assert created.status_code == 201
     artifact_id = created.json()["id"]
 
-    _create_user("alex@example.com", "Alex", "password1234")
+    alex = _create_user("alex@example.com", "Alex", "password1234")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     share = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "editor"},

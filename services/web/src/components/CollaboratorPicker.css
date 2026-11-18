@@ -1,0 +1,62 @@
+.collaborator-picker {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.collaborator-picker-selected {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.collaborator-picker-chip {
+  display: block;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collaborator-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  position: absolute;
+  z-index: 5;
+  inset-inline: 0;
+  top: calc(100% + 0.2rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  max-height: 12rem;
+  overflow: auto;
+  box-shadow: var(--shadow-sm, 0 4px 16px color-mix(in srgb, var(--text) 12%, transparent));
+}
+
+.collaborator-picker-empty {
+  padding: 0.5rem 0.55rem;
+}
+
+.collaborator-picker-item {
+  width: 100%;
+  display: grid;
+  gap: 0.1rem;
+  text-align: start;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+}
+
+.collaborator-picker-item:hover,
+.collaborator-picker-item:focus-visible,
+.collaborator-picker-item.is-active {
+  background: var(--accent-soft);
+  outline: none;
+}

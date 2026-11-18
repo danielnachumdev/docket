@@ -5,7 +5,7 @@ from waymark.db import database
 from waymark.main import create_app
 from waymark.models import Membership, Role, User
 from waymark.security import password_hasher
-from tests.helpers import bearer, bootstrap_owner, mint_api_token
+from tests.helpers import bearer, bootstrap_owner, invite_and_register_contact, mint_api_token
 
 MEMBER_PASSWORD = "SecurePass12"
 
@@ -63,7 +63,12 @@ def test_contacts_from_share_either_direction_and_search() -> None:
     bootstrap_owner(client)
     task_id = client.post("/api/tasks", json={"title": "Shared board"}).json()["id"]
 
-    alex = _create_member("alex@example.com", "Alex Friend")
+    alex = invite_and_register_contact(
+        client,
+        email="alex@example.com",
+        display_name="Alex Friend",
+        password=MEMBER_PASSWORD,
+    )
     stranger = _create_member("stranger@example.com", "Stranger")
     _ = stranger
 
@@ -77,7 +82,7 @@ def test_contacts_from_share_either_direction_and_search() -> None:
     assert owner_contacts.status_code == 200
     owner_rows = owner_contacts.json()
     assert len(owner_rows) == 1
-    assert owner_rows[0]["id"] == alex.id
+    assert owner_rows[0]["id"] == alex["id"]
     assert owner_rows[0]["email"] == "alex@example.com"
     assert owner_rows[0]["display_name"] == "Alex Friend"
 
@@ -144,7 +149,12 @@ def test_contacts_via_api_token() -> None:
     client = TestClient(create_app())
     owner = bootstrap_owner(client)
     task_id = client.post("/api/tasks", json={"title": "Agent share"}).json()["id"]
-    _create_member("alex@example.com", "Alex")
+    invite_and_register_contact(
+        client,
+        email="alex@example.com",
+        display_name="Alex",
+        password=MEMBER_PASSWORD,
+    )
     assert (
         client.post(
             f"/api/tasks/{task_id}/shares",
@@ -174,8 +184,18 @@ def test_contact_nickname_patch_search_and_uniqueness() -> None:
     client = TestClient(create_app())
     bootstrap_owner(client)
     task_id = client.post("/api/tasks", json={"title": "Nick board"}).json()["id"]
-    alex = _create_member("alex@example.com", "Alex Friend")
-    blake = _create_member("blake@example.com", "Blake Friend")
+    alex = invite_and_register_contact(
+        client,
+        email="alex@example.com",
+        display_name="Alex Friend",
+        password=MEMBER_PASSWORD,
+    )
+    blake = invite_and_register_contact(
+        client,
+        email="blake@example.com",
+        display_name="Blake Friend",
+        password=MEMBER_PASSWORD,
+    )
     for email in ("alex@example.com", "blake@example.com"):
         assert (
             client.post(
@@ -190,57 +210,57 @@ def test_contact_nickname_patch_search_and_uniqueness() -> None:
     assert all(row["nickname"] is None for row in listed.json())
 
     patched = client.patch(
-        f"/api/me/contacts/{alex.id}", json={"nickname": "dana"}
+        f"/api/me/contacts/{alex['id']}", json={"nickname": "dana"}
     )
     assert patched.status_code == 200, patched.text
     assert patched.json()["nickname"] == "dana"
     assert patched.json()["email"] == "alex@example.com"
 
     by_nick = client.get("/api/me/contacts", params={"q": "dana"})
-    assert [r["id"] for r in by_nick.json()] == [alex.id]
+    assert [r["id"] for r in by_nick.json()] == [alex["id"]]
 
     conflict = client.patch(
-        f"/api/me/contacts/{blake.id}", json={"nickname": "Dana"}
+        f"/api/me/contacts/{blake['id']}", json={"nickname": "Dana"}
     )
     assert conflict.status_code == 409, conflict.text
 
     blake_nick = client.patch(
-        f"/api/me/contacts/{blake.id}", json={"nickname": "blake_ops"}
+        f"/api/me/contacts/{blake['id']}", json={"nickname": "blake_ops"}
     )
     assert blake_nick.status_code == 200
     assert blake_nick.json()["nickname"] == "blake_ops"
 
     cleared = client.patch(
-        f"/api/me/contacts/{alex.id}", json={"nickname": None}
+        f"/api/me/contacts/{alex['id']}", json={"nickname": None}
     )
     assert cleared.status_code == 200
     assert cleared.json()["nickname"] is None
 
     bad = client.patch(
-        f"/api/me/contacts/{blake.id}", json={"nickname": "bad nick!"}
+        f"/api/me/contacts/{blake['id']}", json={"nickname": "bad nick!"}
     )
     assert bad.status_code == 422
 
     spaced = client.patch(
-        f"/api/me/contacts/{blake.id}", json={"nickname": "Blake Friend"}
+        f"/api/me/contacts/{blake['id']}", json={"nickname": "Blake Friend"}
     )
     assert spaced.status_code == 200, spaced.text
     assert spaced.json()["nickname"] == "Blake Friend"
 
     collapsed = client.patch(
-        f"/api/me/contacts/{blake.id}", json={"nickname": "  Blake   Friend  "}
+        f"/api/me/contacts/{blake['id']}", json={"nickname": "  Blake   Friend  "}
     )
     assert collapsed.status_code == 200, collapsed.text
     assert collapsed.json()["nickname"] == "Blake Friend"
 
     hebrew = client.patch(
-        f"/api/me/contacts/{blake.id}", json={"nickname": "בלייק כהן"}
+        f"/api/me/contacts/{blake['id']}", json={"nickname": "בלייק כהן"}
     )
     assert hebrew.status_code == 200, hebrew.text
     assert hebrew.json()["nickname"] == "בלייק כהן"
 
     with_at = client.patch(
-        f"/api/me/contacts/{alex.id}", json={"nickname": "@אלכס"}
+        f"/api/me/contacts/{alex['id']}", json={"nickname": "@אלכס"}
     )
     assert with_at.status_code == 200, with_at.text
     assert with_at.json()["nickname"] == "אלכס"
@@ -253,7 +273,12 @@ def test_unicode_nickname_resolves_in_mentions() -> None:
     client = TestClient(create_app())
     bootstrap_owner(client)
     task_id = client.post("/api/tasks", json={"title": "Unicode nick"}).json()["id"]
-    alex = _create_member("alex@example.com", "Alex Friend")
+    alex = invite_and_register_contact(
+        client,
+        email="alex@example.com",
+        display_name="Alex Friend",
+        password=MEMBER_PASSWORD,
+    )
     assert (
         client.post(
             f"/api/tasks/{task_id}/shares",
@@ -263,7 +288,7 @@ def test_unicode_nickname_resolves_in_mentions() -> None:
     )
     assert (
         client.patch(
-            f"/api/me/contacts/{alex.id}", json={"nickname": "דני"}
+            f"/api/me/contacts/{alex['id']}", json={"nickname": "דני"}
         ).status_code
         == 200
     )
@@ -273,14 +298,19 @@ def test_unicode_nickname_resolves_in_mentions() -> None:
         json={"body": "שלום @דני"},
     )
     assert mentioned.status_code == 201, mentioned.text
-    assert alex.id in mentioned.json()["mentioned_user_ids"]
+    assert alex["id"] in mentioned.json()["mentioned_user_ids"]
 
 
 def test_contact_nickname_private_to_viewer_and_mention_resolve() -> None:
     client = TestClient(create_app())
     bootstrap_owner(client)
     task_id = client.post("/api/tasks", json={"title": "Mention nick"}).json()["id"]
-    alex = _create_member("alex@example.com", "Alex Friend")
+    alex = invite_and_register_contact(
+        client,
+        email="alex@example.com",
+        display_name="Alex Friend",
+        password=MEMBER_PASSWORD,
+    )
     assert (
         client.post(
             f"/api/tasks/{task_id}/shares",
@@ -290,14 +320,14 @@ def test_contact_nickname_private_to_viewer_and_mention_resolve() -> None:
     )
     assert (
         client.patch(
-            f"/api/me/contacts/{alex.id}", json={"nickname": "dana"}
+            f"/api/me/contacts/{alex['id']}", json={"nickname": "dana"}
         ).status_code
         == 200
     )
 
     mentionables = client.get(f"/api/tasks/{task_id}/mentionables")
     assert mentionables.status_code == 200
-    alex_row = next(r for r in mentionables.json() if r["user_id"] == alex.id)
+    alex_row = next(r for r in mentionables.json() if r["user_id"] == alex["id"])
     assert alex_row["nickname"] == "dana"
     assert alex_row["handle"] == "dana"
 
@@ -306,9 +336,9 @@ def test_contact_nickname_private_to_viewer_and_mention_resolve() -> None:
         json={"body": "Ping @dana please"},
     )
     assert mentioned.status_code == 201, mentioned.text
-    assert alex.id in mentioned.json()["mentioned_user_ids"]
+    assert alex["id"] in mentioned.json()["mentioned_user_ids"]
     user_ref = next(r for r in mentioned.json()["refs"] if r["kind"] == "user")
-    assert user_ref["user_id"] == alex.id
+    assert user_ref["user_id"] == alex["id"]
 
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", MEMBER_PASSWORD)
