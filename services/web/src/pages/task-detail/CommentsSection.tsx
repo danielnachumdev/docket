@@ -21,6 +21,7 @@ import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { Section } from '../../components/Section'
+import { Skeleton } from '../../components/Skeleton'
 import { UserBidiText } from '../../components/UserBidiText'
 import { userBidiAttrs } from '../../lib/bidi'
 import { contactPickerLabel, mentionInsertToken } from '../../lib/contactLabel'
@@ -113,7 +114,8 @@ export function CommentsSection({
   const confirm = useConfirm()
   const { status } = useAuth()
   const meId = status?.user?.id
-  const [comments, setComments] = useState<TaskComment[]>([])
+  /** null = comments feed not yet loaded (composer-only mode ignores this for empty UI). */
+  const [comments, setComments] = useState<TaskComment[] | null>(null)
   const [mentionables, setMentionables] = useState<MentionableUser[]>([])
   const [body, setBody] = useState('')
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
@@ -135,6 +137,10 @@ export function CommentsSection({
     ])
     setComments(rows)
     setMentionables(people)
+  }, [taskId])
+
+  useEffect(() => {
+    setComments(null)
   }, [taskId])
 
   useEffect(() => {
@@ -189,7 +195,7 @@ export function CommentsSection({
           insert: `&${a.id}`,
         }))
     }
-    return comments
+    return (comments ?? [])
       .filter(
         (c) =>
           String(c.id).includes(q) ||
@@ -238,7 +244,7 @@ export function CommentsSection({
 
   const commentsById = useMemo(() => {
     const map = new Map<number, TaskComment>()
-    for (const row of comments) map.set(row.id, row)
+    for (const row of comments ?? []) map.set(row.id, row)
     return map
   }, [comments])
 
@@ -325,7 +331,7 @@ export function CommentsSection({
     <Section
       icon="message"
       title={composerOnly ? t('commentSubmit') : t('comments')}
-      count={composerOnly ? undefined : comments.length}
+      count={composerOnly || comments == null ? undefined : comments.length}
       variant={composerOnly ? 'plain' : 'card'}
     >
       {pendingMentions && (
@@ -339,7 +345,9 @@ export function CommentsSection({
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
       {!composerOnly &&
-        (comments.length === 0 ? (
+        (comments == null ? (
+          !error && <Skeleton rows={3} leading="avatar" />
+        ) : comments.length === 0 ? (
           <p className="muted small">{t('commentsEmpty')}</p>
         ) : (
           <ul className="comment-thread">

@@ -289,6 +289,34 @@
   }
 }
 
+/* ---------- Activity timeline ---------- */
+
+.skeleton-activity {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.15rem 0;
+}
+
+.skeleton-activity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+}
+
+.bone-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.45rem;
+  flex: none;
+}
+
+.skeleton-activity-row .skeleton-lines {
+  flex: 1;
+  gap: 0.35rem;
+  padding-top: 0.2rem;
+}
+
 @media (max-width: 640px) {
   .skeleton-row {
     padding-inline: 0.75rem;
