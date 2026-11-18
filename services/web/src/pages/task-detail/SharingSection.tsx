@@ -1,16 +1,20 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type Contact, type TaskShare } from '../../api'
 import { Alert } from '../../components/Feedback'
+import { CollaboratorPicker } from '../../components/CollaboratorPicker'
 import { Icon } from '../../components/Icon'
 import { Section } from '../../components/Section'
 import { initials } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 
+type ShareRole = 'viewer' | 'commentor' | 'editor'
+
 type Props = {
   taskId: string
   shares: TaskShare[]
-  isOwner: boolean
+  /** Owner or editor (tasks:write on this task). Commentors cannot manage shares. */
+  canManageShares: boolean
   onChanged: () => Promise<void>
   variant?: 'card' | 'plain'
   /** Render as a disclosure; collapsed on first render when true. */
@@ -20,41 +24,31 @@ type Props = {
 export function SharingSection({
   taskId,
   shares,
-  isOwner,
+  canManageShares,
   onChanged,
   variant = 'card',
   defaultCollapsed,
 }: Props) {
   const { t } = useTranslation(['detail', 'tasks'])
-  const listId = useId()
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'viewer' | 'commentor' | 'editor'>('viewer')
-  const [suggestions, setSuggestions] = useState<Contact[]>([])
+  const [person, setPerson] = useState<Contact | null>(null)
+  const [role, setRole] = useState<ShareRole | ''>('')
   const { busy, error, setError, run } = useAction()
 
-  useEffect(() => {
-    if (!isOwner) return
-    const handle = window.setTimeout(() => {
-      void api
-        .listContacts(email.trim() || undefined)
-        .then((rows) => setSuggestions(rows.filter((c) => c.email).slice(0, 8)))
-        .catch(() => setSuggestions([]))
-    }, 200)
-    return () => window.clearTimeout(handle)
-  }, [email, isOwner])
+  const sharedIds = useMemo(() => new Set(shares.map((s) => s.user_id)), [shares])
 
-  function roleLabel(role: string) {
-    if (role === 'editor') return t('tasks:shareRoleEditor')
-    if (role === 'commentor') return t('tasks:shareRoleCommentor')
+  function roleLabel(roleName: string) {
+    if (roleName === 'editor') return t('tasks:shareRoleEditor')
+    if (roleName === 'commentor') return t('tasks:shareRoleCommentor')
     return t('tasks:shareRoleViewer')
   }
 
   function onShare(e: FormEvent) {
     e.preventDefault()
-    if (!email.trim()) return
+    if (!person || !role) return
     void run(async () => {
-      await api.shareTask(taskId, { email: email.trim().toLowerCase(), role })
-      setEmail('')
+      await api.shareTask(taskId, { user_id: person.id, role })
+      setPerson(null)
+      setRole('')
       await onChanged()
     }, t('sharing.shareFailed'))
   }
@@ -81,7 +75,7 @@ export function SharingSection({
                 {s.email && <span className="muted small block truncate">{s.email}</span>}
               </span>
               <span className={`role-tag role-${s.role}`}>{roleLabel(s.role)}</span>
-              {isOwner && (
+              {canManageShares && (
                 <button
                   type="button"
                   className="icon-btn"
@@ -102,45 +96,30 @@ export function SharingSection({
           ))}
         </ul>
       )}
-      {isOwner && (
+      {canManageShares && (
         <form className="stack tight" onSubmit={onShare}>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={t('sharing.emailPlaceholder')}
-            aria-label={t('sharing.emailLabel')}
-            list={listId}
-            required
+          <CollaboratorPicker
+            value={person}
+            onChange={setPerson}
+            excludeIds={sharedIds}
+            disabled={busy}
           />
-          <datalist id={listId}>
-            {suggestions.map((c) =>
-              c.email ? (
-                <option
-                  key={c.id}
-                  value={c.email}
-                  label={`${c.display_name} · ${c.email}`}
-                />
-              ) : null,
-            )}
-          </datalist>
-          {suggestions.length > 0 && (
-            <p className="muted small">{t('sharing.contactsHint')}</p>
-          )}
           <div className="inline-form">
             <select
               className="grow"
               value={role}
-              onChange={(e) =>
-                setRole(e.target.value as 'viewer' | 'commentor' | 'editor')
-              }
+              onChange={(e) => setRole(e.target.value as ShareRole | '')}
               aria-label={t('sharing.roleLabel')}
+              required
             >
+              <option value="" disabled>
+                {t('sharing.rolePlaceholder')}
+              </option>
               <option value="viewer">{t('tasks:shareRoleViewer')}</option>
               <option value="commentor">{t('tasks:shareRoleCommentor')}</option>
               <option value="editor">{t('tasks:shareRoleEditor')}</option>
             </select>
-            <button type="submit" className="btn" disabled={busy || !email.trim()}>
+            <button type="submit" className="btn" disabled={busy || !person || !role}>
               <Icon name="users" />
               {t('sharing.share')}
             </button>

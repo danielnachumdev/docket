@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from waymark.api.contacts.contact_service import ContactService
 from waymark.api.tasks.personal_task_number_allocator import (
     PersonalTaskNumberAllocator,
 )
@@ -23,6 +24,7 @@ class TaskShareService:
         self._access = TaskAccessService(db)
         self._rbac = RbacService(db)
         self._numbers = PersonalTaskNumberAllocator(db)
+        self._contacts = ContactService(db)
 
     def list_shares(self, principal: Principal, task_ref: str) -> list[TaskShareOut]:
         task = self._access.get_task(principal, task_ref, "tasks:read")
@@ -41,7 +43,7 @@ class TaskShareService:
     def create_share(
         self, principal: Principal, task_ref: str, body: TaskShareCreate
     ) -> TaskShareOut:
-        task = self._access.require_owner(principal, task_ref)
+        task = self._access.get_task(principal, task_ref, "tasks:write")
         role = self._rbac.shareable_role_by_name(body.role)
         if role is None:
             raise HTTPException(
@@ -49,13 +51,15 @@ class TaskShareService:
                 "Role must be viewer, commentor, or editor",
             )
 
-        email = body.email.strip().lower()
-        user = self._db.scalar(select(User).where(User.email == email))
-        if user is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+        user = self._resolve_share_target(body)
         if user.id == task.owner_user_id:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "Cannot share a task with its owner"
+            )
+        if not self._contacts.is_contact(principal.user_id, user.id):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Can only share with collaborators",
             )
 
         membership = self._upsert_membership(user.id, task.id, role.id)
@@ -63,6 +67,7 @@ class TaskShareService:
             "membership_id": membership.id,
             "user_id": user.id,
             "email": user.email,
+            "display_name": user.display_name,
             "role": role.name,
         }
         event = task_event_recorder.record(
@@ -80,7 +85,7 @@ class TaskShareService:
     def delete_share(
         self, principal: Principal, task_ref: str, membership_id: int
     ) -> None:
-        task = self._access.require_owner(principal, task_ref)
+        task = self._access.get_task(principal, task_ref, "tasks:write")
         membership = self._db.get(Membership, membership_id)
         if (
             membership is None
@@ -99,6 +104,21 @@ class TaskShareService:
         )
         self._db.delete(membership)
         self._commit_and_dispatch(task, event, payload)
+
+    def _resolve_share_target(self, body: TaskShareCreate) -> User:
+        email = body.resolved_email()
+        if body.user_id is not None:
+            user = self._db.get(User, body.user_id)
+        elif email is not None:
+            user = self._db.scalar(select(User).where(User.email == email))
+        else:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "user_id or email is required",
+            )
+        if user is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+        return user
 
     def _notify_sharee(
         self, task: Task, principal: Principal, user: User, role_name: str
@@ -122,6 +142,7 @@ class TaskShareService:
         }
         if user is not None:
             payload["email"] = user.email
+            payload["display_name"] = user.display_name
         if role is not None:
             payload["role"] = role.name
         return payload

@@ -3,6 +3,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 
+from tests.helpers import link_as_contact
 from waymark.db import database
 from waymark.main import create_app
 from waymark.models import Membership, Role, Task, User
@@ -16,7 +17,7 @@ def _assert_short_public_id(value: str) -> None:
 
 
 
-def _bootstrap(client: TestClient, email: str = "ops@example.com") -> None:
+def _bootstrap(client: TestClient, email: str = "ops@example.com") -> dict:
     res = client.post(
         "/api/auth/bootstrap",
         json={
@@ -26,6 +27,7 @@ def _bootstrap(client: TestClient, email: str = "ops@example.com") -> None:
         },
     )
     assert res.status_code == 200
+    return res.json()
 
 
 def _create_owner_user(email: str, display_name: str, password: str) -> User:
@@ -92,12 +94,13 @@ def test_two_owners_share_same_local_number_with_distinct_public_ids() -> None:
 
 def test_sharing_uses_public_id_not_local_number() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task = client.post("/api/tasks", json={"title": "Shared"}).json()
     public_id = task["id"]
     assert task["number"] == 1
 
-    _create_owner_user("alex@example.com", "Alex", "password123")
+    alex = _create_owner_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     share = client.post(
         f"/api/tasks/{public_id}/shares",
         json={"email": "alex@example.com", "role": "viewer"},
@@ -123,7 +126,7 @@ def test_sharing_uses_public_id_not_local_number() -> None:
 def test_sharee_number_does_not_collide_with_owner_number() -> None:
     """Owner #N and sharee's personal # for the same task are independent."""
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
 
     for title in ("A1", "A2", "A3", "A4"):
         assert client.post("/api/tasks", json={"title": title}).status_code == 201
@@ -131,7 +134,8 @@ def test_sharee_number_does_not_collide_with_owner_number() -> None:
     assert shared["number"] == 5
     public_id = shared["id"]
 
-    _create_owner_user("alex@example.com", "Alex", "password123")
+    alex = _create_owner_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")
     for title in ("B1", "B2", "B3", "B4"):

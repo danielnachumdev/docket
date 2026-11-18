@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 import type { TFunction } from 'i18next'
 import { Trans, useTranslation } from 'react-i18next'
 import {
   api,
+  type ActivityActor,
   type ActivityItem,
   type Artifact,
   type CommentRef,
@@ -10,6 +11,7 @@ import {
   type TaskComment,
   type TaskEvent,
 } from '../../api'
+import { useAuth } from '../../auth'
 import { Alert } from '../../components/Feedback'
 import { Icon } from '../../components/Icon'
 import { Menu } from '../../components/Menu'
@@ -23,10 +25,16 @@ import { useConfirm } from '../../lib/dialogs'
 import { CommentAttachmentList } from './CommentAttachmentList'
 import { CommentRefChip } from './CommentRefChip'
 import { InaccessibleRefChip } from './InaccessibleRefChip'
-import { commentAnchorId, highlightComment } from './commentAnchors'
+import {
+  commentAnchorId,
+  highlightComment,
+  highlightShare,
+  shareUserAnchorId,
+} from './commentAnchors'
 import { useHashHighlight } from './useHashHighlight'
 import './ActivitySection.css'
 import './CommentsSection.css'
+import './CommentRefChip.css'
 
 const EMPTY_ARTIFACTS: Artifact[] = []
 const EMPTY_COMMENTS = new Map<number, TaskComment>()
@@ -110,9 +118,104 @@ function text(value: unknown) {
   return typeof value === 'string' && value ? value : null
 }
 
+function intId(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
 function leaseSeconds(payload: Payload | null) {
   const seconds = payload?.lease_seconds
   return typeof seconds === 'number' ? seconds : null
+}
+
+function shareRoleLabel(t: TFunction, role: string | null) {
+  if (role === 'viewer') return t('tasks:shareRoleViewer')
+  if (role === 'commentor') return t('tasks:shareRoleCommentor')
+  if (role === 'editor') return t('tasks:shareRoleEditor')
+  return role
+}
+
+function personDisplayLabel(
+  t: TFunction,
+  opts: {
+    userId: number | null
+    meId: number | undefined
+    displayName?: string | null
+    nickname?: string | null
+    fallbackLabel?: string | null
+  },
+) {
+  if (opts.userId != null && opts.meId != null && opts.userId === opts.meId) {
+    return t('actor.you')
+  }
+  const nick = opts.nickname?.trim()
+  if (nick) return nick
+  const name = opts.displayName?.trim()
+  if (name) return name
+  const fallback = opts.fallbackLabel?.trim()
+  if (fallback && !fallback.includes('@')) return fallback
+  if (opts.userId != null) return t('actor.user', { id: opts.userId })
+  return t('actor.user', { id: '?' })
+}
+
+function ActivityUserLink({
+  userId,
+  label,
+  chip = false,
+}: {
+  userId: number
+  label: string
+  chip?: boolean
+}) {
+  const href = `#${shareUserAnchorId(userId)}`
+
+  function onActivate(e: MouseEvent<HTMLAnchorElement>) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+    e.preventDefault()
+    window.history.replaceState(null, '', href)
+    highlightShare(userId)
+  }
+
+  return (
+    <a
+      href={href}
+      className={chip ? 'comment-chip kind-user' : 'activity-user-link'}
+      onClick={onActivate}
+    >
+      {chip ? `@${label}` : label}
+    </a>
+  )
+}
+
+function ActorLink({
+  actor,
+  meId,
+  fallbackLabel,
+}: {
+  actor: ActivityActor
+  meId: number | undefined
+  fallbackLabel?: string | null
+}) {
+  const { t } = useTranslation('detail')
+  const isSelf = meId != null && actor.user_id === meId
+  let label: string
+  if (isSelf) {
+    const agent = actor.token_name?.trim()
+    label = agent ? `${t('actor.you')} · ${agent} (agent)` : t('actor.you')
+  } else {
+    label =
+      actor.label ||
+      personDisplayLabel(t, {
+        userId: actor.user_id,
+        meId,
+        displayName: actor.display_name,
+        fallbackLabel,
+      })
+  }
+  return (
+    <strong>
+      <ActivityUserLink userId={actor.user_id} label={label} />
+    </strong>
+  )
 }
 
 function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
@@ -158,14 +261,10 @@ function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
     case 'unlinked':
       // Rendered as chips in EventTimelineItem (per-viewer #N + title).
       return e(`${event.type}Plain`)
-    case 'shared': {
-      const email = text(payload?.email)
-      return email ? e('shared', { email }) : e('sharedPlain')
-    }
-    case 'unshared': {
-      const email = text(payload?.email)
-      return email ? e('unshared', { email }) : e('unsharedPlain')
-    }
+    case 'shared':
+    case 'unshared':
+      // Rendered with user chips + role in EventTimelineItem.
+      return e(`${event.type}Plain`)
     case 'claimed': {
       const seconds = leaseSeconds(payload)
       return seconds != null ? e('claimedLease', { seconds }) : e('claimed')
@@ -200,14 +299,16 @@ function describe(t: TFunction, event: TaskEvent, payload: Payload | null) {
 
 function CommentTimelineItem({
   comment,
-  actorLabel,
+  actor,
+  meId,
   taskId,
   artifacts,
   commentsById,
   onChanged,
 }: {
   comment: TaskComment
-  actorLabel: string
+  actor: ActivityActor
+  meId: number | undefined
   taskId: string
   artifacts: Artifact[]
   commentsById: Map<number, TaskComment>
@@ -248,7 +349,11 @@ function CommentTimelineItem({
       <span className="event-dot" aria-hidden="true" />
       <article className="timeline-comment">
         <header className="comment-meta">
-          <strong>{actorLabel}</strong>
+          <ActorLink
+            actor={actor}
+            meId={meId}
+            fallbackLabel={comment.author_label || comment.author_display_name}
+          />
           <span className="muted small" title={formatDateTime(comment.created_at)}>
             {formatRelative(comment.created_at)}
             {comment.updated_at !== comment.created_at ? ` · ${t('commentEdited')}` : ''}
@@ -371,29 +476,66 @@ function describeLinkEvent(
   )
 }
 
+function describeShareEvent(
+  t: TFunction,
+  event: TaskEvent,
+  payload: Payload | null,
+  meId: number | undefined,
+): ReactNode {
+  const userId = intId(payload?.user_id)
+  if (userId == null) return t(`activity.event.${event.type}Plain`)
+  const label = personDisplayLabel(t, {
+    userId,
+    meId,
+    displayName: text(payload?.display_name),
+    nickname: text(payload?.nickname),
+  })
+  const role = shareRoleLabel(t, text(payload?.role))
+  const i18nKey =
+    event.type === 'shared'
+      ? role
+        ? 'activity.event.shared'
+        : 'activity.event.sharedNoRole'
+      : 'activity.event.unshared'
+  return (
+    <Trans
+      t={t}
+      i18nKey={i18nKey}
+      values={role ? { role } : undefined}
+      components={{
+        user: <ActivityUserLink userId={userId} label={label} chip />,
+      }}
+    />
+  )
+}
+
 function EventTimelineItem({
   item,
   taskId,
   taskLookups,
+  meId,
 }: {
   item: ActivityItem
   taskId: string
   taskLookups: Map<string, TaskRefLookup>
+  meId: number | undefined
 }) {
-  const { t } = useTranslation('detail')
+  const { t } = useTranslation(['detail', 'tasks'])
   const event = item.event
   if (!event) return null
   const payload = parsePayload(event.payload_json)
   const body =
     event.type === 'linked' || event.type === 'unlinked'
       ? describeLinkEvent(t, event, payload, taskId, taskLookups)
-      : describe(t, event, payload)
+      : event.type === 'shared' || event.type === 'unshared'
+        ? describeShareEvent(t, event, payload, meId)
+        : describe(t, event, payload)
   return (
     <li className={`event event-${event.type}`}>
       <span className="event-dot" aria-hidden="true" />
       <div className="event-body">
         <p>
-          <strong>{item.actor.label}</strong> {body}
+          <ActorLink actor={item.actor} meId={meId} /> {body}
           <span className="muted small" title={formatDateTime(event.created_at)}>
             {' · '}
             {formatRelative(event.created_at)}
@@ -440,6 +582,8 @@ export function ActivitySection({
   onCommentsChanged,
 }: Props) {
   const { t } = useTranslation('detail')
+  const { status } = useAuth()
+  const meId = status?.user?.id
   const [order, setOrder] = useState<'asc' | 'desc'>(readOrder)
   const [showAll, setShowAll] = useState(false)
   const [items, setItems] = useState<ActivityItem[]>([])
@@ -623,7 +767,8 @@ export function ActivitySection({
                 key={item.id}
                 taskId={taskId}
                 comment={item.comment}
-                actorLabel={item.actor.label || item.comment.author_label}
+                actor={item.actor}
+                meId={meId}
                 artifacts={artifactsForRefs}
                 commentsById={commentsById}
                 onChanged={onCommentsChanged}
@@ -634,6 +779,7 @@ export function ActivitySection({
                 item={item}
                 taskId={taskId}
                 taskLookups={taskLookups}
+                meId={meId}
               />
             ),
           )}

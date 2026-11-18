@@ -4,7 +4,7 @@ from waymark.db import database
 from waymark.main import create_app
 from waymark.models import User
 from waymark.security import password_hasher
-from tests.helpers import bootstrap_owner
+from tests.helpers import link_as_contact, bootstrap_owner
 
 
 def _create_user(email: str, display_name: str, password: str) -> User:
@@ -106,10 +106,11 @@ def test_bulk_update_unknown_task_is_404_and_atomic() -> None:
 
 def test_bulk_update_editor_share_can_write_unowned_denied() -> None:
     client = TestClient(create_app())
-    bootstrap_owner(client)
+    owner = bootstrap_owner(client)
     owned = _create_task(client, "Owner task")
     shared = _create_task(client, "Shared task")
-    _create_user("alex@example.com", "Alex", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     share = client.post(
         f"/api/tasks/{shared}/shares",
         json={"email": "alex@example.com", "role": "editor"},
@@ -135,9 +136,10 @@ def test_bulk_update_editor_share_can_write_unowned_denied() -> None:
 
 def test_bulk_update_viewer_share_cannot_write() -> None:
     client = TestClient(create_app())
-    bootstrap_owner(client)
+    owner = bootstrap_owner(client)
     task_id = _create_task(client, "View only")
-    _create_user("viewer@example.com", "Viewer", "password123")
+    viewer = _create_user("viewer@example.com", "Viewer", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=viewer)
     share = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "viewer@example.com", "role": "viewer"},

@@ -77,6 +77,25 @@
   margin: 0;
 }
 
+.activity-user-link {
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.activity-user-link:hover,
+.activity-user-link:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.activity-timeline .event-body .comment-chip {
+  vertical-align: baseline;
+}
+
 /* Line the dot up with the comment card's author row, not its top border. */
 .activity-timeline .event-comment .event-dot {
   margin-top: 1.05rem;

@@ -62,7 +62,7 @@ class TaskCommentService:
         self, principal: Principal, task_ref: str
     ) -> list[MentionableUserOut]:
         task = self._access.get_task(principal, task_ref, "tasks:read")
-        people = self._refs.mentionable_users(task)
+        people = self._refs.mentionable_users(principal, task)
         nicknames = self._refs.nicknames_for_viewer(
             principal.user_id, {user.id for user in people}
         )

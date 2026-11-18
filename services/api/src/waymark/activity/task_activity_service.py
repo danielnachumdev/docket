@@ -5,15 +5,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from waymark.activity.actor_label import actor_label
+from waymark.api.contacts.contact_gateway import ContactGateway
 from waymark.api.task_comments.task_comment_service import TaskCommentService
 from waymark.api.tasks.task_response_mapper import TaskResponseMapper
 from waymark.auth.principal import Principal
 from waymark.auth.task_access_service import TaskAccessService
 from waymark.models import ApiToken, TaskEvent, User
 from waymark.schemas.activity import ActivityActorOut, ActivityFeedOut, ActivityItemOut
+from waymark.schemas.tasks import TaskEventOut
 
 
 _SKIP_EVENT_TYPES = frozenset({"commented"})
+_SHARE_EVENT_TYPES = frozenset({"shared", "unshared"})
 
 
 class TaskActivityService:
@@ -24,6 +27,7 @@ class TaskActivityService:
         self._access = TaskAccessService(db)
         self._mapper = TaskResponseMapper(db)
         self._comments = TaskCommentService(db)
+        self._contacts = ContactGateway(db)
 
     def list_feed(
         self,
@@ -42,6 +46,9 @@ class TaskActivityService:
         ).all()
         users = self._users_for(comments, events)
         tokens = self._tokens_for(events)
+        nicknames = self._contacts.nicknames_for_viewer(
+            principal.user_id, set(users.keys())
+        )
 
         items: list[ActivityItemOut] = []
         for comment in comments:
@@ -88,7 +95,7 @@ class TaskActivityService:
                         token=token,
                         token_name=event.actor_token_name,
                     ),
-                    event=self._mapper.event_out(event),
+                    event=self._event_out(event, users, nicknames),
                 )
             )
 
@@ -106,16 +113,59 @@ class TaskActivityService:
         return True
 
     def _payload_comment_id(self, event: TaskEvent) -> int | None:
-        if not event.payload_json:
+        payload = self._parse_payload(event.payload_json)
+        if payload is None:
+            return None
+        value = payload.get("comment_id")
+        return int(value) if isinstance(value, int) else None
+
+    def _event_out(
+        self,
+        event: TaskEvent,
+        users: dict[int, User],
+        nicknames: dict[int, str],
+    ) -> TaskEventOut:
+        out = self._mapper.event_out(event)
+        if event.type not in _SHARE_EVENT_TYPES:
+            return out
+        enriched = self._enriched_share_payload(event.payload_json, users, nicknames)
+        if enriched is None:
+            return out
+        return out.model_copy(update={"payload_json": enriched})
+
+    def _enriched_share_payload(
+        self,
+        payload_json: str | None,
+        users: dict[int, User],
+        nicknames: dict[int, str],
+    ) -> str | None:
+        payload = self._parse_payload(payload_json)
+        if payload is None:
+            return None
+        user_id = payload.get("user_id")
+        if not isinstance(user_id, int):
+            return payload_json
+        user = users.get(user_id)
+        if user is not None:
+            payload["display_name"] = user.display_name
+            if user.email and "email" not in payload:
+                payload["email"] = user.email
+        nickname = nicknames.get(user_id)
+        if nickname:
+            payload["nickname"] = nickname
+        else:
+            payload.pop("nickname", None)
+        return json.dumps(payload)
+
+    @staticmethod
+    def _parse_payload(payload_json: str | None) -> dict[str, Any] | None:
+        if not payload_json:
             return None
         try:
-            raw: Any = json.loads(event.payload_json)
+            raw: Any = json.loads(payload_json)
         except json.JSONDecodeError:
             return None
-        if not isinstance(raw, dict):
-            return None
-        value = raw.get("comment_id")
-        return int(value) if isinstance(value, int) else None
+        return raw if isinstance(raw, dict) else None
 
     def _actor(
         self,
@@ -141,6 +191,13 @@ class TaskActivityService:
         self, comments: list, events: list[TaskEvent]
     ) -> dict[int, User]:
         ids = {c.author_user_id for c in comments} | {e.actor_user_id for e in events}
+        for event in events:
+            if event.type not in _SHARE_EVENT_TYPES:
+                continue
+            payload = self._parse_payload(event.payload_json)
+            user_id = payload.get("user_id") if payload else None
+            if isinstance(user_id, int):
+                ids.add(user_id)
         if not ids:
             return {}
         rows = self._db.scalars(select(User).where(User.id.in_(ids))).all()

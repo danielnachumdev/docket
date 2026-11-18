@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from waymark.main import create_app
 from waymark.webhooks.webhook_http_gateway import WebhookHttpResult
-from tests.helpers import bearer, bootstrap_owner, mint_api_token
+from tests.helpers import bearer, bootstrap_owner, link_as_contact, mint_api_token
 
 
 class _FakeHttp:
@@ -183,7 +183,7 @@ def test_share_and_unshare_fire_webhooks(monkeypatch) -> None:
     from waymark.security import password_hasher
 
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     fake = _FakeHttp()
     _install_fake(monkeypatch, fake)
     hook = _create_webhook(client, event_types=["shared", "unshared"])
@@ -199,9 +199,12 @@ def test_share_and_unshare_fire_webhooks(monkeypatch) -> None:
         session.add(user)
         session.commit()
         session.refresh(user)
+        session.expunge(user)
         sharee_id = user.id
+        sharee = user
     finally:
         session.close()
+    link_as_contact(owner_user_id=owner["id"], contact=sharee)
 
     task = client.post("/api/tasks", json={"title": "Share bridge"}).json()
     task_id = task["id"]
