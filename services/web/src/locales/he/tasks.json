@@ -55,6 +55,15 @@
   "kanbanColumn": "עמודת {{status}}",
   "kanbanDropHere": "שחררו משימות כאן",
   "shared": "משותף",
+  "linkShare": {
+    "button": "שיתוף קישור",
+    "buttonNamed": "שיתוף קישור עבור \"{{title}}\"",
+    "copy": "העתקת קישור",
+    "system": "שיתוף…",
+    "copied": "הקישור הועתק",
+    "copyFailed": "לא ניתן להעתיק את הקישור",
+    "systemFailed": "לא ניתן לפתוח את גיליון השיתוף"
+  },
   "subtasksDone": "תת-משימות הושלמו",
   "subtaskOf": "תת-משימה של #{{number}} · {{title}}",
   "subtaskOfShort": "של #{{number}}",

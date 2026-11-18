@@ -54,6 +54,15 @@
   "kanbanColumn": "{{status}} column",
   "kanbanDropHere": "Drop tasks here",
   "shared": "Shared",
+  "linkShare": {
+    "button": "Share link",
+    "buttonNamed": "Share link for “{{title}}”",
+    "copy": "Copy link",
+    "system": "Share…",
+    "copied": "Link copied",
+    "copyFailed": "Could not copy link",
+    "systemFailed": "Could not open share sheet"
+  },
   "subtasksDone": "Subtasks done",
   "subtaskOf": "Subtask of #{{number}} · {{title}}",
   "subtaskOfShort": "of #{{number}}",

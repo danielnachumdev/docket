@@ -27,6 +27,8 @@ const PATHS = {
   external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
   maximize: 'M9 3H3v6M15 3h6v6M9 21H3v-6M15 21h6v-6',
   copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
+  // Arrow-up-from-tray (distinct from external / users membership mark).
+  share: 'M12 3v12M8 7l4-4 4 4M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5',
   x: 'M6 6l12 12M18 6L6 18',
   sun: 'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
   moon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z',

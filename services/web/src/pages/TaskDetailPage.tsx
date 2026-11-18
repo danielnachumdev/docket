@@ -18,6 +18,7 @@ import { DetailSkeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
 import { MarkdownView } from '../components/MarkdownView'
 import { Menu, type MenuItem } from '../components/Menu'
+import { TaskLinkShareMenu } from '../components/TaskLinkShareMenu'
 import { Section } from '../components/Section'
 import { UserBidiText } from '../components/UserBidiText'
 import { isMixedBidi, userBidiAttrs } from '../lib/bidi'
@@ -577,6 +578,7 @@ export function TaskDetailPage() {
               <Icon name={detail.watching ? 'eye' : 'eyeOff'} />
               {detail.watching ? t('watching') : t('watch')}
             </button>
+            <TaskLinkShareMenu taskId={task.id} title={task.title} number={task.number} />
             <Menu label={t('common:moreActions')} items={menuItems} />
           </div>
         </div>
