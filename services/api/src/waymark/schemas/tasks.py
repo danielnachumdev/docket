@@ -224,8 +224,15 @@ class TaskDetailOut(BaseModel):
 
 
 class TaskShareCreate(BaseModel):
-    email: str = Field(min_length=3, max_length=320)
+    user_id: int | None = None
+    email: str | None = Field(default=None, max_length=320)
     role: str = Field(pattern="^(viewer|commentor|editor)$")
+
+    def resolved_email(self) -> str | None:
+        if self.email is None:
+            return None
+        cleaned = self.email.strip().lower()
+        return cleaned or None
 
 
 class TaskShareOut(BaseModel):

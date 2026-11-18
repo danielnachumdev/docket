@@ -10,7 +10,7 @@ from waymark.db import database
 from waymark.main import create_app
 from waymark.models import Task, TaskEvent, User
 from waymark.security import password_hasher
-from tests.helpers import bearer, bootstrap_owner, mint_api_token
+from tests.helpers import bearer, bootstrap_owner, link_as_contact, mint_api_token
 
 
 def _login(client: TestClient, email: str, password: str) -> None:
@@ -285,7 +285,7 @@ def test_me_stats_agent_vs_human_actor_mix() -> None:
 
 def test_me_stats_shared_vs_owned_completions() -> None:
     client = TestClient(create_app())
-    bootstrap_owner(client)
+    owner = bootstrap_owner(client)
     now = datetime.now(UTC)
 
     owned = client.post("/api/tasks", json={"title": "Mine done"}).json()["id"]
@@ -296,6 +296,7 @@ def test_me_stats_shared_vs_owned_completions() -> None:
     _patch_task(owned, completed_at=now - timedelta(hours=4))
 
     alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     shared = client.post("/api/tasks", json={"title": "Shared board"}).json()["id"]
     share = client.post(
         f"/api/tasks/{shared}/shares",

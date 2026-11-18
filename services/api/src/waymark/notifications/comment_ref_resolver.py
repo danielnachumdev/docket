@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from waymark.api.contacts.contact_service import ContactService
 from waymark.auth.principal import Principal
 from waymark.auth.task_access_service import TaskAccessService
 from waymark.models import Artifact, ContactNickname, Membership, Task, TaskComment, User
@@ -17,6 +18,7 @@ class CommentRefResolver:
         self._db = db
         self._parser = CommentRefParser()
         self._access = TaskAccessService(db)
+        self._contacts = ContactService(db)
 
     def resolve(
         self, *, principal: Principal, task: Task, text: str
@@ -24,7 +26,7 @@ class CommentRefResolver:
         tokens = self._parser.parse(text)
         if not tokens:
             return []
-        people = self._people_on_task(task)
+        people = self._mention_candidates(principal, task)
         nicknames = self._nicknames_for_viewer(
             principal.user_id, {user.id for user in people}
         )
@@ -39,13 +41,29 @@ class CommentRefResolver:
         """Scrub stored refs so viewers never see titles/ids they cannot open."""
         return [self._project_ref(principal, ref) for ref in refs]
 
-    def mentionable_users(self, task: Task) -> list[User]:
-        return self._people_on_task(task)
+    def mentionable_users(self, principal: Principal, task: Task) -> list[User]:
+        return self._mention_candidates(principal, task)
 
     def nicknames_for_viewer(
         self, viewer_user_id: int, user_ids: set[int]
     ) -> dict[int, str]:
         return self._nicknames_for_viewer(viewer_user_id, user_ids)
+
+    def _mention_candidates(self, principal: Principal, task: Task) -> list[User]:
+        contact_ids = self._contacts.contact_user_ids(principal.user_id)
+        on_task = self._people_on_task(task)
+        merged_ids = contact_ids | {user.id for user in on_task}
+        merged_ids.discard(principal.user_id)
+        if not merged_ids:
+            return []
+        users = list(
+            self._db.scalars(
+                select(User).where(User.id.in_(merged_ids)).order_by(
+                    User.display_name.asc(), User.id.asc()
+                )
+            ).all()
+        )
+        return users
 
     def _resolve_token(
         self,

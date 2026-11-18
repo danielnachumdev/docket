@@ -2,11 +2,12 @@ from fastapi.testclient import TestClient
 
 from waymark.db import database
 from waymark.main import create_app
+from tests.helpers import link_as_contact
 from waymark.models import User
 from waymark.security import password_hasher
 
 
-def _bootstrap(client: TestClient) -> None:
+def _bootstrap(client: TestClient) -> dict:
     res = client.post(
         "/api/auth/bootstrap",
         json={
@@ -16,6 +17,7 @@ def _bootstrap(client: TestClient) -> None:
         },
     )
     assert res.status_code == 200
+    return res.json()
 
 
 def _create_user(email: str, display_name: str, password: str) -> User:
@@ -42,10 +44,12 @@ def _login(client: TestClient, email: str, password: str) -> None:
 
 def test_commentor_can_comment_viewer_cannot() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Shared notes"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
-    _create_user("blair@example.com", "Blair", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    blair = _create_user("blair@example.com", "Blair", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
+    link_as_contact(owner_user_id=owner["id"], contact=blair)
 
     assert (
         client.post(
@@ -89,9 +93,10 @@ def test_commentor_can_comment_viewer_cannot() -> None:
 
 def test_editor_can_comment_and_author_edit_delete() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Edit thread"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "editor"},
@@ -133,10 +138,11 @@ def test_editor_can_comment_and_author_edit_delete() -> None:
 
 def test_comment_ref_validation_and_mentions() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Refs"}).json()["id"]
     other_id = client.post("/api/tasks", json={"title": "Other"}).json()["id"]
     alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "viewer"},
@@ -179,17 +185,18 @@ def test_comment_ref_validation_and_mentions() -> None:
     mentionables = client.get(f"/api/tasks/{task_id}/mentionables")
     assert mentionables.status_code == 200
     emails = {row["email"] for row in mentionables.json()}
-    assert "ops@example.com" in emails
+    assert "ops@example.com" not in emails  # self excluded
     assert "alex@example.com" in emails
 
 
 def test_shared_viewer_sees_private_task_ref_chip() -> None:
     """Author can mention a private task; sharee gets scrubbed accessible=false."""
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     shared_id = client.post("/api/tasks", json={"title": "Shared board"}).json()["id"]
     private_id = client.post("/api/tasks", json={"title": "Owner-only secret"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     assert (
         client.post(
             f"/api/tasks/{shared_id}/shares",
@@ -226,9 +233,10 @@ def test_shared_viewer_sees_private_task_ref_chip() -> None:
 
 def test_share_commentor_role_roundtrip() -> None:
     client = TestClient(create_app())
-    _bootstrap(client)
+    owner = _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Role"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     share = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "commentor"},
@@ -237,3 +245,23 @@ def test_share_commentor_role_roundtrip() -> None:
     assert share.json()["role"] == "commentor"
     listed = client.get(f"/api/tasks/{task_id}/shares")
     assert listed.json()[0]["role"] == "commentor"
+
+
+def test_mention_collaborator_not_on_task_is_allowed() -> None:
+    client = TestClient(create_app())
+    owner = _bootstrap(client)
+    task_id = client.post("/api/tasks", json={"title": "Solo board"}).json()["id"]
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
+
+    mentionables = client.get(f"/api/tasks/{task_id}/mentionables")
+    assert mentionables.status_code == 200
+    assert any(r["user_id"] == alex.id for r in mentionables.json())
+
+    commented = client.post(
+        f"/api/tasks/{task_id}/comments",
+        json={"body": "FYI @alex@example.com"},
+    )
+    assert commented.status_code == 201, commented.text
+    assert alex.id in commented.json()["mentioned_user_ids"]
+    assert client.get(f"/api/tasks/{task_id}/shares").json() == []

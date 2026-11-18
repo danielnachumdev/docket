@@ -23,11 +23,16 @@ import { MarkdownView, MarkdownWithRefs } from '../../components/MarkdownView'
 import { Section } from '../../components/Section'
 import { UserBidiText } from '../../components/UserBidiText'
 import { userBidiAttrs } from '../../lib/bidi'
+import { contactPickerLabel, mentionInsertToken } from '../../lib/contactLabel'
 import { useConfirm } from '../../lib/dialogs'
 import { formatDateTime, formatRelative } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
 import { CommentAttachmentList } from './CommentAttachmentList'
 import { CommentRefChip } from './CommentRefChip'
+import {
+  MentionShareDialog,
+  type MentionShareChoice,
+} from './MentionShareDialog'
 import './CommentsSection.css'
 
 type TriggerKind = '@' | '#' | '&' | '~'
@@ -39,12 +44,48 @@ type Props = {
   artifacts: Artifact[]
   tasks: Task[]
   shares: TaskShare[]
+  ownerUserId: number
   canComment: boolean
   /** Attach files/images on new comments (requires artifacts:write). */
   canAttach?: boolean
+  /** Owner/editor can offer share-on-mention; commentors post without sharing. */
+  canManageShares?: boolean
   /** When true, only the composer is shown (feed lives in ActivitySection). */
   composerOnly?: boolean
   onChanged: () => Promise<void>
+}
+
+function mentionedWithoutAccess(
+  text: string,
+  mentionables: MentionableUser[],
+  shares: TaskShare[],
+  ownerUserId: number,
+): MentionableUser[] {
+  const sharedIds = new Set(shares.map((s) => s.user_id))
+  sharedIds.add(ownerUserId)
+  const found: MentionableUser[] = []
+  const seen = new Set<number>()
+  for (const user of mentionables) {
+    if (sharedIds.has(user.user_id) || seen.has(user.user_id)) continue
+    const handle = user.handle.toLowerCase()
+    const email = (user.email ?? '').toLowerCase()
+    const nick = (user.nickname ?? '').toLowerCase()
+    const patterns = [`@${handle}`]
+    if (email) patterns.push(`@${email}`)
+    if (nick) patterns.push(`@${nick}`)
+    const hit = patterns.some((p) => {
+      const re = new RegExp(
+        `(^|[^\\w])${p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\w.-])`,
+        'i',
+      )
+      return re.test(text)
+    })
+    if (hit) {
+      seen.add(user.user_id)
+      found.push(user)
+    }
+  }
+  return found
 }
 
 async function fileToBase64(file: File): Promise<string> {
@@ -60,13 +101,15 @@ export function CommentsSection({
   taskId,
   artifacts,
   tasks,
-  shares: _shares,
+  shares,
+  ownerUserId,
   canComment,
   canAttach = false,
+  canManageShares = false,
   composerOnly = false,
   onChanged,
 }: Props) {
-  const { t } = useTranslation(['tasks', 'common'])
+  const { t } = useTranslation(['tasks', 'common', 'detail'])
   const confirm = useConfirm()
   const { status } = useAuth()
   const meId = status?.user?.id
@@ -78,6 +121,7 @@ export function CommentsSection({
   const [trigger, setTrigger] = useState<{ kind: TriggerKind; start: number; query: string } | null>(
     null,
   )
+  const [pendingMentions, setPendingMentions] = useState<MentionableUser[] | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { busy, error, setError, run } = useAction()
@@ -110,20 +154,12 @@ export function CommentsSection({
             u.handle.toLowerCase().includes(q),
         )
         .slice(0, 8)
-        .map((u) => {
-          const token =
-            u.nickname && u.email
-              ? `@${u.nickname} (${u.email})`
-              : u.nickname
-                ? `@${u.nickname}`
-                : `@${u.email ?? u.handle}`
-          return {
-            key: `u-${u.user_id}`,
-            label: token,
-            detail: u.display_name,
-            insert: `@${u.handle}`,
-          }
-        })
+        .map((u) => ({
+          key: `u-${u.user_id}`,
+          label: contactPickerLabel(u),
+          detail: u.nickname ? u.display_name : (u.email ?? u.handle),
+          insert: mentionInsertToken(u),
+        }))
     }
     if (trigger.kind === '#') {
       return tasks
@@ -217,31 +253,62 @@ export function CommentsSection({
     e.target.value = ''
   }
 
+  async function publishComment() {
+    if (editingId != null) {
+      await api.updateComment(taskId, editingId, body.trim())
+    } else {
+      const attachments = await Promise.all(
+        pendingFiles.map(async ({ file }) => ({
+          kind: 'file' as const,
+          title: file.name,
+          content_base64: await fileToBase64(file),
+          content_type: file.type || 'application/octet-stream',
+        })),
+      )
+      await api.addComment(taskId, body.trim(), attachments)
+    }
+    setBody('')
+    setPendingFiles([])
+    setEditingId(null)
+    setTrigger(null)
+    setPendingMentions(null)
+    await reload()
+    await onChanged()
+    window.dispatchEvent(new Event('waymark:notifications'))
+  }
+
   function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (!canComment || !canPost) return
-    void run(async () => {
-      if (editingId != null) {
-        await api.updateComment(taskId, editingId, body.trim())
-      } else {
-        const attachments = await Promise.all(
-          pendingFiles.map(async ({ file }) => ({
-            kind: 'file' as const,
-            title: file.name,
-            content_base64: await fileToBase64(file),
-            content_type: file.type || 'application/octet-stream',
-          })),
-        )
-        await api.addComment(taskId, body.trim(), attachments)
+    if (editingId == null && canManageShares) {
+      const needsShare = mentionedWithoutAccess(
+        body,
+        mentionables,
+        shares,
+        ownerUserId,
+      ).filter((u) => u.user_id !== meId)
+      if (needsShare.length > 0) {
+        setPendingMentions(needsShare)
+        return
       }
-      setBody('')
-      setPendingFiles([])
-      setEditingId(null)
-      setTrigger(null)
-      await reload()
-      await onChanged()
-      window.dispatchEvent(new Event('waymark:notifications'))
-    }, editingId != null ? t('commentUpdateFailed') : t('commentAddFailed'))
+    }
+    void run(
+      () => publishComment(),
+      editingId != null ? t('commentUpdateFailed') : t('commentAddFailed'),
+    )
+  }
+
+  function onMentionShareConfirm(choices: Record<number, MentionShareChoice>) {
+    void run(async () => {
+      for (const [userIdRaw, choice] of Object.entries(choices)) {
+        if (choice === 'skip') continue
+        await api.shareTask(taskId, {
+          user_id: Number(userIdRaw),
+          role: choice,
+        })
+      }
+      await publishComment()
+    }, t('commentAddFailed'))
   }
 
   function startEdit(comment: TaskComment) {
@@ -261,6 +328,14 @@ export function CommentsSection({
       count={composerOnly ? undefined : comments.length}
       variant={composerOnly ? 'plain' : 'card'}
     >
+      {pendingMentions && (
+        <MentionShareDialog
+          users={pendingMentions}
+          busy={busy}
+          onCancel={() => setPendingMentions(null)}
+          onConfirm={onMentionShareConfirm}
+        />
+      )}
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
 
       {!composerOnly &&

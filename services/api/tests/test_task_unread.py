@@ -7,7 +7,7 @@ from waymark.db import database
 from waymark.main import create_app
 from waymark.models import User
 from waymark.security import password_hasher
-from tests.helpers import bearer, bootstrap_owner, mint_api_token, task_by_public_id
+from tests.helpers import bearer, bootstrap_owner, link_as_contact, mint_api_token, task_by_public_id
 
 
 def _create_user(email: str, display_name: str, password: str) -> User:
@@ -58,9 +58,10 @@ def test_session_owner_update_does_not_unread_for_self() -> None:
 
 def test_sharee_sees_unread_after_owner_session_update() -> None:
     client = TestClient(create_app())
-    bootstrap_owner(client)
+    owner = bootstrap_owner(client)
     task_id = client.post("/api/tasks", json={"title": "Shared unread"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     share = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "viewer"},

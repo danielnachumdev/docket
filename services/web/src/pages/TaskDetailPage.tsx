@@ -463,6 +463,7 @@ export function TaskDetailPage() {
   const me = status?.user
   const isOwner = me?.id === task.owner_user_id
   const myShare = shares.find((s) => s.user_id === me?.id)
+  const canManageShares = isOwner || myShare?.role === 'editor'
   const canComment =
     isOwner ||
     myShare?.role === 'commentor' ||
@@ -654,8 +655,10 @@ export function TaskDetailPage() {
             artifacts={detail.artifacts}
             tasks={allTasks}
             shares={shares}
+            ownerUserId={task.owner_user_id}
             canComment={canComment}
             canAttach={canAttachArtifacts}
+            canManageShares={canManageShares}
             composerOnly
             onChanged={onCommentsChanged}
           />
@@ -844,7 +847,7 @@ export function TaskDetailPage() {
               <SharingSection
                 taskId={taskId}
                 shares={shares}
-                isOwner={isOwner}
+                canManageShares={canManageShares}
                 onChanged={load}
                 variant="plain"
                 defaultCollapsed={railStacked}

@@ -26,6 +26,12 @@ class ContactService:
             for u in users
         ]
 
+    def contact_user_ids(self, user_id: int) -> set[int]:
+        return self._contact_ids(user_id)
+
+    def is_contact(self, viewer_user_id: int, contact_user_id: int) -> bool:
+        return contact_user_id in self._contact_ids(viewer_user_id)
+
     def patch_nickname(
         self, viewer_user_id: int, contact_user_id: int, nickname: str | None
     ) -> ContactOut:

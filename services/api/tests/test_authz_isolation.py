@@ -12,7 +12,7 @@ from waymark.db import database
 from waymark.main import create_app
 from waymark.models import Membership, Notification, Role, User
 from waymark.security import password_hasher
-from tests.helpers import bearer, bootstrap_owner, internal_task_id, mint_api_token
+from tests.helpers import bearer, bootstrap_owner, internal_task_id, link_as_contact, mint_api_token
 
 OPS = "ops@example.com"
 OTHER = "other@example.com"
@@ -66,7 +66,9 @@ def _create_task(client: TestClient, title: str = "Private task") -> str:
     return res.json()["id"]
 
 
-def _share(client: TestClient, task_id: str, email: str, role: str) -> dict:
+def _share(client: TestClient, task_id: str, email: str, role: str, *, owner_user_id: int | None = None, contact: User | None = None) -> dict:
+    if owner_user_id is not None and contact is not None:
+        link_as_contact(owner_user_id=owner_user_id, contact=contact)
     res = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": email, "role": role},
@@ -154,10 +156,17 @@ def test_peer_owner_cannot_read_write_export_claim_private_task() -> None:
 
 def test_viewer_share_read_ok_write_denied() -> None:
     client = TestClient(create_app())
-    bootstrap_owner(client)
+    ops = bootstrap_owner(client)
     task_id = _create_task(client, "Shared read-only")
-    _create_user(OTHER, "Other")
-    _share(client, task_id, OTHER, "viewer")
+    other = _create_user(OTHER, "Other")
+    _share(
+        client,
+        task_id,
+        OTHER,
+        "viewer",
+        owner_user_id=ops["id"],
+        contact=other,
+    )
 
     _login(client, OTHER)
     listed = client.get("/api/tasks")
@@ -185,20 +194,27 @@ def test_viewer_share_read_ok_write_denied() -> None:
         "/api/tasks/bulk",
         json={"task_ids": [task_id], "priority": 1},
     ).status_code == 403
-    # Viewer lacks tasks:write → gated before require_owner.
+    # Viewer lacks tasks:write on the task.
     assert client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": OPS, "role": "viewer"},
-    ).status_code == 403
+    ).status_code in {403, 404}
 
 
 def test_editor_share_write_ok_within_share_rules() -> None:
     client = TestClient(create_app())
-    bootstrap_owner(client)
+    ops = bootstrap_owner(client)
     shared_id = _create_task(client, "Shared editable")
     private_id = _create_task(client, "Still private")
-    _create_user(OTHER, "Other")
-    _share(client, shared_id, OTHER, "editor")
+    other = _create_user(OTHER, "Other")
+    _share(
+        client,
+        shared_id,
+        OTHER,
+        "editor",
+        owner_user_id=ops["id"],
+        contact=other,
+    )
 
     _login(client, OTHER)
     assert client.get(f"/api/tasks/{shared_id}").status_code == 200
@@ -230,11 +246,11 @@ def test_editor_share_write_ok_within_share_rules() -> None:
         json={"task_ids": [shared_id, private_id], "status": "done"},
     )
     assert bulk.status_code == 404
-    # Shares remain owner-only even for editors.
+    # Editors may manage shares, but cannot share with the task owner.
     assert client.post(
         f"/api/tasks/{shared_id}/shares",
         json={"email": OPS, "role": "viewer"},
-    ).status_code == 404
+    ).status_code == 400
 
 
 def test_api_token_downscope_and_cross_user() -> None:

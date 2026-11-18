@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
+from tests.helpers import invite_and_register_contact
 from waymark.db import database
 from waymark.main import create_app
 from waymark.models import Membership, Notification, Role, User
@@ -50,7 +51,9 @@ def test_share_task_grants_read_and_list() -> None:
     task_id = created.json()["id"]
     assert created.json()["shared"] is False
 
-    _create_user("alex@example.com", "Alex", "password123")
+    invite_and_register_contact(
+        client, email="alex@example.com", display_name="Alex"
+    )
 
     share = client.post(
         f"/api/tasks/{task_id}/shares",
@@ -72,7 +75,7 @@ def test_share_task_grants_read_and_list() -> None:
     assert client.get(f"/api/tasks/{task_id}").json()["task"]["shared"] is True
 
     client.post("/api/auth/logout")
-    _login(client, "alex@example.com", "password123")
+    _login(client, "alex@example.com", "password1234")
 
     listed = client.get("/api/tasks?roots_only=true")
     assert listed.status_code == 200
@@ -85,7 +88,7 @@ def test_share_task_grants_read_and_list() -> None:
     assert detail.json()["task"]["shared"] is True
 
     denied = client.patch(f"/api/tasks/{task_id}", json={"title": "Nope"})
-    assert denied.status_code == 403
+    assert denied.status_code in {403, 404}
 
     client.post("/api/auth/logout")
     _login(client, "ops@example.com", "password1234")
@@ -94,7 +97,7 @@ def test_share_task_grants_read_and_list() -> None:
     assert client.get(f"/api/tasks/{task_id}").json()["task"]["shared"] is False
 
     client.post("/api/auth/logout")
-    _login(client, "alex@example.com", "password123")
+    _login(client, "alex@example.com", "password1234")
     gone = client.get(f"/api/tasks/{task_id}")
     assert gone.status_code in {403, 404}
 
@@ -103,7 +106,7 @@ def test_share_editor_can_write() -> None:
     client = TestClient(create_app())
     _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Edit me"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
+    invite_and_register_contact(client, email="alex@example.com", display_name="Alex")
 
     share = client.post(
         f"/api/tasks/{task_id}/shares",
@@ -112,7 +115,7 @@ def test_share_editor_can_write() -> None:
     assert share.status_code == 201
 
     client.post("/api/auth/logout")
-    _login(client, "alex@example.com", "password123")
+    _login(client, "alex@example.com", "password1234")
 
     updated = client.patch(f"/api/tasks/{task_id}", json={"title": "Edited by Alex"})
     assert updated.status_code == 200
@@ -122,7 +125,40 @@ def test_share_editor_can_write() -> None:
     assert status_res.status_code == 200
 
 
-def test_share_requires_existing_user_and_owner() -> None:
+def test_share_editor_can_share_and_unshare_collaborators() -> None:
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = client.post("/api/tasks", json={"title": "Team board"}).json()["id"]
+    invite_and_register_contact(client, email="alex@example.com", display_name="Alex")
+    invite_and_register_contact(client, email="blake@example.com", display_name="Blake")
+    assert (
+        client.post(
+            f"/api/tasks/{task_id}/shares",
+            json={"email": "alex@example.com", "role": "editor"},
+        ).status_code
+        == 201
+    )
+    blake_share = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "blake@example.com", "role": "viewer"},
+    )
+    assert blake_share.status_code == 201
+    blake_mid = blake_share.json()["id"]
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password1234")
+    upgraded = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "blake@example.com", "role": "commentor"},
+    )
+    assert upgraded.status_code == 201
+    assert upgraded.json()["role"] == "commentor"
+
+    removed = client.delete(f"/api/tasks/{task_id}/shares/{blake_mid}")
+    assert removed.status_code == 204
+
+
+def test_share_requires_collaborator_and_write_access() -> None:
     client = TestClient(create_app())
     _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Solo"}).json()["id"]
@@ -139,22 +175,60 @@ def test_share_requires_existing_user_and_owner() -> None:
     )
     assert self_share.status_code == 400
 
-    _create_user("alex@example.com", "Alex", "password123")
+    _create_user("stranger@example.com", "Stranger", "password1234")
+    stranger_share = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "stranger@example.com", "role": "viewer"},
+    )
+    assert stranger_share.status_code == 403
+
+    invite_and_register_contact(client, email="alex@example.com", display_name="Alex")
     client.post("/api/auth/logout")
-    _login(client, "alex@example.com", "password123")
-    # No membership yet → no tasks:read → 403 from RequirePermission
+    _login(client, "alex@example.com", "password1234")
+    # No membership yet → no task write access
     forbidden = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "ops@example.com", "role": "viewer"},
     )
-    assert forbidden.status_code == 403
+    assert forbidden.status_code in {403, 404}
+
+
+def test_share_commentor_cannot_manage_shares() -> None:
+    client = TestClient(create_app())
+    _bootstrap(client)
+    task_id = client.post("/api/tasks", json={"title": "Comment only"}).json()["id"]
+    invite_and_register_contact(client, email="alex@example.com", display_name="Alex")
+    invite_and_register_contact(client, email="blake@example.com", display_name="Blake")
+    assert (
+        client.post(
+            f"/api/tasks/{task_id}/shares",
+            json={"email": "alex@example.com", "role": "commentor"},
+        ).status_code
+        == 201
+    )
+    blake_mid = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "blake@example.com", "role": "viewer"},
+    ).json()["id"]
+
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password1234")
+    denied_create = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "blake@example.com", "role": "editor"},
+    )
+    assert denied_create.status_code in {403, 404}
+    denied_delete = client.delete(f"/api/tasks/{task_id}/shares/{blake_mid}")
+    assert denied_delete.status_code in {403, 404}
 
 
 def test_share_notifies_sharee_not_actor() -> None:
     client = TestClient(create_app())
     _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Notify board"}).json()["id"]
-    alex = _create_user("alex@example.com", "Alex", "password123")
+    alex = invite_and_register_contact(
+        client, email="alex@example.com", display_name="Alex"
+    )
 
     share = client.post(
         f"/api/tasks/{task_id}/shares",
@@ -163,16 +237,21 @@ def test_share_notifies_sharee_not_actor() -> None:
     assert share.status_code == 201
     membership_id = share.json()["id"]
 
-    assert client.get("/api/notifications/unread-count").json()["count"] == 0
+    # Invite consumption notifies the owner; sharing must not notify the actor.
+    owner_kinds = {
+        n["kind"] for n in client.get("/api/notifications").json()
+    }
+    assert "shared" not in owner_kinds
 
     client.post("/api/auth/logout")
-    _login(client, "alex@example.com", "password123")
+    _login(client, "alex@example.com", "password1234")
     feed = client.get("/api/notifications").json()
-    assert len(feed) == 1
-    note = feed[0]
+    shared_notes = [n for n in feed if n["kind"] == "shared"]
+    assert len(shared_notes) == 1
+    note = shared_notes[0]
     assert note["kind"] == "shared"
     assert note["task_id"] == task_id
-    assert note["user_id"] == alex.id
+    assert note["user_id"] == alex["id"]
     assert note["read_at"] is None
     assert "Notify board" in note["title"]
 
@@ -185,7 +264,7 @@ def test_share_notifies_sharee_not_actor() -> None:
     try:
         kinds = list(
             session.scalars(
-                select(Notification.kind).where(Notification.user_id == alex.id)
+                select(Notification.kind).where(Notification.user_id == alex["id"])
             ).all()
         )
     finally:
@@ -197,7 +276,7 @@ def test_share_upserts_role() -> None:
     client = TestClient(create_app())
     _bootstrap(client)
     task_id = client.post("/api/tasks", json={"title": "Role flip"}).json()["id"]
-    _create_user("alex@example.com", "Alex", "password123")
+    invite_and_register_contact(client, email="alex@example.com", display_name="Alex")
 
     first = client.post(
         f"/api/tasks/{task_id}/shares",
@@ -208,7 +287,7 @@ def test_share_upserts_role() -> None:
 
     second = client.post(
         f"/api/tasks/{task_id}/shares",
-        json={"email": "alex@example.com", "role": "editor"},
+        json={"user_id": first.json()["user_id"], "role": "editor"},
     )
     assert second.status_code == 201
     assert second.json()["id"] == mid

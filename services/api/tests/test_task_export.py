@@ -11,7 +11,7 @@ from waymark.db import database
 from waymark.main import create_app
 from waymark.models import User
 from waymark.security import password_hasher
-from helpers import bootstrap_owner
+from tests.helpers import bootstrap_owner, link_as_contact
 
 
 def _create_task(client: TestClient, title: str = "Audit case") -> int:
@@ -131,9 +131,9 @@ def test_export_includes_task_events_artifacts(tmp_path: Path, monkeypatch) -> N
 def test_export_allows_shared_viewer_not_stranger() -> None:
     """RBAC: anyone with tasks:read on the task may export (not owner-only)."""
     client = TestClient(create_app())
-    bootstrap_owner(client)
+    owner = bootstrap_owner(client)
     task_id = _create_task(client)
-    _create_user("alex@example.com", "Alex", "password123")
+    alex = _create_user("alex@example.com", "Alex", "password123")
 
     client.post("/api/auth/logout")
     _login(client, "alex@example.com", "password123")
@@ -143,6 +143,7 @@ def test_export_allows_shared_viewer_not_stranger() -> None:
 
     client.post("/api/auth/logout")
     _login(client, "ops@example.com", "password1234")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
     share = client.post(
         f"/api/tasks/{task_id}/shares",
         json={"email": "alex@example.com", "role": "viewer"},
