@@ -31,6 +31,24 @@ export type InvitePreview = {
   expires_at: string
 }
 
+export type CommentRef = {
+  kind: 'user' | 'task' | 'artifact' | 'comment' | string
+  raw: string
+  start: number
+  end: number
+  label?: string
+  user_id?: number
+  email?: string | null
+  display_name?: string
+  task_id?: string
+  number?: number
+  title?: string
+  artifact_id?: number
+  comment_id?: number
+  /** False when the target exists but is not shared with the viewer (Slack-style). */
+  accessible?: boolean
+}
+
 export type Task = {
   id: string
   number: number
@@ -39,6 +57,8 @@ export type Task = {
   external_id: string | null
   title: string
   description: string | null
+  /** Shorthand refs in description (# & ~ @), same shape as comment refs. */
+  description_refs?: CommentRef[]
   status: string
   priority: number
   rank: number
@@ -232,24 +252,6 @@ export type Notification = {
 
 export type UnreadCount = {
   count: number
-}
-
-export type CommentRef = {
-  kind: 'user' | 'task' | 'artifact' | 'comment' | string
-  raw: string
-  start: number
-  end: number
-  label?: string
-  user_id?: number
-  email?: string | null
-  display_name?: string
-  task_id?: string
-  number?: number
-  title?: string
-  artifact_id?: number
-  comment_id?: number
-  /** False when the target exists but is not shared with the viewer (Slack-style). */
-  accessible?: boolean
 }
 
 export type TaskComment = {

@@ -20,6 +20,7 @@ from waymark.events import task_event_recorder
 from waymark.models import Task, TaskEvent
 from waymark.models.task_public_id import new_task_public_id
 from waymark.notifications import notification_dispatcher
+from waymark.notifications.comment_ref_resolver import CommentRefResolver
 from waymark.schemas import (
     TaskBulkUpdate,
     TaskClaimIn,
@@ -49,6 +50,7 @@ class TaskService:
         self._numbers = PersonalTaskNumberAllocator(db)
         self._ranks = OwnerRankAllocator()
         self._mapper = TaskResponseMapper(db)
+        self._refs = CommentRefResolver(db)
 
     def list_tasks(
         self,
@@ -95,7 +97,7 @@ class TaskService:
                 principal.user_id, external_id
             )
             if existing is not None:
-                return self._mapper.task_out(existing, viewer_user_id=principal.user_id), False
+                return self._task_out(principal, existing), False
 
         parent_internal = None
         if body.parent_task_id is not None:
@@ -111,6 +113,7 @@ class TaskService:
         )
         try:
             self._gateway.add(task)
+            self._sync_description_refs(principal, task)
             task_event_recorder.record(
                 self._db,
                 task_id=task.id,
@@ -125,9 +128,9 @@ class TaskService:
             TaskWatchService(self._db).ensure_watching(principal.user_id, task.id)
             self._gateway.commit()
         except IntegrityError:
-            return self._recover_create_race(principal.user_id, external_id)
+            return self._recover_create_race(principal, external_id)
         self._gateway.refresh(task)
-        return self._mapper.task_out(task, viewer_user_id=principal.user_id), True
+        return self._task_out(principal, task), True
 
     def get_detail(self, principal: Principal, task_ref: str) -> TaskDetailOut:
         task = self._access.get_task(principal, task_ref, "tasks:read")
@@ -143,7 +146,7 @@ class TaskService:
         artifact_service = ArtifactService(self._db)
         artifacts = artifact_service.list_artifacts(principal, task_ref)
         return TaskDetailOut(
-            task=self._mapper.task_out(task, viewer_user_id=principal.user_id),
+            task=self._task_out(principal, task),
             events=[self._mapper.event_out(e) for e in events],
             artifacts=[
                 self._mapper.artifact_out(
@@ -180,7 +183,7 @@ class TaskService:
                 "external_id already used by another task for this owner",
             ) from exc
         self._gateway.refresh(task)
-        return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        return self._task_out(principal, task)
 
     def reorder(
         self, principal: Principal, task_ref: str, body: TaskReorder
@@ -204,7 +207,7 @@ class TaskService:
         )
         self._gateway.commit()
         self._gateway.refresh(task)
-        return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        return self._task_out(principal, task)
 
     def set_status(
         self, principal: Principal, task_ref: str, body: TaskStatusIn
@@ -241,9 +244,7 @@ class TaskService:
             body=f"“{task.title}” moved from {old} to {body.status}",
             payload=payload,
         )
-        return self._commit_and_dispatch(
-            task, event, payload, viewer_user_id=principal.user_id
-        )
+        return self._commit_and_dispatch(task, event, payload, principal=principal)
 
     def bulk_update(
         self, principal: Principal, body: TaskBulkUpdate
@@ -288,9 +289,7 @@ class TaskService:
             body="An agent claimed this task",
             payload={"event": "claimed"},
         )
-        return self._commit_and_dispatch(
-            task, event, viewer_user_id=principal.user_id
-        )
+        return self._commit_and_dispatch(task, event, principal=principal)
 
     def release(self, principal: Principal, task_ref: str) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:claim")
@@ -298,7 +297,7 @@ class TaskService:
         if event is None:
             self._gateway.commit()
             self._gateway.refresh(task)
-            return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+            return self._task_out(principal, task)
         notification_dispatcher(self._db).notify_watchers(
             task=task,
             actor=principal,
@@ -307,9 +306,7 @@ class TaskService:
             body="The claim on this task was released",
             payload={"event": "released"},
         )
-        return self._commit_and_dispatch(
-            task, event, viewer_user_id=principal.user_id
-        )
+        return self._commit_and_dispatch(task, event, principal=principal)
 
     def heartbeat(
         self,
@@ -322,7 +319,7 @@ class TaskService:
         self._claims.renew(task, principal, lease_seconds=lease_seconds)
         self._gateway.commit()
         self._gateway.refresh(task)
-        return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        return self._task_out(principal, task)
 
     def archive(self, principal: Principal, task_ref: str) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:write")
@@ -333,7 +330,7 @@ class TaskService:
             )
             self._gateway.commit()
             self._gateway.refresh(task)
-        return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        return self._task_out(principal, task)
 
     def unarchive(self, principal: Principal, task_ref: str) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:write")
@@ -344,7 +341,7 @@ class TaskService:
             )
             self._gateway.commit()
             self._gateway.refresh(task)
-        return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        return self._task_out(principal, task)
 
     def delete(self, principal: Principal, task_ref: str) -> None:
         task = self._access.require_owner(principal, task_ref)
@@ -356,14 +353,14 @@ class TaskService:
         if self._apply_unread(task, unread=False):
             self._gateway.commit()
             self._gateway.refresh(task)
-        return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        return self._task_out(principal, task)
 
     def mark_unread(self, principal: Principal, task_ref: str) -> TaskOut:
         task = self._access.get_task(principal, task_ref, "tasks:read")
         if self._apply_unread(task, unread=True):
             self._gateway.commit()
             self._gateway.refresh(task)
-        return self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        return self._task_out(principal, task)
 
     def _apply_unread(self, task: Task, *, unread: bool) -> bool:
         """Set shared unread bit; clear viewer exclusion. True when mutated."""
@@ -509,6 +506,7 @@ class TaskService:
             changes["title"] = task.title
         if body.description is not None:
             task.description = body.description
+            self._sync_description_refs(principal, task)
             changes["description"] = True
         if body.priority is not None:
             task.priority = body.priority
@@ -539,13 +537,15 @@ class TaskService:
         return stripped or None
 
     def _recover_create_race(
-        self, owner_user_id: int, external_id: str | None
+        self, principal: Principal, external_id: str | None
     ) -> tuple[TaskOut, bool]:
         self._gateway.rollback()
         if external_id is not None:
-            existing = self._gateway.get_by_owner_external_id(owner_user_id, external_id)
+            existing = self._gateway.get_by_owner_external_id(
+                principal.user_id, external_id
+            )
             if existing is not None:
-                return self._mapper.task_out(existing, viewer_user_id=principal.user_id), False
+                return self._task_out(principal, existing), False
         raise HTTPException(status.HTTP_409_CONFLICT, "Could not create task")
 
     def _apply_outcome_config(
@@ -697,7 +697,7 @@ class TaskService:
         event: TaskEvent,
         data: dict[str, Any] | None = None,
         *,
-        viewer_user_id: int,
+        principal: Principal,
     ) -> TaskOut:
         self._gateway.commit()
         self._gateway.refresh(task)
@@ -706,7 +706,37 @@ class TaskService:
         WebhookDeliveryService(self._db).deliver_for_event(
             task=task, event=event, data=payload
         )
-        return self._mapper.task_out(task, viewer_user_id=viewer_user_id)
+        return self._task_out(principal, task)
+
+    def _task_out(self, principal: Principal, task: Task) -> TaskOut:
+        out = self._mapper.task_out(task, viewer_user_id=principal.user_id)
+        return out.model_copy(
+            update={"description_refs": self._description_refs_for(principal, task)}
+        )
+
+    def _sync_description_refs(self, principal: Principal, task: Task) -> None:
+        text = task.description or ""
+        refs = (
+            self._refs.resolve(principal=principal, task=task, text=text)
+            if text.strip()
+            else []
+        )
+        task.description_refs_json = json.dumps(refs)
+
+    def _description_refs_for(
+        self, principal: Principal, task: Task
+    ) -> list[dict[str, Any]]:
+        if task.description_refs_json is not None:
+            stored = CommentRefResolver.load_refs(task.description_refs_json)
+            return self._refs.project_for_viewer(principal, stored)
+        text = task.description or ""
+        if not text.strip():
+            return []
+        # Legacy rows written before description_refs_json: display-only resolve.
+        soft = self._refs.resolve(
+            principal=principal, task=task, text=text, strict=False
+        )
+        return self._refs.project_for_viewer(principal, soft)
 
     @staticmethod
     def _event_payload(event: TaskEvent) -> dict[str, Any]:

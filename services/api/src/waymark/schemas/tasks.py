@@ -94,6 +94,7 @@ class TaskOut(BaseModel):
     external_id: str | None
     title: str
     description: str | None
+    description_refs: list[dict[str, Any]] = []
     status: str
     priority: int
     rank: float

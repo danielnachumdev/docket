@@ -382,7 +382,7 @@ class TaskCommentService:
         attachments: list[ArtifactOut] | None = None,
     ) -> TaskCommentOut:
         refs = self._refs.project_for_viewer(
-            principal, self._load_refs(comment.refs_json)
+            principal, CommentRefResolver.load_refs(comment.refs_json)
         )
         mentioned = mention_resolver.resolve_user_ids_from_refs(refs)
         self._mapper.remember([task])
@@ -412,16 +412,6 @@ class TaskCommentService:
             updated_at=comment.updated_at,
             can_edit=comment.author_user_id == principal.user_id,
         )
-
-    @staticmethod
-    def _load_refs(refs_json: str | None) -> list[dict[str, Any]]:
-        if not refs_json:
-            return []
-        try:
-            raw = json.loads(refs_json)
-        except json.JSONDecodeError:
-            return []
-        return raw if isinstance(raw, list) else []
 
     @staticmethod
     def _mention_handle(user: User, nickname: str | None) -> str:

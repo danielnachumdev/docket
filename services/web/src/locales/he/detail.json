@@ -227,5 +227,5 @@
   "descriptionEdit": "עריכה",
   "descriptionPreview": "תצוגה מקדימה",
   "descriptionEmptyPreview": "אין מה להציג עדיין. עברו לעריכה כדי להוסיף תיאור ב־Markdown.",
-  "descriptionMarkdownHint": "נתמך Markdown: טבלאות, רשימות משימות, בלוקי קוד וקישורים (מוצגים כשבבי שם־מארח)."
+  "descriptionMarkdownHint": "נתמך Markdown: טבלאות, רשימות משימות, בלוקי קוד, קישורים (שבבי שם־מארח) והפניות (#משימה, &קובץ, ~תגובה, @אזכור) כמו בתגובות."
 }
