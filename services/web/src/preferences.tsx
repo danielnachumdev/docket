@@ -13,9 +13,11 @@ import {
   DEFAULT_NOTIFICATION_KINDS,
   NOTIFICATION_KINDS,
   type CustomThemePreference,
+  type DateFormat,
   type NotificationKind,
   type NotificationSort,
   type TaskSortMode,
+  type TimeFormat,
   type UserPreferences,
 } from './api'
 import { useAuth } from './auth'
@@ -24,6 +26,13 @@ import i18n, {
   isSupportedLocale,
   resolveLocaleCode,
 } from './i18n'
+import {
+  DEFAULT_DATE_FORMAT,
+  DEFAULT_TIME_FORMAT,
+  configureDateTimeFormat,
+  isDateFormat,
+  isTimeFormat,
+} from './lib/format'
 import {
   applyTheme,
   cacheTheme,
@@ -56,6 +65,8 @@ export const TASK_SORT_MODE_STORAGE_KEY = 'waymark.taskSortMode'
 /** Guest / first-paint cache; authenticated users use `/api/me/preferences`. */
 export const NOTIFICATION_KINDS_STORAGE_KEY = 'waymark.notificationKinds'
 export const NOTIFICATION_SORT_STORAGE_KEY = 'waymark.notificationSort'
+export const DATE_FORMAT_STORAGE_KEY = 'waymark.dateFormat'
+export const TIME_FORMAT_STORAGE_KEY = 'waymark.timeFormat'
 
 type PreferencesContextValue = {
   theme: Theme
@@ -69,6 +80,10 @@ type PreferencesContextValue = {
   setNotificationKinds: (kinds: NotificationKind[]) => void
   notificationSort: NotificationSort
   setNotificationSort: (sort: NotificationSort) => void
+  dateFormat: DateFormat
+  setDateFormat: (format: DateFormat) => void
+  timeFormat: TimeFormat
+  setTimeFormat: (format: TimeFormat) => void
   customThemes: CustomTheme[]
   addCustomTheme: (fromThemeId?: Theme) => CustomTheme | null
   renameCustomTheme: (id: string, name: string) => void
@@ -170,6 +185,46 @@ function cacheNotificationSort(sort: NotificationSort) {
   }
 }
 
+function storedDateFormat(): DateFormat | null {
+  try {
+    const value = localStorage.getItem(DATE_FORMAT_STORAGE_KEY)
+    if (!value || !isDateFormat(value)) return null
+    return value
+  } catch {
+    return null
+  }
+}
+
+function cacheDateFormat(format: DateFormat) {
+  try {
+    localStorage.setItem(DATE_FORMAT_STORAGE_KEY, format)
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function storedTimeFormat(): TimeFormat | null {
+  try {
+    const value = localStorage.getItem(TIME_FORMAT_STORAGE_KEY)
+    if (!value || !isTimeFormat(value)) return null
+    return value
+  } catch {
+    return null
+  }
+}
+
+function cacheTimeFormat(format: TimeFormat) {
+  try {
+    localStorage.setItem(TIME_FORMAT_STORAGE_KEY, format)
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function applyDateTimeFormats(dateFormat: DateFormat, timeFormat: TimeFormat) {
+  configureDateTimeFormat(dateFormat, timeFormat)
+}
+
 function normalizeCustomThemes(
   raw: CustomThemePreference[] | null | undefined,
 ): CustomTheme[] {
@@ -213,6 +268,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [notificationSort, setNotificationSortState] = useState<NotificationSort>(
     () => storedNotificationSort() ?? 'newest',
   )
+  const [dateFormat, setDateFormatState] = useState<DateFormat>(
+    () => storedDateFormat() ?? DEFAULT_DATE_FORMAT,
+  )
+  const [timeFormat, setTimeFormatState] = useState<TimeFormat>(
+    () => storedTimeFormat() ?? DEFAULT_TIME_FORMAT,
+  )
   const [hydrated, setHydrated] = useState(false)
   const hydratedUserId = useRef<number | null>(null)
   const persistSeq = useRef(0)
@@ -226,6 +287,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     applyTheme(theme, customThemes)
   }, [theme, customThemes])
+
+  useEffect(() => {
+    applyDateTimeFormats(dateFormat, timeFormat)
+  }, [dateFormat, timeFormat])
 
   const applyLocale = useCallback((locale: string) => {
     const code = resolveLocaleCode(locale)
@@ -259,6 +324,14 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       if (next.notification_sort) {
         cacheNotificationSort(next.notification_sort)
         setNotificationSortState(next.notification_sort)
+      }
+      if (next.date_format) {
+        cacheDateFormat(next.date_format)
+        setDateFormatState(next.date_format)
+      }
+      if (next.time_format) {
+        cacheTimeFormat(next.time_format)
+        setTimeFormatState(next.time_format)
       }
       if (next.custom_themes != null) {
         const normalized = normalizeCustomThemes(next.custom_themes)
@@ -369,6 +442,31 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setNotificationSortState(sort)
     }
 
+    let nextDateFormat = DEFAULT_DATE_FORMAT
+    if (server.date_format) {
+      nextDateFormat = server.date_format
+      cacheDateFormat(nextDateFormat)
+      setDateFormatState(nextDateFormat)
+    } else {
+      nextDateFormat = storedDateFormat() ?? DEFAULT_DATE_FORMAT
+      seed.date_format = nextDateFormat
+      cacheDateFormat(nextDateFormat)
+      setDateFormatState(nextDateFormat)
+    }
+
+    let nextTimeFormat = DEFAULT_TIME_FORMAT
+    if (server.time_format) {
+      nextTimeFormat = server.time_format
+      cacheTimeFormat(nextTimeFormat)
+      setTimeFormatState(nextTimeFormat)
+    } else {
+      nextTimeFormat = storedTimeFormat() ?? DEFAULT_TIME_FORMAT
+      seed.time_format = nextTimeFormat
+      cacheTimeFormat(nextTimeFormat)
+      setTimeFormatState(nextTimeFormat)
+    }
+    applyDateTimeFormats(nextDateFormat, nextTimeFormat)
+
     if (Object.keys(seed).length > 0) {
       await api.patchPreferences(seed)
     }
@@ -442,6 +540,26 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       void persist({ notification_sort: sort })
     },
     [persist],
+  )
+
+  const setDateFormat = useCallback(
+    (format: DateFormat) => {
+      setDateFormatState(format)
+      cacheDateFormat(format)
+      applyDateTimeFormats(format, timeFormat)
+      void persist({ date_format: format })
+    },
+    [persist, timeFormat],
+  )
+
+  const setTimeFormat = useCallback(
+    (format: TimeFormat) => {
+      setTimeFormatState(format)
+      cacheTimeFormat(format)
+      applyDateTimeFormats(dateFormat, format)
+      void persist({ time_format: format })
+    },
+    [dateFormat, persist],
   )
 
   const addCustomTheme = useCallback(
@@ -548,6 +666,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setNotificationKinds,
       notificationSort,
       setNotificationSort,
+      dateFormat,
+      setDateFormat,
+      timeFormat,
+      setTimeFormat,
       customThemes,
       addCustomTheme,
       renameCustomTheme,
@@ -568,6 +690,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setNotificationKinds,
       notificationSort,
       setNotificationSort,
+      dateFormat,
+      setDateFormat,
+      timeFormat,
+      setTimeFormat,
       customThemes,
       addCustomTheme,
       renameCustomTheme,

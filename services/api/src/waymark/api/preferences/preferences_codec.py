@@ -5,10 +5,12 @@ from fastapi import HTTPException, status
 from waymark.schemas.notifications import ALLOWED_NOTIFICATION_KINDS
 from waymark.schemas.preferences import (
     ALLOWED_COLOR_SCHEMES,
+    ALLOWED_DATE_FORMATS,
     ALLOWED_LOCALES,
     ALLOWED_NOTIFICATION_SORTS,
     ALLOWED_TASK_SORT_MODES,
     ALLOWED_THEME_TOKEN_KEYS,
+    ALLOWED_TIME_FORMATS,
     CUSTOM_THEME_ID_RE,
     CustomThemeOut,
     KNOWN_PREFERENCE_KEYS,
@@ -64,6 +66,16 @@ class PreferencesCodec:
             )
         except HTTPException:
             notification_sort = None
+        date_format: str | None
+        try:
+            date_format = self._optional_date_format(data.get("date_format"))
+        except HTTPException:
+            date_format = None
+        time_format: str | None
+        try:
+            time_format = self._optional_time_format(data.get("time_format"))
+        except HTTPException:
+            time_format = None
         return UserPreferencesOut(
             theme=theme,
             locale=locale,
@@ -71,6 +83,8 @@ class PreferencesCodec:
             task_sort_mode=task_sort_mode,
             notification_kinds=notification_kinds,
             notification_sort=notification_sort,
+            date_format=date_format,
+            time_format=time_format,
         )
 
     def encode(self, prefs: UserPreferencesOut) -> str:
@@ -89,6 +103,10 @@ class PreferencesCodec:
             payload["notification_kinds"] = list(prefs.notification_kinds)
         if prefs.notification_sort is not None:
             payload["notification_sort"] = prefs.notification_sort
+        if prefs.date_format is not None:
+            payload["date_format"] = prefs.date_format
+        if prefs.time_format is not None:
+            payload["time_format"] = prefs.time_format
         return json.dumps(payload, separators=(",", ":"), sort_keys=True)
 
     def merge(
@@ -101,6 +119,8 @@ class PreferencesCodec:
         task_sort_mode = current.task_sort_mode
         notification_kinds = current.notification_kinds
         notification_sort = current.notification_sort
+        date_format = current.date_format
+        time_format = current.time_format
         if "custom_themes" in patch:
             custom_themes = self._optional_custom_themes(patch["custom_themes"])
         if "theme" in patch:
@@ -117,6 +137,10 @@ class PreferencesCodec:
             notification_sort = self._optional_notification_sort(
                 patch["notification_sort"]
             )
+        if "date_format" in patch:
+            date_format = self._optional_date_format(patch["date_format"])
+        if "time_format" in patch:
+            time_format = self._optional_time_format(patch["time_format"])
         # Active theme must remain resolvable after catalog changes.
         if theme is not None and not is_builtin_theme_id(theme):
             ids = {t.id for t in (custom_themes or [])}
@@ -132,6 +156,8 @@ class PreferencesCodec:
             task_sort_mode=task_sort_mode,
             notification_kinds=notification_kinds,
             notification_sort=notification_sort,
+            date_format=date_format,
+            time_format=time_format,
         )
 
     @staticmethod
@@ -212,6 +238,28 @@ class PreferencesCodec:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "notification_sort must be 'newest' or 'oldest'",
+            )
+        return value
+
+    @staticmethod
+    def _optional_date_format(value: object | None) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str) or value not in ALLOWED_DATE_FORMATS:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "date_format must be 'DD/MM/YYYY', 'MM/DD/YYYY', or 'YYYY-MM-DD'",
+            )
+        return value
+
+    @staticmethod
+    def _optional_time_format(value: object | None) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str) or value not in ALLOWED_TIME_FORMATS:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "time_format must be '24h' or '12h'",
             )
         return value
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { api, type DateFormat, type TimeFormat } from '../api'
 import { useAuth } from '../auth'
 import { Alert } from '../components/Feedback'
 import { Icon } from '../components/Icon'
@@ -8,18 +8,31 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { PageHeader } from '../components/PageHeader'
 import { Section } from '../components/Section'
 import { ThemeStudio } from '../components/ThemeStudio'
-import { initials } from '../lib/format'
+import {
+  DATE_FORMATS,
+  TIME_FORMATS,
+  formatDateTime,
+  initials,
+} from '../lib/format'
 import { useToast } from '../lib/toast'
 import { useAction } from '../lib/useAction'
+import { usePreferences } from '../preferences'
 import './AccountPage.css'
+
+const DATETIME_PREVIEW_ISO = '2026-11-19T14:30:00'
 
 export function AccountPage() {
   const { t } = useTranslation(['auth', 'common'])
   const { status, setUser } = useAuth()
+  const { dateFormat, setDateFormat, timeFormat, setTimeFormat } = usePreferences()
   const toast = useToast()
   const user = status?.user
   const [displayName, setDisplayName] = useState(user?.display_name ?? '')
   const { busy, error, setError, run } = useAction()
+  const datetimePreview = formatDateTime(DATETIME_PREVIEW_ISO, {
+    dateFormat,
+    timeFormat,
+  })
 
   useEffect(() => {
     if (user) setDisplayName(user.display_name)
@@ -101,6 +114,51 @@ export function AccountPage() {
           </span>
           <LanguageSwitcher />
         </div>
+        <div className="pref-row">
+          <span className="pref-label">
+            <Icon name="calendar" />
+            {t('auth:dateFormat')}
+          </span>
+          <label className="lang-switcher">
+            <span className="sr-only">{t('auth:dateFormat')}</span>
+            <select
+              className="compact-select lang-select"
+              value={dateFormat}
+              aria-label={t('auth:dateFormat')}
+              onChange={(e) => setDateFormat(e.target.value as DateFormat)}
+            >
+              {DATE_FORMATS.map((format) => (
+                <option key={format} value={format}>
+                  {format}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="pref-row">
+          <span className="pref-label">
+            <Icon name="clock" />
+            {t('auth:timeFormat')}
+          </span>
+          <label className="lang-switcher">
+            <span className="sr-only">{t('auth:timeFormat')}</span>
+            <select
+              className="compact-select lang-select"
+              value={timeFormat}
+              aria-label={t('auth:timeFormat')}
+              onChange={(e) => setTimeFormat(e.target.value as TimeFormat)}
+            >
+              {TIME_FORMATS.map((format) => (
+                <option key={format} value={format}>
+                  {t(`auth:timeFormat_${format}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="pref-preview muted small">
+          {t('auth:datetimePreview', { sample: datetimePreview })}
+        </p>
       </Section>
 
       <Section icon="palette" title={t('auth:themeStudio')}>

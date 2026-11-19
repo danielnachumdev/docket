@@ -48,6 +48,35 @@ export function humanize(value: string) {
 
 const NAIVE_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/
 
+export type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
+export type TimeFormat = '24h' | '12h'
+
+export const DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'] as const
+export const TIME_FORMATS = ['24h', '12h'] as const
+
+export const DEFAULT_DATE_FORMAT: DateFormat = 'DD/MM/YYYY'
+export const DEFAULT_TIME_FORMAT: TimeFormat = '24h'
+
+let activeDateFormat: DateFormat = DEFAULT_DATE_FORMAT
+let activeTimeFormat: TimeFormat = DEFAULT_TIME_FORMAT
+
+export function configureDateTimeFormat(dateFormat: DateFormat, timeFormat: TimeFormat) {
+  activeDateFormat = dateFormat
+  activeTimeFormat = timeFormat
+}
+
+export function getDateTimeFormat() {
+  return { dateFormat: activeDateFormat, timeFormat: activeTimeFormat }
+}
+
+export function isDateFormat(value: string): value is DateFormat {
+  return (DATE_FORMATS as readonly string[]).includes(value)
+}
+
+export function isTimeFormat(value: string): value is TimeFormat {
+  return (TIME_FORMATS as readonly string[]).includes(value)
+}
+
 export function parseDate(value: string | null | undefined) {
   if (!value) return null
   // The API serializes UTC timestamps without an offset.
@@ -55,13 +84,39 @@ export function parseDate(value: string | null | undefined) {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-export function formatDateTime(value: string | null | undefined) {
+function pad2(n: number) {
+  return String(n).padStart(2, '0')
+}
+
+function formatDatePart(d: Date, format: DateFormat) {
+  const day = pad2(d.getDate())
+  const month = pad2(d.getMonth() + 1)
+  const year = String(d.getFullYear())
+  if (format === 'MM/DD/YYYY') return `${month}/${day}/${year}`
+  if (format === 'YYYY-MM-DD') return `${year}-${month}-${day}`
+  return `${day}/${month}/${year}`
+}
+
+function formatTimePart(d: Date, format: TimeFormat) {
+  if (format === '12h') {
+    return d.toLocaleTimeString(i18n.language, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+  }
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
+export function formatDateTime(
+  value: string | null | undefined,
+  options?: { dateFormat?: DateFormat; timeFormat?: TimeFormat },
+) {
   const d = parseDate(value)
   if (!d) return i18n.t('emDash', { ns: 'common' })
-  return d.toLocaleString(i18n.language, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
+  const dateFmt = options?.dateFormat ?? activeDateFormat
+  const timeFmt = options?.timeFormat ?? activeTimeFormat
+  return `${formatDatePart(d, dateFmt)} ${formatTimePart(d, timeFmt)}`
 }
 
 function relativeFormatter() {
