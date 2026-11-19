@@ -18,9 +18,8 @@ class TaskWatchService:
 
     def watch(self, principal: Principal, task_ref: str) -> TaskWatchOut:
         task = self._access.get_task(principal, task_ref, "tasks:read")
-        if not self.is_watching(principal.user_id, task.id):
-            self._db.add(TaskWatch(task_id=task.id, user_id=principal.user_id))
-            self._db.commit()
+        self.ensure_watching(principal.user_id, task.id)
+        self._db.commit()
         return TaskWatchOut(watching=True)
 
     def unwatch(self, principal: Principal, task_ref: str) -> None:
@@ -34,6 +33,11 @@ class TaskWatchService:
         if row is not None:
             self._db.delete(row)
             self._db.commit()
+
+    def ensure_watching(self, user_id: int, task_id: int) -> None:
+        """Insert a watch row if missing; caller owns the transaction/commit."""
+        if not self.is_watching(user_id, task_id):
+            self._db.add(TaskWatch(task_id=task_id, user_id=user_id))
 
     def is_watching(self, user_id: int, task_id: int) -> bool:
         return (
