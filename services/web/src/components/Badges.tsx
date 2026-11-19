@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { dueState, formatDateTime, formatRelative, priorityLabel, statusLabel } from '../lib/format'
+import { usePreferences } from '../preferences'
 import { Icon } from './Icon'
 import './Badges.css'
 
@@ -27,15 +28,16 @@ export function PriorityBadge({ priority }: { priority: number }) {
 }
 
 export function DueBadge({ due, closed }: { due: string | null; closed?: boolean }) {
+  const { dateFormat, timeFormat } = usePreferences()
   const state = dueState(due)
   if (!state) return null
   return (
     <span
       className={`due-badge ${closed ? '' : `due-${state}`}`}
-      title={formatDateTime(due)}
+      title={formatRelative(due)}
     >
       <Icon name="calendar" size={13} />
-      {formatRelative(due)}
+      {formatDateTime(due, { dateFormat, timeFormat })}
     </span>
   )
 }

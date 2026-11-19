@@ -38,6 +38,7 @@
   "priority": "Priority",
   "priorityOption": "P{{priority}} · {{label}}",
   "deadline": "Deadline",
+  "pickDeadline": "Pick deadline",
   "clearDeadline": "Clear deadline",
   "parentTask": "Parent task",
   "parentNone": "None (top level)",

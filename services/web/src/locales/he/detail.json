@@ -38,6 +38,7 @@
   "priority": "עדיפות",
   "priorityOption": "P{{priority}} · {{label}}",
   "deadline": "מועד יעד",
+  "pickDeadline": "בחירת מועד יעד",
   "clearDeadline": "ניקוי מועד יעד",
   "parentTask": "משימת אב",
   "parentNone": "ללא (רמה עליונה)",

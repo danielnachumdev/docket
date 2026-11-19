@@ -427,6 +427,9 @@ export const DEFAULT_NOTIFICATION_KINDS: NotificationKind[] = [
   'task_updated',
 ]
 
+export type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
+export type TimeFormat = '24h' | '12h'
+
 export type UserPreferences = {
   theme: string | null
   locale: 'en' | 'he' | null
@@ -434,6 +437,8 @@ export type UserPreferences = {
   task_sort_mode: TaskSortMode | null
   notification_kinds: string[] | null
   notification_sort: NotificationSort | null
+  date_format: DateFormat | null
+  time_format: TimeFormat | null
 }
 
 function formatValidationItem(item: unknown): string {

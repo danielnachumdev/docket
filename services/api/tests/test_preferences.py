@@ -38,6 +38,8 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "task_sort_mode": None,
         "notification_kinds": None,
         "notification_sort": None,
+        "date_format": None,
+        "time_format": None,
     }
 
     patched = client.patch(
@@ -48,6 +50,8 @@ def test_preferences_default_empty_and_patch_persists() -> None:
             "task_sort_mode": "date",
             "notification_kinds": ["mentioned", "shared"],
             "notification_sort": "oldest",
+            "date_format": "DD/MM/YYYY",
+            "time_format": "24h",
         },
     )
     assert patched.status_code == 200, patched.text
@@ -58,6 +62,8 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "task_sort_mode": "date",
         "notification_kinds": ["mentioned", "shared"],
         "notification_sort": "oldest",
+        "date_format": "DD/MM/YYYY",
+        "time_format": "24h",
     }
 
     again = client.get("/api/me/preferences")
@@ -69,6 +75,8 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "task_sort_mode": "date",
         "notification_kinds": ["mentioned", "shared"],
         "notification_sort": "oldest",
+        "date_format": "DD/MM/YYYY",
+        "time_format": "24h",
     }
 
     merge = client.patch("/api/me/preferences", json={"theme": "light"})
@@ -80,6 +88,8 @@ def test_preferences_default_empty_and_patch_persists() -> None:
         "task_sort_mode": "date",
         "notification_kinds": ["mentioned", "shared"],
         "notification_sort": "oldest",
+        "date_format": "DD/MM/YYYY",
+        "time_format": "24h",
     }
 
 
@@ -178,6 +188,14 @@ def test_preferences_reject_unknown_and_invalid() -> None:
     )
     assert bad_notif_sort.status_code == 422
 
+    bad_date = client.patch(
+        "/api/me/preferences", json={"date_format": "YYYY/MM/DD"}
+    )
+    assert bad_date.status_code == 422
+
+    bad_time = client.patch("/api/me/preferences", json={"time_format": "military"})
+    assert bad_time.status_code == 422
+
     still_empty = client.get("/api/me/preferences")
     assert still_empty.json() == {
         "theme": None,
@@ -186,6 +204,8 @@ def test_preferences_reject_unknown_and_invalid() -> None:
         "task_sort_mode": None,
         "notification_kinds": None,
         "notification_sort": None,
+        "date_format": None,
+        "time_format": None,
     }
 
 
@@ -226,4 +246,6 @@ def test_preferences_via_api_token() -> None:
         "notification_kinds": None,
         "notification_sort": None,
         "task_sort_mode": None,
+        "date_format": None,
+        "time_format": None,
     }

@@ -10,6 +10,8 @@ BuiltinThemeId = Literal[
 LocalePreference = Literal["en", "he"]
 TaskSortMode = Literal["custom", "date"]
 NotificationSortPreference = Literal["newest", "oldest"]
+DateFormatPreference = Literal["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]
+TimeFormatPreference = Literal["24h", "12h"]
 
 ALLOWED_COLOR_SCHEMES: frozenset[str] = frozenset({"light", "dark"})
 ALLOWED_BUILTIN_THEMES: frozenset[str] = frozenset(
@@ -22,6 +24,10 @@ ALLOWED_THEMES = ALLOWED_BUILTIN_THEMES
 ALLOWED_LOCALES: frozenset[str] = frozenset({"en", "he"})
 ALLOWED_TASK_SORT_MODES: frozenset[str] = frozenset({"custom", "date"})
 ALLOWED_NOTIFICATION_SORTS: frozenset[str] = frozenset({"newest", "oldest"})
+ALLOWED_DATE_FORMATS: frozenset[str] = frozenset(
+    {"DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"}
+)
+ALLOWED_TIME_FORMATS: frozenset[str] = frozenset({"24h", "12h"})
 KNOWN_PREFERENCE_KEYS: frozenset[str] = frozenset(
     {
         "theme",
@@ -30,6 +36,8 @@ KNOWN_PREFERENCE_KEYS: frozenset[str] = frozenset(
         "task_sort_mode",
         "notification_kinds",
         "notification_sort",
+        "date_format",
+        "time_format",
     }
 )
 
@@ -131,6 +139,8 @@ class UserPreferencesOut(BaseModel):
     task_sort_mode: TaskSortMode | None = None
     notification_kinds: list[str] | None = None
     notification_sort: NotificationSortPreference | None = None
+    date_format: DateFormatPreference | None = None
+    time_format: TimeFormatPreference | None = None
 
 
 class UserPreferencesPatch(BaseModel):
@@ -144,3 +154,5 @@ class UserPreferencesPatch(BaseModel):
     task_sort_mode: TaskSortMode | None = Field(default=None)
     notification_kinds: list[str] | None = Field(default=None)
     notification_sort: NotificationSortPreference | None = Field(default=None)
+    date_format: DateFormatPreference | None = Field(default=None)
+    time_format: TimeFormatPreference | None = Field(default=None)
