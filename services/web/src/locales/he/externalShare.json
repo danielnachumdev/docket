@@ -1,0 +1,23 @@
+{
+  "pageTitle": "משימה משותפת",
+  "subtitle": "קישור לצפייה בלבד",
+  "notFound": "קישור השיתוף הזה אינו תקף, פג תוקף או בוטל.",
+  "loadFailed": "לא ניתן לטעון את המשימה המשותפת",
+  "description": "תיאור",
+  "descriptionEmpty": "אין תיאור",
+  "artifacts": "קבצים מצורפים",
+  "artifactsEmpty": "אין קבצים מצורפים",
+  "download": "הורדה",
+  "comments": "תגובות",
+  "commentsEmpty": "עדיין אין תגובות",
+  "activity": "פעילות",
+  "activityEmpty": "עדיין אין פעילות",
+  "children": "תת-משימות",
+  "childrenEmpty": "אין תת-משימות",
+  "links": "משימות מקושרות",
+  "linksEmpty": "אין משימות מקושרות",
+  "noAccess": "אין גישה",
+  "due": "יעד {{when}}",
+  "created": "נוצר {{when}}",
+  "guestHint": "אתם צופים במשימה משותפת. אין צורך להתחבר."
+}

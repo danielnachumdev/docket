@@ -1,0 +1,113 @@
+.external-share-page {
+  display: grid;
+  gap: 1.25rem;
+  justify-items: center;
+  min-height: 100dvh;
+  padding: 1.25rem 1rem 2.5rem;
+  background:
+    radial-gradient(60rem 30rem at 50% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+    var(--bg);
+}
+
+.external-share-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 48rem;
+}
+
+.external-share-chrome-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+  text-align: end;
+}
+
+.external-share-loading {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+}
+
+.external-share-card {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: 48rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.external-share-header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.external-share-header .eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.external-share-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.external-share-artifact-list,
+.external-share-events,
+.external-share-chip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.external-share-artifact {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+}
+
+.external-share-artifact-meta,
+.external-share-events li,
+.external-share-chip-list .tag {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.external-share-text {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: var(--bg);
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .external-share-chrome {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .external-share-chrome-meta {
+    justify-items: start;
+    text-align: start;
+  }
+}

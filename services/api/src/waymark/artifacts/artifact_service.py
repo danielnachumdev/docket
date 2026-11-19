@@ -94,6 +94,10 @@ class ArtifactService:
         self, principal: Principal, task_ref: str, artifact_id: int
     ) -> ArtifactContent:
         artifact = self.get_artifact(principal, task_ref, artifact_id)
+        return self.read_content(artifact)
+
+    def read_content(self, artifact: Artifact) -> ArtifactContent:
+        """Stream bytes for an already-authorized artifact row."""
         return self._read_content(artifact)
 
     def ensure_byte_sizes(self, artifacts: Sequence[Artifact]) -> None:

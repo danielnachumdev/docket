@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     rate_limit_token_enabled: bool = True
     rate_limit_token_requests: int = 120
     rate_limit_token_window_seconds: int = 60
+    rate_limit_public_share_enabled: bool = True
+    rate_limit_public_share_requests: int = 60
+    rate_limit_public_share_window_seconds: int = 60
     # Durable per-token request log (Bearer only). Path/method/status/IP/UA;
     # never stores Authorization or raw token values. Pruned on write.
     token_usage_log_enabled: bool = True

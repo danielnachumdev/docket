@@ -203,6 +203,20 @@ export type TaskDetail = {
   watching: boolean
 }
 
+export type ExternalShare = {
+  id: number
+  task_id: string
+  name: string
+  expires_at: string | null
+  revoked_at: string | null
+  created_by_user_id: number
+  created_at: string
+}
+
+export type ExternalShareCreated = ExternalShare & {
+  token: string
+}
+
 export type Notification = {
   id: number
   user_id: number
@@ -278,6 +292,15 @@ export type ActivityItem = {
 export type ActivityFeed = {
   items: ActivityItem[]
   order: 'asc' | 'desc'
+}
+
+export type ExternalShareDetail = {
+  task: Task
+  events: TaskEvent[]
+  artifacts: Artifact[]
+  children: Task[]
+  links: TaskLink[]
+  comments: TaskComment[]
 }
 
 export type MentionableUser = {
@@ -728,6 +751,56 @@ export const api = {
     }),
   unshareTask: (id: string, membershipId: number) =>
     request<void>(`/api/tasks/${id}/shares/${membershipId}`, { method: 'DELETE' }),
+  listExternalShares: (id: string) =>
+    request<ExternalShare[]>(`/api/tasks/${id}/external-shares`),
+  createExternalShare: (
+    id: string,
+    body: { name: string; expires_at?: string | null },
+  ) =>
+    request<ExternalShareCreated>(`/api/tasks/${id}/external-shares`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateExternalShare: (
+    id: string,
+    shareId: number,
+    body: {
+      name?: string
+      expires_at?: string | null
+      clear_expires_at?: boolean
+    },
+  ) =>
+    request<ExternalShare>(`/api/tasks/${id}/external-shares/${shareId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  revokeExternalShare: (id: string, shareId: number) =>
+    request<ExternalShare>(`/api/tasks/${id}/external-shares/${shareId}/revoke`, {
+      method: 'POST',
+    }),
+  rotateExternalShare: (id: string, shareId: number) =>
+    request<ExternalShareCreated>(
+      `/api/tasks/${id}/external-shares/${shareId}/rotate`,
+      { method: 'POST' },
+    ),
+  getPublicShare: (token: string) =>
+    request<ExternalShareDetail>(`/api/public/shares/${encodeURIComponent(token)}`),
+  downloadPublicShareArtifact: (token: string, artifactId: number, filename: string) =>
+    downloadBlob(
+      `/api/public/shares/${encodeURIComponent(token)}/artifacts/${artifactId}/content`,
+      filename,
+    ),
+  fetchPublicShareArtifactContentBlob: async (
+    token: string,
+    artifactId: number,
+    filename: string,
+  ) => {
+    const { blob } = await fetchBlob(
+      `/api/public/shares/${encodeURIComponent(token)}/artifacts/${artifactId}/content`,
+      filename,
+    )
+    return blob
+  },
   watchTask: (id: string) =>
     request<{ watching: boolean }>(`/api/tasks/${id}/watch`, { method: 'PUT' }),
   unwatchTask: (id: string) =>

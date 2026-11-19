@@ -14,9 +14,11 @@ from waymark.api import (
     me_stats_api,
     notifications_api,
     preferences_api,
+    public_external_shares_api,
     saved_views_api,
     task_activity_api,
     task_comments_api,
+    task_external_shares_api,
     task_shares_api,
     task_watches_api,
     tasks_api,
@@ -85,6 +87,8 @@ def create_app() -> FastAPI:
     app.include_router(task_comments_api.router)
     app.include_router(artifacts_api.router)
     app.include_router(task_shares_api.router)
+    app.include_router(task_external_shares_api.router)
+    app.include_router(public_external_shares_api.router)
     app.include_router(task_watches_api.router)
     app.include_router(notifications_api.router)
     app.include_router(saved_views_api.router)

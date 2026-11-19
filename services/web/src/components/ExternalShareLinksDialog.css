@@ -1,0 +1,54 @@
+.external-share-dialog {
+  gap: 1rem;
+}
+
+.external-share-reveal {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.external-share-url {
+  display: block;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: var(--bg);
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+}
+
+.external-share-create,
+.external-share-edit {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.external-share-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.external-share-list li {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.external-share-list li.revoked {
+  opacity: 0.7;
+}
+
+.external-share-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}

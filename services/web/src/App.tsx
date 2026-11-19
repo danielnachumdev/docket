@@ -8,6 +8,7 @@ import { PreferencesProvider, useTheme } from './preferences'
 import { AccountPage } from './pages/AccountPage'
 import { ArtifactsPage } from './pages/ArtifactsPage'
 import { CollaboratorsPage } from './pages/CollaboratorsPage'
+import { ExternalSharePage } from './pages/ExternalSharePage'
 import { LoginPage } from './pages/LoginPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { ProgressPage } from './pages/ProgressPage'
@@ -22,12 +23,22 @@ function Shell() {
   const { status, loading, logout } = useAuth()
   const { themeScheme, toggle } = useTheme()
   const location = useLocation()
+  const externalShareMatch = location.pathname.match(/^\/s\/([^/]+)\/?$/)
+  const externalShareToken = externalShareMatch?.[1]
 
   if (loading) {
     return (
       <main className="splash">
         <Spinner />
       </main>
+    )
+  }
+
+  if (externalShareToken) {
+    return (
+      <Routes>
+        <Route path="/s/:token" element={<ExternalSharePage />} />
+      </Routes>
     )
   }
 

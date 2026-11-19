@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../lib/toast'
+import { ExternalShareLinksDialog } from './ExternalShareLinksDialog'
 import { Menu, type MenuItem } from './Menu'
 
 export function taskLinkUrl(taskId: string): string {
@@ -22,6 +24,7 @@ function canSystemShare(): boolean {
 export function TaskLinkShareMenu({ taskId, title, number, className, label }: Props) {
   const { t } = useTranslation('tasks')
   const toast = useToast()
+  const [externalOpen, setExternalOpen] = useState(false)
   const displayTitle = title.trim() || (number != null ? `#${number}` : taskId)
   const triggerLabel = label ?? t('linkShare.button')
 
@@ -54,7 +57,19 @@ export function TaskLinkShareMenu({ taskId, title, number, className, label }: P
     ...(canSystemShare()
       ? [{ label: t('linkShare.system'), icon: 'share' as const, onSelect: () => void systemShare() }]
       : []),
+    {
+      label: t('linkShare.external'),
+      icon: 'link',
+      onSelect: () => setExternalOpen(true),
+    },
   ]
 
-  return <Menu label={triggerLabel} icon="share" items={items} className={className} />
+  return (
+    <>
+      <Menu label={triggerLabel} icon="share" items={items} className={className} />
+      {externalOpen && (
+        <ExternalShareLinksDialog taskId={taskId} onClose={() => setExternalOpen(false)} />
+      )}
+    </>
+  )
 }
