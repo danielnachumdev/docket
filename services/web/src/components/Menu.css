@@ -41,6 +41,11 @@
   width: 100%;
 }
 
+.menu-item-check {
+  margin-inline-start: auto;
+  opacity: 0.85;
+}
+
 .menu-item:hover:not(:disabled),
 .menu-item:focus-visible {
   outline: none;

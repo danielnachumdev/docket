@@ -53,13 +53,13 @@
 }
 
 @media (max-width: 640px) {
-  .toolbar {
+  .toolbar:not(.task-list-chrome) {
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
   }
 
-  .search {
+  .toolbar:not(.task-list-chrome) .search {
     flex: none;
   }
 

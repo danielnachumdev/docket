@@ -42,9 +42,9 @@ import { useAction } from '../lib/useAction'
 import { useKeyboardShortcut } from '../lib/useKeyboardShortcut'
 import { usePreferences } from '../preferences'
 import { TaskKanbanBoard } from './TaskKanbanBoard'
+import { SortModeMenu } from './task-list/SortModeMenu'
+import { TaskListFilterDialog } from './task-list/TaskListFilterDialog'
 import './TaskListPage.css'
-
-type StatusChip = 'active' | 'all' | (typeof STATUSES)[number]
 
 function sortByRank(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => a.rank - b.rank || a.number - b.number)
@@ -249,6 +249,7 @@ export function TaskListPage() {
   const [pinned, setPinned] = useState<Set<string>>(() => new Set())
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [selectMode, setSelectMode] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState(3)
   const { busy, error, setError, run } = useAction()
@@ -617,16 +618,22 @@ export function TaskListPage() {
     }, t('tasks:bulkUpdateFailed'))
   }
 
-  const isChipSelected = (key: FilterKey) => activeSavedId == null && filter === key
-  const statusChips = (['active', 'all', ...STATUSES] as StatusChip[]).filter(
-    (key) => key === 'active' || key === 'all' || (counts[key] ?? 0) > 0 || isChipSelected(key),
-  )
-  const smartChips = SMART_FILTERS.filter((key) => (counts[key] ?? 0) > 0 || isChipSelected(key))
-  const filtersNarrowed = query.trim() !== '' || filter !== (archived ? 'all' : 'active')
+  const defaultFilter: FilterKey = archived ? 'all' : 'active'
+  const filterIsDefault = activeSavedId == null && filter === defaultFilter
+  const filtersNarrowed = query.trim() !== '' || !filterIsDefault
+  const activeFilterLabel =
+    activeSavedId != null
+      ? (savedViews.find((view) => view.id === activeSavedId)?.name ?? filterLabel(filter))
+      : filterLabel(filter)
+  const showActiveFilterChip = !filterIsDefault
 
   function resetFilters() {
     setQuery('')
-    selectFilter(archived ? 'all' : 'active')
+    selectFilter(defaultFilter)
+  }
+
+  function clearActiveFilter() {
+    selectFilter(defaultFilter)
   }
 
   const selectModeButton = (
@@ -665,26 +672,6 @@ export function TaskListPage() {
         }
         actions={
           <div className="list-header-actions">
-            {layout === 'list' && (
-              <div className="segmented" role="radiogroup" aria-label={t('tasks:sortMode')}>
-                {(['custom', 'date'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    role="radio"
-                    aria-checked={taskSortMode === mode}
-                    className={taskSortMode === mode ? 'active' : ''}
-                    title={mode === 'custom' ? t('tasks:sortCustom') : t('tasks:sortDate')}
-                    onClick={() => setTaskSortMode(mode)}
-                  >
-                    <Icon name={mode === 'custom' ? 'list' : 'calendar'} size={14} />
-                    <span className="hide-narrow">
-                      {mode === 'custom' ? t('tasks:sortCustom') : t('tasks:sortDate')}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
             <div className="segmented" role="radiogroup" aria-label={t('tasks:layout')}>
               {(['list', 'kanban'] as const).map((mode) => (
                 <button
@@ -703,6 +690,7 @@ export function TaskListPage() {
                 </button>
               ))}
             </div>
+            {layout === 'list' && visibleIds.length > 0 && selectModeButton}
           </div>
         }
       />
@@ -745,8 +733,8 @@ export function TaskListPage() {
         </form>
       )}
 
-      <div className="toolbar">
-        <label className="search">
+      <div className="toolbar task-list-chrome" aria-label={t('tasks:listChrome')}>
+        <label className="search grow">
           <Icon name="search" />
           <input
             ref={searchRef}
@@ -773,74 +761,58 @@ export function TaskListPage() {
             </kbd>
           )}
         </label>
-        <div className="chips" role="tablist" aria-label={t('tasks:filterByStatus')}>
-          {statusChips.map((f) => (
+        {showActiveFilterChip && (
+          <span className="active-filter-chip" title={t('tasks:activeFilter')}>
             <button
-              key={f}
               type="button"
-              role="tab"
-              aria-selected={isChipSelected(f)}
-              className={isChipSelected(f) ? 'chip active' : 'chip'}
-              onClick={() => selectFilter(f)}
+              className="active-filter-chip-label"
+              aria-label={t('tasks:openFiltersNamed', { name: activeFilterLabel })}
+              onClick={() => setFilterOpen(true)}
             >
-              {filterLabel(f)}
-              <span className="chip-count">{counts[f] ?? 0}</span>
+              {activeFilterLabel}
             </button>
-          ))}
-        </div>
+            <button
+              type="button"
+              className="icon-btn ghost chip-remove"
+              aria-label={t('tasks:clearActiveFilter')}
+              title={t('tasks:clearActiveFilter')}
+              onClick={clearActiveFilter}
+            >
+              <Icon name="x" size={12} />
+            </button>
+          </span>
+        )}
+        <button
+          type="button"
+          className={showActiveFilterChip ? 'btn ghost small chrome-control active' : 'btn ghost small chrome-control'}
+          aria-haspopup="dialog"
+          aria-expanded={filterOpen}
+          onClick={() => setFilterOpen(true)}
+        >
+          <Icon name="sliders" size={14} />
+          <span className="chrome-control-label">{t('tasks:filters')}</span>
+        </button>
+        {layout === 'list' && (
+          <SortModeMenu value={taskSortMode} onChange={setTaskSortMode} />
+        )}
       </div>
 
-      {!archived && (
-        <div className="views-bar" aria-label={t('tasks:smartAndSavedViews')}>
-          <div className="chips views-chips" role="tablist" aria-label={t('tasks:smartFilters')}>
-            {smartChips.map((f) => (
-              <button
-                key={f}
-                type="button"
-                role="tab"
-                aria-selected={isChipSelected(f)}
-                className={isChipSelected(f) ? 'chip smart active' : 'chip smart'}
-                onClick={() => selectFilter(f)}
-              >
-                {filterLabel(f)}
-                <span className="chip-count">{counts[f] ?? 0}</span>
-              </button>
-            ))}
-            {savedViews.map((view) => (
-              <span key={view.id} className="saved-chip-wrap">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeSavedId === view.id}
-                  className={activeSavedId === view.id ? 'chip saved active' : 'chip saved'}
-                  onClick={() => selectSavedView(view)}
-                >
-                  {view.name}
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn ghost chip-remove"
-                  aria-label={t('tasks:deleteSavedViewNamed', { name: view.name })}
-                  title={t('tasks:deleteSavedView')}
-                  onClick={() => void onDeleteSavedView(view)}
-                >
-                  <Icon name="x" size={12} />
-                </button>
-              </span>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="btn ghost small save-view-btn"
-            disabled={busy}
-            onClick={() => void onSaveView()}
-          >
-            <Icon name="plus" size={14} />
-            {t('tasks:saveView')}
-          </button>
-          {layout === 'list' && visibleIds.length > 0 && selectModeButton}
-        </div>
-      )}
+      <TaskListFilterDialog
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        archived={archived}
+        filter={filter}
+        activeSavedId={activeSavedId}
+        counts={counts}
+        savedViews={savedViews}
+        busy={busy}
+        filtersNarrowed={filtersNarrowed}
+        onSelectFilter={(key) => selectFilter(key)}
+        onSelectSavedView={selectSavedView}
+        onDeleteSavedView={onDeleteSavedView}
+        onSaveView={onSaveView}
+        onClearFilters={resetFilters}
+      />
 
       {tasks == null ? (
         <Skeleton rows={6} leading="check" trailing />
