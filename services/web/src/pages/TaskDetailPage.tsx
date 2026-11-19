@@ -13,6 +13,10 @@ import { api, type Artifact, type Task, type TaskDetail, type TaskShare } from '
 import { useAuth } from '../auth'
 import { useMediaQuery } from '../lib/useMediaQuery'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
+import {
+  DateTimeField,
+  type DateTimeFieldHandle,
+} from '../components/DateTimeField'
 import { Alert } from '../components/Feedback'
 import { DetailSkeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
@@ -35,6 +39,7 @@ import {
   parseDate,
   priorityLabel,
   statusLabel,
+  toLocalInputValue,
 } from '../lib/format'
 import { HorizonDueChips, type HorizonDueChoice } from '../components/HorizonDueMenu'
 import { dueAtIsoForHorizon, type HorizonId } from '../lib/localDay'
@@ -63,9 +68,7 @@ type Draft = {
 
 function toLocalInput(iso: string | null) {
   const d = parseDate(iso)
-  if (!d) return ''
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return d ? toLocalInputValue(d) : ''
 }
 
 function fromLocalInput(value: string) {
@@ -137,7 +140,7 @@ export function TaskDetailPage() {
   const [activityTick, setActivityTick] = useState(0)
   const railStacked = useMediaQuery('(max-width: 1100px)')
   const { busy, error, setError, run } = useAction()
-  const dueInputRef = useRef<HTMLInputElement>(null)
+  const dueInputRef = useRef<DateTimeFieldHandle>(null)
 
   const detailGridStyle = useMemo(
     () =>
@@ -402,7 +405,7 @@ export function TaskDetailPage() {
     if (!detail || isClosed(detail.task.status)) return
     if (choice === 'exact') {
       dueInputRef.current?.focus()
-      dueInputRef.current?.showPicker?.()
+      dueInputRef.current?.showPicker()
       return
     }
     void run(async () => {
@@ -751,11 +754,11 @@ export function TaskDetailPage() {
                 <label className="field">
                   <span>{t('deadline')}</span>
                   <span className="input-with-action">
-                    <input
+                    <DateTimeField
                       ref={dueInputRef}
-                      type="datetime-local"
                       value={draft.due}
-                      onChange={(e) => update('due', e.target.value)}
+                      aria-label={t('deadline')}
+                      onChange={(next) => update('due', next)}
                     />
                     {draft.due && (
                       <button

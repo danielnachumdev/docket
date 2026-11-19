@@ -108,15 +108,125 @@ function formatTimePart(d: Date, format: TimeFormat) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
+export type DateTimeFormatOptions = {
+  dateFormat?: DateFormat
+  timeFormat?: TimeFormat
+}
+
+function resolveFormats(options?: DateTimeFormatOptions) {
+  return {
+    dateFormat: options?.dateFormat ?? activeDateFormat,
+    timeFormat: options?.timeFormat ?? activeTimeFormat,
+  }
+}
+
+/** Format a local `Date` with the active (or override) date/time prefs. */
+export function formatDateTimeFromDate(d: Date, options?: DateTimeFormatOptions) {
+  const { dateFormat, timeFormat } = resolveFormats(options)
+  return `${formatDatePart(d, dateFormat)} ${formatTimePart(d, timeFormat)}`
+}
+
 export function formatDateTime(
   value: string | null | undefined,
-  options?: { dateFormat?: DateFormat; timeFormat?: TimeFormat },
+  options?: DateTimeFormatOptions,
 ) {
   const d = parseDate(value)
   if (!d) return i18n.t('emDash', { ns: 'common' })
-  const dateFmt = options?.dateFormat ?? activeDateFormat
-  const timeFmt = options?.timeFormat ?? activeTimeFormat
-  return `${formatDatePart(d, dateFmt)} ${formatTimePart(d, timeFmt)}`
+  return formatDateTimeFromDate(d, options)
+}
+
+/** `YYYY-MM-DDTHH:mm` in local time (native datetime-local wire format). */
+export function toLocalInputValue(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
+export function dateFromLocalInput(value: string) {
+  if (!value) return null
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+export function formatLocalInputValue(value: string, options?: DateTimeFormatOptions) {
+  const d = dateFromLocalInput(value)
+  if (!d) return ''
+  return formatDateTimeFromDate(d, options)
+}
+
+export function datetimeInputPlaceholder(options?: DateTimeFormatOptions) {
+  const { dateFormat, timeFormat } = resolveFormats(options)
+  const time = timeFormat === '12h' ? '2:30 PM' : '14:30'
+  if (dateFormat === 'MM/DD/YYYY') return `11/19/2026 ${time}`
+  if (dateFormat === 'YYYY-MM-DD') return `2026-11-19 ${time}`
+  return `19/11/2026 ${time}`
+}
+
+function parseDateParts(
+  datePart: string,
+  dateFormat: DateFormat,
+): { year: number; month: number; day: number } | null {
+  if (dateFormat === 'YYYY-MM-DD') {
+    const m = datePart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+    if (!m) return null
+    return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }
+  }
+  const m = datePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!m) return null
+  const a = Number(m[1])
+  const b = Number(m[2])
+  const year = Number(m[3])
+  if (dateFormat === 'MM/DD/YYYY') return { year, month: a, day: b }
+  return { year, month: b, day: a }
+}
+
+function parseTimeParts(
+  timePart: string,
+  timeFormat: TimeFormat,
+): { hours: number; minutes: number } | null {
+  const trimmed = timePart.trim()
+  const h24 = trimmed.match(/^(\d{1,2}):(\d{2})$/)
+  if (h24) {
+    const hours = Number(h24[1])
+    const minutes = Number(h24[2])
+    if (hours > 23 || minutes > 59) return null
+    return { hours, minutes }
+  }
+  if (timeFormat !== '12h') return null
+  const h12 = trimmed.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/)
+  if (!h12) return null
+  let hours = Number(h12[1])
+  const minutes = Number(h12[2])
+  if (hours < 1 || hours > 12 || minutes > 59) return null
+  const ampm = h12[3]!.toUpperCase()
+  if (ampm === 'AM') {
+    if (hours === 12) hours = 0
+  } else if (hours !== 12) {
+    hours += 12
+  }
+  return { hours, minutes }
+}
+
+/** Parse a preference-shaped datetime string into a local `Date`. */
+export function parseDateTimeInput(
+  text: string,
+  options?: DateTimeFormatOptions,
+): Date | null {
+  const cleaned = text.trim().replace(/\s+/g, ' ')
+  if (!cleaned) return null
+  const { dateFormat, timeFormat } = resolveFormats(options)
+  const match = cleaned.match(/^(.+?)\s+(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)$/)
+  if (!match) return null
+  const parts = parseDateParts(match[1]!, dateFormat)
+  const time = parseTimeParts(match[2]!, timeFormat)
+  if (!parts || !time) return null
+  const d = new Date(parts.year, parts.month - 1, parts.day, time.hours, time.minutes, 0, 0)
+  if (
+    d.getFullYear() !== parts.year ||
+    d.getMonth() !== parts.month - 1 ||
+    d.getDate() !== parts.day
+  ) {
+    return null
+  }
+  return d
 }
 
 function relativeFormatter() {
