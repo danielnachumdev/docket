@@ -60,6 +60,10 @@ def test_create_list_and_guest_detail(tmp_path: Path, monkeypatch) -> None:
     assert any(c["body"] == "Hello guest" for c in payload["comments"])
     content = guest.get(f"/api/public/shares/{token}/artifacts/{artifact_id}/content")
     assert content.status_code == 200 and content.content == b"guest-bytes"
+    activity = guest.get(f"/api/public/shares/{token}/activity")
+    assert activity.status_code == 200, activity.text
+    kinds = {item["kind"] for item in activity.json()["items"]}
+    assert "comment" in kinds
     assert guest.patch(f"/api/tasks/{task_id}", json={"title": "Hacked"}).status_code in {401, 403, 404}
 
 

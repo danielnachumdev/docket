@@ -34,6 +34,12 @@ type Props = {
   layout?: 'list' | 'grid'
   /** `data` when another element on the page owns the `#artifact-N` id (comment cards). */
   anchor?: 'id' | 'data'
+  /** Blob/download scope override (e.g. `public:<token>` for guest shares). */
+  contentTaskId?: string
+}
+
+function isPublicShareScope(scope: string) {
+  return scope.startsWith('public:')
 }
 
 export function ArtifactRow({
@@ -44,7 +50,9 @@ export function ArtifactRow({
   context,
   layout = 'list',
   anchor = 'id',
+  contentTaskId,
 }: Props) {
+  const blobTaskId = contentTaskId ?? a.task_id
   const { t } = useTranslation('artifacts')
   const confirm = useConfirm()
   const [textFullView, setTextFullView] = useState(false)
@@ -164,10 +172,17 @@ export function ArtifactRow({
           aria-label={t('downloadNamed', { title: a.title })}
           title={t('common:download')}
           onClick={() =>
-            void run(
-              () => api.downloadArtifactContent(a.task_id, a.id, a.title),
-              t('errors.download'),
-            )
+            void run(async () => {
+              if (isPublicShareScope(blobTaskId)) {
+                await api.downloadPublicShareArtifact(
+                  blobTaskId.slice('public:'.length),
+                  a.id,
+                  a.title,
+                )
+                return
+              }
+              await api.downloadArtifactContent(blobTaskId, a.id, a.title)
+            }, t('errors.download'))
           }
         >
           <Icon name="download" />
@@ -241,7 +256,7 @@ export function ArtifactRow({
           className="muted small break artifact-body"
         />
       )}
-      <ArtifactFilePreview taskId={a.task_id} artifact={a} />
+      <ArtifactFilePreview taskId={blobTaskId} artifact={a} />
       {isGrid && actions}
       {textFullView && a.content_text && (
         <ArtifactFullView

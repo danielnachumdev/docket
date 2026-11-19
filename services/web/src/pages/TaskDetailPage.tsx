@@ -12,7 +12,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type Artifact, type Task, type TaskDetail, type TaskShare } from '../api'
 import { useAuth } from '../auth'
 import { useMediaQuery } from '../lib/useMediaQuery'
-import { PriorityBadge, StatusBadge } from '../components/Badges'
+import { DueBadge, PriorityBadge, StatusBadge } from '../components/Badges'
+import { publicShareBlobScope } from '../lib/artifactObjectUrlCache'
 import {
   DateTimeField,
   type DateTimeFieldHandle,
@@ -118,15 +119,22 @@ function descendantIds(taskId: string, all: Task[]): Set<string> {
   return ids
 }
 
-export function TaskDetailPage() {
-  const { t } = useTranslation(['detail', 'tasks', 'common'])
+type Props = {
+  /** When set, load via public share token and force the detail UI read-only. */
+  externalShareToken?: string
+}
+
+export function TaskDetailPage({ externalShareToken }: Props = {}) {
+  const { t } = useTranslation(['detail', 'tasks', 'common', 'externalShare'])
   const { id } = useParams()
   const navigate = useNavigate()
   const confirm = useConfirm()
   const prompt = usePrompt()
   const toast = useToast()
   const { status } = useAuth()
-  const taskId = id ?? ''
+  const shareToken = (externalShareToken ?? '').trim()
+  const isExternal = Boolean(shareToken)
+  const routeTaskId = id ?? ''
   const [detail, setDetail] = useState<TaskDetail | null>(null)
   const [allTasks, setAllTasks] = useState<Task[]>([])
   const [parentTask, setParentTask] = useState<{ id: string; number: number; title: string } | null>(null)
@@ -141,6 +149,8 @@ export function TaskDetailPage() {
   const railStacked = useMediaQuery('(max-width: 1100px)')
   const { busy, error, setError, run } = useAction()
   const dueInputRef = useRef<DateTimeFieldHandle>(null)
+  const taskId = detail?.task.id ?? routeTaskId
+  const blobScope = isExternal ? publicShareBlobScope(shareToken) : taskId
 
   const detailGridStyle = useMemo(
     () =>
@@ -182,10 +192,21 @@ export function TaskDetailPage() {
   )
 
   const load = useCallback(async () => {
+    if (isExternal) {
+      const data = await api.getPublicShare(shareToken)
+      setDetail({ ...data, watching: false })
+      setDraft(draftFrom(data.task))
+      setNotesMode('preview')
+      setAllTasks(data.children)
+      setShares([])
+      setParentTask(null)
+      return
+    }
+
     const [data, all, shareRows] = await Promise.all([
-      api.getTask(taskId),
+      api.getTask(routeTaskId),
       api.listTasks({ archived: false }),
-      api.listShares(taskId),
+      api.listShares(routeTaskId),
     ])
     setDetail(data)
     setDraft(draftFrom(data.task))
@@ -209,33 +230,41 @@ export function TaskDetailPage() {
         })
       }
     }
-  }, [taskId])
+  }, [isExternal, routeTaskId, shareToken])
 
   useEffect(() => {
     setDetail(null)
     setLoadError(null)
-    if (!taskId) {
-      setLoadError(t('invalidId'))
+    if (isExternal ? !shareToken : !routeTaskId) {
+      setLoadError(isExternal ? t('externalShare:notFound') : t('invalidId'))
       return
     }
     let cancelled = false
     void (async () => {
       try {
         await load()
-        if (cancelled) return
-        const task = await api.markTaskRead(taskId)
+        if (cancelled || isExternal) return
+        const task = await api.markTaskRead(routeTaskId)
         if (cancelled) return
         setDetail((prev) =>
           prev ? { ...prev, task: { ...prev.task, unread: task.unread } } : prev,
         )
       } catch (err) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : t('loadFailed'))
+        if (!cancelled) {
+          setLoadError(
+            err instanceof Error
+              ? err.message
+              : isExternal
+                ? t('externalShare:loadFailed')
+                : t('loadFailed'),
+          )
+        }
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [load, taskId, t])
+  }, [load, isExternal, routeTaskId, shareToken, t])
 
   const tasksById = useMemo(() => new Map(allTasks.map((row) => [row.id, row])), [allTasks])
 
@@ -248,7 +277,7 @@ export function TaskDetailPage() {
   }, [allTasks, taskId])
 
   usePageTitle(detail?.task.title)
-  usePrefetchArtifactBlobs(taskId, detail?.artifacts ?? NO_ARTIFACTS)
+  usePrefetchArtifactBlobs(blobScope, detail?.artifacts ?? NO_ARTIFACTS)
 
   const original = detail ? draftFrom(detail.task) : null
   const dirty =
@@ -446,10 +475,12 @@ export function TaskDetailPage() {
     return (
       <main className="page">
         <Alert>{loadError}</Alert>
-        <Link to="/" className="btn">
-          <Icon name="arrowLeft" className="flip-rtl" />
-          {t('backToTasks')}
-        </Link>
+        {!isExternal && (
+          <Link to="/" className="btn">
+            <Icon name="arrowLeft" className="flip-rtl" />
+            {t('backToTasks')}
+          </Link>
+        )}
       </main>
     )
   }
@@ -464,41 +495,56 @@ export function TaskDetailPage() {
 
   const task = detail.task
   const me = status?.user
-  const isOwner = me?.id === task.owner_user_id
+  const isOwner = !isExternal && me?.id === task.owner_user_id
   const myShare = shares.find((s) => s.user_id === me?.id)
-  const canManageShares = isOwner || myShare?.role === 'editor'
+  const canManageShares = !isExternal && (isOwner || myShare?.role === 'editor')
   const canComment =
-    isOwner ||
-    myShare?.role === 'commentor' ||
-    myShare?.role === 'editor' ||
-    Boolean(status?.permissions.includes('tasks:comment') && myShare == null)
+    !isExternal &&
+    (isOwner ||
+      myShare?.role === 'commentor' ||
+      myShare?.role === 'editor' ||
+      Boolean(status?.permissions.includes('tasks:comment') && myShare == null))
   const canAttachArtifacts =
-    isOwner ||
-    myShare?.role === 'editor' ||
-    myShare?.role === 'commentor' ||
-    Boolean(status?.permissions.includes('artifacts:write') && myShare == null)
-  const menuItems: MenuItem[] = [
-    { label: t('export'), icon: 'download', onSelect: exportCasePack, disabled: busy },
-    ...(task.archived_at
-      ? []
-      : [{ label: t('archive'), icon: 'archive' as const, onSelect: toggleArchive, disabled: busy }]),
-    {
-      label: t('delete'),
-      icon: 'trash',
-      onSelect: () => void remove(),
-      danger: true,
-      disabled: busy,
-    },
-  ]
+    !isExternal &&
+    (isOwner ||
+      myShare?.role === 'editor' ||
+      myShare?.role === 'commentor' ||
+      Boolean(status?.permissions.includes('artifacts:write') && myShare == null))
+  const menuItems: MenuItem[] = isExternal
+    ? []
+    : [
+        { label: t('export'), icon: 'download', onSelect: exportCasePack, disabled: busy },
+        ...(task.archived_at
+          ? []
+          : [
+              {
+                label: t('archive'),
+                icon: 'archive' as const,
+                onSelect: toggleArchive,
+                disabled: busy,
+              },
+            ]),
+        {
+          label: t('delete'),
+          icon: 'trash',
+          onSelect: () => void remove(),
+          danger: true,
+          disabled: busy,
+        },
+      ]
 
   return (
-    <main className={dirty ? 'page has-savebar' : 'page'}>
+    <main className={dirty && !isExternal ? 'page has-savebar' : 'page'}>
       <nav className="breadcrumb" aria-label={t('breadcrumb')}>
-        <Link to={task.archived_at ? '/?view=archived' : '/'}>
-          <Icon name="arrowLeft" size={14} className="flip-rtl" />
-          {task.archived_at ? t('tasks:archivedTitle') : t('tasks:title')}
-        </Link>
-        {parentTask && (
+        {isExternal ? (
+          <span className="muted small">{t('externalShare:subtitle')}</span>
+        ) : (
+          <Link to={task.archived_at ? '/?view=archived' : '/'}>
+            <Icon name="arrowLeft" size={14} className="flip-rtl" />
+            {task.archived_at ? t('tasks:archivedTitle') : t('tasks:title')}
+          </Link>
+        )}
+        {!isExternal && parentTask && (
           <>
             <Icon name="chevronRight" size={12} className="flip-rtl" />
             <Link to={`/tasks/${parentTask.id}`} className="truncate">
@@ -545,57 +591,66 @@ export function TaskDetailPage() {
 
       <header className="detail-header">
         <div className="detail-title-row">
-          <textarea
-            {...userBidiAttrs(draft.title, 'title-input')}
-            value={draft.title}
-            rows={1}
-            aria-label={t('titleLabel')}
-            placeholder={t('titleLabel')}
-            onChange={(e) => update('title', e.target.value.replace(/\n/g, ''))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                save()
-              }
-            }}
-          />
-          <div className="detail-actions">
-            <button
-              type="button"
-              className={task.unread ? 'icon-btn unread-active' : 'icon-btn'}
-              disabled={busy}
-              aria-pressed={task.unread}
-              aria-label={task.unread ? t('tasks:markRead') : t('tasks:markUnread')}
-              title={task.unread ? t('tasks:markRead') : t('tasks:markUnread')}
-              onClick={toggleUnread}
-            >
-              <Icon name={task.unread ? 'mail' : 'mailOpen'} />
-            </button>
-            <button
-              type="button"
-              className={detail.watching ? 'btn small watching' : 'btn small'}
-              disabled={busy}
-              aria-pressed={detail.watching}
-              title={t('watchHint')}
-              onClick={toggleWatch}
-            >
-              <Icon name={detail.watching ? 'eye' : 'eyeOff'} />
-              {detail.watching ? t('watching') : t('watch')}
-            </button>
-            <TaskLinkShareMenu taskId={task.id} title={task.title} number={task.number} />
-            <Menu label={t('common:moreActions')} items={menuItems} />
-          </div>
+          {isExternal ? (
+            <h1 className="detail-title-readonly">
+              <UserBidiText text={draft.title} />
+            </h1>
+          ) : (
+            <textarea
+              {...userBidiAttrs(draft.title, 'title-input')}
+              value={draft.title}
+              rows={1}
+              aria-label={t('titleLabel')}
+              placeholder={t('titleLabel')}
+              onChange={(e) => update('title', e.target.value.replace(/\n/g, ''))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  save()
+                }
+              }}
+            />
+          )}
+          {!isExternal && (
+            <div className="detail-actions">
+              <button
+                type="button"
+                className={task.unread ? 'icon-btn unread-active' : 'icon-btn'}
+                disabled={busy}
+                aria-pressed={task.unread}
+                aria-label={task.unread ? t('tasks:markRead') : t('tasks:markUnread')}
+                title={task.unread ? t('tasks:markRead') : t('tasks:markUnread')}
+                onClick={toggleUnread}
+              >
+                <Icon name={task.unread ? 'mail' : 'mailOpen'} />
+              </button>
+              <button
+                type="button"
+                className={detail.watching ? 'btn small watching' : 'btn small'}
+                disabled={busy}
+                aria-pressed={detail.watching}
+                title={t('watchHint')}
+                onClick={toggleWatch}
+              >
+                <Icon name={detail.watching ? 'eye' : 'eyeOff'} />
+                {detail.watching ? t('watching') : t('watch')}
+              </button>
+              <TaskLinkShareMenu taskId={task.id} title={task.title} number={task.number} />
+              <Menu label={t('common:moreActions')} items={menuItems} />
+            </div>
+          )}
         </div>
         <div className="detail-meta">
           <StatusBadge status={task.status} />
           <PriorityBadge priority={task.priority} />
-          {task.shared && (
+          <DueBadge due={task.due_at} closed={Boolean(task.completed_at)} />
+          {!isExternal && task.shared && (
             <span className="tag shared-tag" title={t('sharedHint')}>
               <Icon name="users" size={12} />
               {t('tasks:shared')}
             </span>
           )}
-          {task.unread && <span className="tag unread-tag">{t('unread')}</span>}
+          {!isExternal && task.unread && <span className="tag unread-tag">{t('unread')}</span>}
           <span className="muted small" title={formatDateTime(task.created_at)}>
             {t('created', { when: formatRelative(task.created_at) })}
           </span>
@@ -612,27 +667,33 @@ export function TaskDetailPage() {
         <div className="detail-main">
           <Section icon="text" title={t('description')} headingId="description-label">
             <div className="notes">
-              <div className="notes-toolbar" role="group" aria-label={t('descriptionMode')}>
-                <button
-                  type="button"
-                  className={notesMode === 'edit' ? 'btn small notes-mode active' : 'btn small notes-mode'}
-                  aria-pressed={notesMode === 'edit'}
-                  onClick={() => setNotesMode('edit')}
-                >
-                  {t('descriptionEdit')}
-                </button>
-                <button
-                  type="button"
-                  className={
-                    notesMode === 'preview' ? 'btn small notes-mode active' : 'btn small notes-mode'
-                  }
-                  aria-pressed={notesMode === 'preview'}
-                  onClick={() => setNotesMode('preview')}
-                >
-                  {t('descriptionPreview')}
-                </button>
-              </div>
-              {notesMode === 'edit' ? (
+              {!isExternal && (
+                <div className="notes-toolbar" role="group" aria-label={t('descriptionMode')}>
+                  <button
+                    type="button"
+                    className={
+                      notesMode === 'edit' ? 'btn small notes-mode active' : 'btn small notes-mode'
+                    }
+                    aria-pressed={notesMode === 'edit'}
+                    onClick={() => setNotesMode('edit')}
+                  >
+                    {t('descriptionEdit')}
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      notesMode === 'preview'
+                        ? 'btn small notes-mode active'
+                        : 'btn small notes-mode'
+                    }
+                    aria-pressed={notesMode === 'preview'}
+                    onClick={() => setNotesMode('preview')}
+                  >
+                    {t('descriptionPreview')}
+                  </button>
+                </div>
+              )}
+              {!isExternal && notesMode === 'edit' ? (
                 <>
                   <textarea
                     {...userBidiAttrs(draft.description)}
@@ -653,24 +714,33 @@ export function TaskDetailPage() {
               )}
             </div>
           </Section>
-          <CommentsSection
-            taskId={taskId}
-            artifacts={detail.artifacts}
-            tasks={allTasks}
-            shares={shares}
-            ownerUserId={task.owner_user_id}
-            canComment={canComment}
-            canAttach={canAttachArtifacts}
-            canManageShares={canManageShares}
-            composerOnly
-            onChanged={onCommentsChanged}
-          />
+          {!isExternal && (
+            <CommentsSection
+              taskId={taskId}
+              artifacts={detail.artifacts}
+              tasks={allTasks}
+              shares={shares}
+              ownerUserId={task.owner_user_id}
+              canComment={canComment}
+              canAttach={canAttachArtifacts}
+              canManageShares={canManageShares}
+              composerOnly
+              onChanged={onCommentsChanged}
+            />
+          )}
           <ActivitySection
             taskId={taskId}
             artifacts={detail.artifacts}
             tasksById={tasksById}
             refreshKey={activityTick + detail.events.length + detail.artifacts.length}
             onCommentsChanged={onCommentsChanged}
+            readOnly={isExternal}
+            loadFeed={
+              isExternal
+                ? (order) => api.listPublicShareActivity(shareToken, order)
+                : undefined
+            }
+            contentTaskId={blobScope}
           />
         </div>
 
@@ -720,111 +790,134 @@ export function TaskDetailPage() {
               <>
             <div className="detail-side detail-props">
               <Section icon="sliders" title={t('fields')} className="stack detail-fields" variant="plain">
-                <label className="field">
-                  <span>{t('status')}</span>
-                  <select
-                    value={task.status}
-                    disabled={busy}
-                    aria-label={t('status')}
-                    onChange={(e) => {
-                      const next = e.target.value
-                      if (next !== task.status) changeStatus(next)
-                    }}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {statusLabel(s)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>{t('priority')}</span>
-                  <select
-                    value={draft.priority}
-                    onChange={(e) => update('priority', Number(e.target.value))}
-                  >
-                    {PRIORITIES.map((p) => (
-                      <option key={p} value={p}>
-                        {t('priorityOption', { priority: p, label: priorityLabel(p) })}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>{t('deadline')}</span>
-                  <span className="input-with-action">
-                    <DateTimeField
-                      ref={dueInputRef}
-                      value={draft.due}
-                      aria-label={t('deadline')}
-                      onChange={(next) => update('due', next)}
-                    />
-                    {draft.due && (
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        aria-label={t('clearDeadline')}
-                        title={t('clearDeadline')}
-                        onClick={() => update('due', '')}
+                {isExternal ? (
+                  <>
+                    <div className="field">
+                      <span>{t('status')}</span>
+                      <StatusBadge status={task.status} />
+                    </div>
+                    <div className="field">
+                      <span>{t('priority')}</span>
+                      <PriorityBadge priority={task.priority} />
+                    </div>
+                    <div className="field">
+                      <span>{t('deadline')}</span>
+                      <DueBadge due={task.due_at} closed={Boolean(task.completed_at)} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label className="field">
+                      <span>{t('status')}</span>
+                      <select
+                        value={task.status}
+                        disabled={busy}
+                        aria-label={t('status')}
+                        onChange={(e) => {
+                          const next = e.target.value
+                          if (next !== task.status) changeStatus(next)
+                        }}
                       >
-                        <Icon name="x" />
-                      </button>
-                    )}
-                  </span>
-                </label>
-                {!isClosed(task.status) && (
-                  <HorizonDueChips
-                    disabled={busy}
-                    exactActive={Boolean(draft.due)}
-                    onChoose={applyDueHorizon}
-                  />
-                )}
-                <label className="field">
-                  <span>{t('parentTask')}</span>
-                  <span className="input-with-action">
-                    <select value={draft.parent} onChange={(e) => update('parent', e.target.value)}>
-                      <option value="">{t('parentNone')}</option>
-                      {parentChoices.map((p) => {
-                        const label = `#${p.number} · ${p.title}`
-                        return (
-                          <option
-                            key={p.id}
-                            value={p.id}
-                            dir={isMixedBidi(label) ? 'rtl' : undefined}
-                          >
-                            {label}
+                        {STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {statusLabel(s)}
                           </option>
-                        )
-                      })}
-                      {parentTask && !parentChoices.some((p) => p.id === parentTask.id) && (
-                        <option
-                          value={parentTask.id}
-                          dir={
-                            isMixedBidi(
-                              `#${parentTask.number} · ${parentTask.title || ''}`,
-                            )
-                              ? 'rtl'
-                              : undefined
-                          }
-                        >
-                          #{parentTask.number} ·{' '}
-                          {parentTask.title || t('parentFallback', { number: parentTask.number })}
-                        </option>
-                      )}
-                    </select>
-                    {draft.parent && (
-                      <Link
-                        to={`/tasks/${draft.parent}`}
-                        className="icon-btn"
-                        aria-label={t('openParent')}
-                        title={t('openParent')}
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>{t('priority')}</span>
+                      <select
+                        value={draft.priority}
+                        onChange={(e) => update('priority', Number(e.target.value))}
                       >
-                        <Icon name="external" />
-                      </Link>
+                        {PRIORITIES.map((p) => (
+                          <option key={p} value={p}>
+                            {t('priorityOption', { priority: p, label: priorityLabel(p) })}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>{t('deadline')}</span>
+                      <span className="input-with-action">
+                        <DateTimeField
+                          ref={dueInputRef}
+                          value={draft.due}
+                          aria-label={t('deadline')}
+                          onChange={(next) => update('due', next)}
+                        />
+                        {draft.due && (
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            aria-label={t('clearDeadline')}
+                            title={t('clearDeadline')}
+                            onClick={() => update('due', '')}
+                          >
+                            <Icon name="x" />
+                          </button>
+                        )}
+                      </span>
+                    </label>
+                    {!isClosed(task.status) && (
+                      <HorizonDueChips
+                        disabled={busy}
+                        exactActive={Boolean(draft.due)}
+                        onChoose={applyDueHorizon}
+                      />
                     )}
-                  </span>
-                </label>
+                    <label className="field">
+                      <span>{t('parentTask')}</span>
+                      <span className="input-with-action">
+                        <select
+                          value={draft.parent}
+                          onChange={(e) => update('parent', e.target.value)}
+                        >
+                          <option value="">{t('parentNone')}</option>
+                          {parentChoices.map((p) => {
+                            const label = `#${p.number} · ${p.title}`
+                            return (
+                              <option
+                                key={p.id}
+                                value={p.id}
+                                dir={isMixedBidi(label) ? 'rtl' : undefined}
+                              >
+                                {label}
+                              </option>
+                            )
+                          })}
+                          {parentTask && !parentChoices.some((p) => p.id === parentTask.id) && (
+                            <option
+                              value={parentTask.id}
+                              dir={
+                                isMixedBidi(
+                                  `#${parentTask.number} · ${parentTask.title || ''}`,
+                                )
+                                  ? 'rtl'
+                                  : undefined
+                              }
+                            >
+                              #{parentTask.number} ·{' '}
+                              {parentTask.title ||
+                                t('parentFallback', { number: parentTask.number })}
+                            </option>
+                          )}
+                        </select>
+                        {draft.parent && (
+                          <Link
+                            to={`/tasks/${draft.parent}`}
+                            className="icon-btn"
+                            aria-label={t('openParent')}
+                            title={t('openParent')}
+                          >
+                            <Icon name="external" />
+                          </Link>
+                        )}
+                      </span>
+                    </label>
+                  </>
+                )}
               </Section>
 
               <SubtasksSection
@@ -834,8 +927,11 @@ export function TaskDetailPage() {
                 compact
                 variant="plain"
                 defaultCollapsed={railStacked}
+                readOnly={isExternal}
               />
-              <ClaimLeaseSection task={task} events={detail.events} variant="plain" />
+              {!isExternal && (
+                <ClaimLeaseSection task={task} events={detail.events} variant="plain" />
+              )}
             </div>
 
             <div className="detail-side detail-related">
@@ -846,15 +942,18 @@ export function TaskDetailPage() {
                 onChanged={load}
                 variant="plain"
                 defaultCollapsed={railStacked}
+                readOnly={isExternal}
               />
-              <SharingSection
-                taskId={taskId}
-                shares={shares}
-                canManageShares={canManageShares}
-                onChanged={load}
-                variant="plain"
-                defaultCollapsed={railStacked}
-              />
+              {!isExternal && (
+                <SharingSection
+                  taskId={taskId}
+                  shares={shares}
+                  canManageShares={canManageShares}
+                  onChanged={load}
+                  variant="plain"
+                  defaultCollapsed={railStacked}
+                />
+              )}
               <CompletionSection
                 requireArtifact={draft.requireArtifact}
                 schemaText={draft.outcomeSchema}
@@ -863,6 +962,7 @@ export function TaskDetailPage() {
                 recordedOutcome={task.outcome_json}
                 variant="plain"
                 defaultCollapsed={railStacked}
+                readOnly={isExternal}
               />
               <ArtifactsSection
                 taskId={taskId}
@@ -871,6 +971,7 @@ export function TaskDetailPage() {
                 variant="plain"
                 defaultCollapsed={railStacked}
                 allowCreate={false}
+                contentTaskId={blobScope}
               />
             </div>
               </>
@@ -879,7 +980,7 @@ export function TaskDetailPage() {
         </aside>
       </div>
 
-      {completeOpen && (
+      {!isExternal && completeOpen && (
         <CompleteDoneDialog
           requireArtifact={task.require_artifact_on_done}
           artifactCount={detail.artifacts.length}
@@ -890,7 +991,7 @@ export function TaskDetailPage() {
         />
       )}
 
-      {dirty && (
+      {!isExternal && dirty && (
         <div className="savebar" role="region" aria-label={t('unsavedChanges')}>
           <span>
             <strong>{t('unsavedChanges')}</strong>

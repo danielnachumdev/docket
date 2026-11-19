@@ -9,6 +9,7 @@ import { UserBidiText } from '../../components/UserBidiText'
 import { isMixedBidi } from '../../lib/bidi'
 import { humanize } from '../../lib/format'
 import { useAction } from '../../lib/useAction'
+import { InaccessibleRefChip } from './InaccessibleRefChip'
 
 const LINK_KINDS = ['blocks', 'related', 'duplicate_of'] as const
 type LinkKind = (typeof LINK_KINDS)[number]
@@ -21,9 +22,19 @@ type Props = {
   variant?: 'card' | 'plain'
   /** Render as a disclosure; collapsed on first render when true. */
   defaultCollapsed?: boolean
+  /** Guest / external share: no add/remove; other tasks show as private. */
+  readOnly?: boolean
 }
 
-export function LinksSection({ taskId, links, tasksById, onChanged, variant = 'card', defaultCollapsed }: Props) {
+export function LinksSection({
+  taskId,
+  links,
+  tasksById,
+  onChanged,
+  variant = 'card',
+  defaultCollapsed,
+  readOnly = false,
+}: Props) {
   const [kind, setKind] = useState<LinkKind>('related')
   const [target, setTarget] = useState('')
   const { t } = useTranslation('detail')
@@ -64,33 +75,42 @@ export function LinksSection({ taskId, links, tasksById, onChanged, variant = 'c
             return (
               <li key={link.id} className="list-row">
                 <span className={`link-kind kind-${link.kind}`}>{label}</span>
-                <Link to={`/tasks/${otherId}`} className="grow truncate">
-                  {other ? (
-                    <UserBidiText text={other.title} />
-                  ) : (
-                    t('links.taskFallback', { id: otherId })
-                  )}
-                </Link>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  disabled={busy}
-                  aria-label={t('links.remove')}
-                  title={t('links.remove')}
-                  onClick={() =>
-                    void run(async () => {
-                      await api.deleteLink(taskId, link.id)
-                      await onChanged()
-                    }, t('links.removeFailed'))
-                  }
-                >
-                  <Icon name="x" />
-                </button>
+                {readOnly ? (
+                  <span className="grow truncate">
+                    <InaccessibleRefChip />
+                  </span>
+                ) : (
+                  <Link to={`/tasks/${otherId}`} className="grow truncate">
+                    {other ? (
+                      <UserBidiText text={other.title} />
+                    ) : (
+                      t('links.taskFallback', { id: otherId })
+                    )}
+                  </Link>
+                )}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    disabled={busy}
+                    aria-label={t('links.remove')}
+                    title={t('links.remove')}
+                    onClick={() =>
+                      void run(async () => {
+                        await api.deleteLink(taskId, link.id)
+                        await onChanged()
+                      }, t('links.removeFailed'))
+                    }
+                  >
+                    <Icon name="x" />
+                  </button>
+                )}
               </li>
             )
           })}
         </ul>
       )}
+      {!readOnly && (
       <form className="stack tight" onSubmit={onAdd}>
         <select
           value={target}
@@ -127,6 +147,7 @@ export function LinksSection({ taskId, links, tasksById, onChanged, variant = 'c
           </button>
         </div>
       </form>
+      )}
     </Section>
   )
 }

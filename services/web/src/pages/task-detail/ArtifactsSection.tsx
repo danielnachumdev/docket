@@ -30,6 +30,8 @@ type Props = {
   defaultCollapsed?: boolean
   /** When false, browse/delete only — new files attach via the activity comment composer. */
   allowCreate?: boolean
+  /** Blob/download scope override (e.g. `public:<token>` for guest shares). */
+  contentTaskId?: string
 }
 
 export function ArtifactsSection({
@@ -39,7 +41,9 @@ export function ArtifactsSection({
   variant = 'card',
   defaultCollapsed = false,
   allowCreate = true,
+  contentTaskId,
 }: Props) {
+  const blobTaskId = contentTaskId ?? taskId
   const { t } = useTranslation(['artifacts', 'common'])
   const [open, setOpen] = useState(false)
   const [kind, setKind] = useState<Kind>('text')
@@ -129,6 +133,7 @@ export function ArtifactsSection({
               onDeleted={onChanged}
               layout={compact ? 'list' : 'grid'}
               anchor="data"
+              contentTaskId={blobTaskId}
             />
           ))}
         </ul>

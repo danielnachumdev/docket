@@ -12,6 +12,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import {
   api,
   type ActivityActor,
+  type ActivityFeed,
   type ActivityItem,
   type Artifact,
   type CommentRef,
@@ -311,6 +312,7 @@ function CommentTimelineItem({
   actor,
   meId,
   taskId,
+  contentTaskId,
   artifacts,
   commentsById,
   onChanged,
@@ -319,10 +321,12 @@ function CommentTimelineItem({
   actor: ActivityActor
   meId: number | undefined
   taskId: string
+  contentTaskId?: string
   artifacts: Artifact[]
   commentsById: Map<number, TaskComment>
   onChanged: () => Promise<void>
 }) {
+  const blobTaskId = contentTaskId ?? taskId
   const { t } = useTranslation(['tasks', 'common'])
   const confirm = useConfirm()
   const { busy, error, setError, run } = useAction()
@@ -440,7 +444,7 @@ function CommentTimelineItem({
               renderRef={(ref, key) => (
                 <CommentRefChip
                   key={key}
-                  taskId={taskId}
+                  taskId={blobTaskId}
                   commentRef={ref}
                   artifacts={artifacts}
                   commentsById={commentsById}
@@ -452,7 +456,10 @@ function CommentTimelineItem({
           ))
         )}
         {(comment.attachments?.length ?? 0) > 0 && (
-          <CommentAttachmentList taskId={taskId} attachments={comment.attachments ?? []} />
+          <CommentAttachmentList
+            taskId={blobTaskId}
+            attachments={comment.attachments ?? []}
+          />
         )}
       </article>
     </li>
@@ -562,6 +569,11 @@ type Props = {
   tasksById?: Map<string, Task>
   refreshKey?: number
   onCommentsChanged: () => Promise<void>
+  /** Guest / external share: no comment edits; optional alternate feed loader. */
+  readOnly?: boolean
+  loadFeed?: (order: 'asc' | 'desc') => Promise<ActivityFeed>
+  /** Scope for artifact blob previews (e.g. `public:<token>`). */
+  contentTaskId?: string
 }
 
 const ORDER_KEY = 'waymark.activityOrder'
@@ -589,6 +601,9 @@ export function ActivitySection({
   tasksById,
   refreshKey = 0,
   onCommentsChanged,
+  readOnly = false,
+  loadFeed,
+  contentTaskId,
 }: Props) {
   const { t } = useTranslation('detail')
   const { status } = useAuth()
@@ -602,15 +617,18 @@ export function ActivitySection({
   )
   const { busy, error, setError, run } = useAction()
   const loadGen = useRef(0)
+  const blobScope = contentTaskId ?? taskId
 
   const reload = useCallback(() => {
     const gen = ++loadGen.current
     void run(async () => {
-      const feed = await api.listActivity(taskId, order)
+      const feed = loadFeed
+        ? await loadFeed(order)
+        : await api.listActivity(taskId, order)
       if (gen !== loadGen.current) return
       setItems(feed.items)
     }, t('activity.loadFailed'))
-  }, [order, run, t, taskId])
+  }, [loadFeed, order, run, t, taskId])
 
   useEffect(() => {
     loadGen.current += 1
@@ -656,6 +674,16 @@ export function ActivitySection({
   useEffect(() => {
     const missing = linkTaskIds.filter((id) => !tasksById?.has(id) && !fetchedLookups.has(id))
     if (missing.length === 0) return
+    if (readOnly) {
+      setFetchedLookups((prev) => {
+        const next = new Map(prev)
+        for (const id of missing) {
+          if (!next.has(id)) next.set(id, { status: 'private' })
+        }
+        return next
+      })
+      return
+    }
     let cancelled = false
     void (async () => {
       const rows = await mapPool(missing, 4, async (id) => {
@@ -686,7 +714,7 @@ export function ActivitySection({
     }
     // fetchedLookups intentionally omitted: we only kick off for newly missing ids.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- linkTaskIdsKey + tasksById drive refetch
-  }, [linkTaskIdsKey, tasksById])
+  }, [linkTaskIdsKey, tasksById, readOnly])
 
   const taskLookups = useMemo(() => {
     const map = new Map<string, TaskRefLookup>()
@@ -783,6 +811,7 @@ export function ActivitySection({
               <CommentTimelineItem
                 key={item.id}
                 taskId={taskId}
+                contentTaskId={blobScope}
                 comment={item.comment}
                 actor={item.actor}
                 meId={meId}

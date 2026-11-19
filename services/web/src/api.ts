@@ -785,6 +785,10 @@ export const api = {
     ),
   getPublicShare: (token: string) =>
     request<ExternalShareDetail>(`/api/public/shares/${encodeURIComponent(token)}`),
+  listPublicShareActivity: (token: string, order: 'asc' | 'desc' = 'desc') =>
+    request<ActivityFeed>(
+      `/api/public/shares/${encodeURIComponent(token)}/activity?order=${order}`,
+    ),
   downloadPublicShareArtifact: (token: string, artifactId: number, filename: string) =>
     downloadBlob(
       `/api/public/shares/${encodeURIComponent(token)}/artifacts/${artifactId}/content`,

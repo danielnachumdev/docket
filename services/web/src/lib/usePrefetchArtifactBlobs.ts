@@ -31,11 +31,12 @@ export function usePrefetchArtifactBlobs(scope: string, artifacts: Artifact[]) {
 
   useEffect(() => {
     const keys: ArtifactBlobKey[] = artifacts.filter(shouldPrefetch).map((art) => ({
-      taskId: art.task_id,
+      // `scope` is the real task id for authenticated pages, or `public:<token>` for guests.
+      taskId: scope,
       artifactId: art.id,
       title: art.title,
       contentType: art.content_type,
     }))
     prefetchArtifactBlobs(keys)
-  }, [artifacts])
+  }, [artifacts, scope])
 }

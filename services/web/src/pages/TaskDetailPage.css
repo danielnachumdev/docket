@@ -30,8 +30,19 @@
   gap: 0.75rem;
 }
 
-.detail-title-row .title-input {
+.detail-title-row .title-input,
+.detail-title-row .detail-title-readonly {
   flex: 1;
+  min-width: 0;
+}
+
+.detail-title-readonly {
+  margin: 0;
+  font: inherit;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
 }
 
 .title-input {

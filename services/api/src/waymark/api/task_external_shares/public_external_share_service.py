@@ -1,11 +1,12 @@
 import json
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from waymark.activity.actor_label import actor_label
+from waymark.activity.task_activity_service import TaskActivityService
 from waymark.api.task_external_shares.task_external_share_service import (
     TaskExternalShareService,
 )
@@ -15,6 +16,7 @@ from waymark.artifacts.artifact_gateway import ArtifactGateway
 from waymark.artifacts.artifact_service import ArtifactContent, ArtifactService
 from waymark.models import ApiToken, Artifact, CommentArtifact, Task, TaskComment, TaskLink, User
 from waymark.notifications.mention_resolver import mention_resolver
+from waymark.schemas.activity import ActivityFeedOut
 from waymark.schemas.external_shares import ExternalShareDetailOut
 from waymark.schemas.notifications import TaskCommentOut
 from waymark.schemas.tasks import ArtifactOut, TaskOut
@@ -30,6 +32,7 @@ class PublicExternalShareService:
         self._artifacts = ArtifactGateway(db)
         self._artifact_service = ArtifactService(db)
         self._mapper = TaskResponseMapper(db)
+        self._activity = TaskActivityService(db)
 
     def get_detail(self, raw_token: str) -> ExternalShareDetailOut:
         _share, task = self._shares.require_active_share(raw_token)
@@ -61,6 +64,18 @@ class PublicExternalShareService:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Artifact not found")
         return self._artifact_service.read_content(artifact)
 
+    def list_activity(
+        self, raw_token: str, *, order: Literal["asc", "desc"] = "desc"
+    ) -> ActivityFeedOut:
+        _share, task = self._shares.require_active_share(raw_token)
+        comments = self._list_comments(task)
+        return self._activity.build_feed(
+            task,
+            comments=comments,
+            order=order,
+            viewer_user_id=None,
+        )
+
     def _list_links(self, task_id: int) -> list[TaskLink]:
         stmt = (
             select(TaskLink)
@@ -91,7 +106,7 @@ class PublicExternalShareService:
         ]
 
     def _comment_out(self, comment, task, author, token, *, attachments):
-        refs = self._load_refs(comment.refs_json)
+        refs = self._guest_refs(self._load_refs(comment.refs_json), task.public_id)
         mentioned = mention_resolver.resolve_user_ids_from_refs(refs)
         label = actor_label.label(
             user=author, user_id=comment.author_user_id, token=token,
@@ -154,3 +169,18 @@ class PublicExternalShareService:
         except json.JSONDecodeError:
             return []
         return raw if isinstance(raw, list) else []
+
+    @staticmethod
+    def _guest_refs(
+        refs: list[dict[str, Any]], shared_task_public_id: str
+    ) -> list[dict[str, Any]]:
+        """Mark task refs outside this share as inaccessible (Slack-style private)."""
+        out: list[dict[str, Any]] = []
+        for ref in refs:
+            if not isinstance(ref, dict) or ref.get("kind") != "task":
+                out.append(ref)
+                continue
+            task_id = ref.get("task_id")
+            accessible = task_id == shared_task_public_id
+            out.append({**ref, "accessible": accessible})
+        return out
