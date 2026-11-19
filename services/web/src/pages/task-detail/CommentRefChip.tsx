@@ -80,6 +80,7 @@ export function CommentRefChip({
   const [fullView, setFullView] = useState(false)
   const label = refChipLabel(commentRef, showTitle)
   const privateTask = isInaccessibleTaskRef(commentRef)
+  const guestShare = taskId.startsWith('public:')
   const artifact =
     commentRef.kind === 'artifact' && commentRef.artifact_id != null
       ? (artifacts.find((row) => row.id === commentRef.artifact_id) ?? null)
@@ -98,7 +99,7 @@ export function CommentRefChip({
       : commentRef.kind === 'comment'
         ? Boolean(linkedComment?.body?.trim())
         : commentRef.kind === 'task'
-          ? Boolean(commentRef.task_id)
+          ? Boolean(commentRef.task_id) && !guestShare
           : commentRef.kind === 'user'
             ? commentRef.user_id != null
             : false)
@@ -110,7 +111,7 @@ export function CommentRefChip({
 
   const href =
     linkUrl ??
-    (commentRef.kind === 'task' && commentRef.task_id
+    (commentRef.kind === 'task' && commentRef.task_id && !guestShare
       ? `/tasks/${commentRef.task_id}`
       : commentRef.kind === 'comment' && commentRef.comment_id != null
         ? `#${commentAnchorId(commentRef.comment_id)}`
@@ -131,6 +132,7 @@ export function CommentRefChip({
       return
     }
     if (commentRef.kind === 'task' && commentRef.task_id) {
+      if (guestShare) return
       void navigate(`/tasks/${commentRef.task_id}`)
       return
     }

@@ -334,7 +334,7 @@ export function TaskDetailPage({ externalShareToken }: Props = {}) {
   }, [detail, draft, load, run, setError, taskId, t, toast])
 
   useEffect(() => {
-    if (!dirty) return
+    if (!dirty || isExternal) return
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
@@ -348,7 +348,7 @@ export function TaskDetailPage({ externalShareToken }: Props = {}) {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('beforeunload', onBeforeUnload)
     }
-  }, [dirty, save])
+  }, [dirty, isExternal, save])
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((prev) => (prev ? { ...prev, [key]: value } : prev))
@@ -534,7 +534,15 @@ export function TaskDetailPage({ externalShareToken }: Props = {}) {
       ]
 
   return (
-    <main className={dirty && !isExternal ? 'page has-savebar' : 'page'}>
+    <main
+      className={[
+        'page',
+        dirty && !isExternal ? 'has-savebar' : '',
+        isExternal ? 'is-external-readonly' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <nav className="breadcrumb" aria-label={t('breadcrumb')}>
         {isExternal ? (
           <span className="muted small">{t('externalShare:subtitle')}</span>
@@ -580,9 +588,11 @@ export function TaskDetailPage({ externalShareToken }: Props = {}) {
           tone="warning"
           icon="archive"
           action={
-            <button type="button" className="btn small" disabled={busy} onClick={toggleArchive}>
-              {t('restore')}
-            </button>
+            isExternal ? undefined : (
+              <button type="button" className="btn small" disabled={busy} onClick={toggleArchive}>
+                {t('restore')}
+              </button>
+            )
           }
         >
           {t('archivedNotice', { when: formatRelative(task.archived_at) })}

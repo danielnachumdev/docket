@@ -45,6 +45,15 @@
   line-height: 1.25;
 }
 
+/* Guest external share: no editing chrome; keep view/download affordances. */
+.page.is-external-readonly .detail-fields select,
+.page.is-external-readonly .detail-fields textarea,
+.page.is-external-readonly .detail-fields input,
+.page.is-external-readonly .notes-toolbar,
+.page.is-external-readonly .savebar {
+  display: none;
+}
+
 .title-input {
   padding: 0.15rem 0.4rem;
   margin: 0 -0.4rem;

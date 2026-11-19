@@ -316,6 +316,7 @@ function CommentTimelineItem({
   artifacts,
   commentsById,
   onChanged,
+  readOnly = false,
 }: {
   comment: TaskComment
   actor: ActivityActor
@@ -325,6 +326,7 @@ function CommentTimelineItem({
   artifacts: Artifact[]
   commentsById: Map<number, TaskComment>
   onChanged: () => Promise<void>
+  readOnly?: boolean
 }) {
   const blobTaskId = contentTaskId ?? taskId
   const { t } = useTranslation(['tasks', 'common'])
@@ -385,7 +387,7 @@ function CommentTimelineItem({
             >
               <Icon name="link" size={14} />
             </a>
-            {comment.can_edit && draft == null && (
+            {!readOnly && comment.can_edit && draft == null && (
               <Menu
                 label={t('commentActions')}
                 className="comment-menu"
@@ -818,6 +820,7 @@ export function ActivitySection({
                 artifacts={artifactsForRefs}
                 commentsById={commentsById}
                 onChanged={onCommentsChanged}
+                readOnly={readOnly}
               />
             ) : (
               <EventTimelineItem
