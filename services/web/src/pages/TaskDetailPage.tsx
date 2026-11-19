@@ -21,7 +21,6 @@ import {
 import { Alert } from '../components/Feedback'
 import { DetailSkeleton } from '../components/Skeleton'
 import { Icon } from '../components/Icon'
-import { MarkdownView } from '../components/MarkdownView'
 import { Menu, type MenuItem } from '../components/Menu'
 import { TaskLinkShareMenu } from '../components/TaskLinkShareMenu'
 import { Section } from '../components/Section'
@@ -52,6 +51,7 @@ import { ClaimLeaseSection } from './task-detail/ClaimLeaseSection'
 import { CommentsSection } from './task-detail/CommentsSection'
 import { CompleteDoneDialog } from './task-detail/CompleteDoneDialog'
 import { CompletionSection } from './task-detail/CompletionSection'
+import { DescriptionPreview } from './task-detail/DescriptionPreview'
 import { LinksSection } from './task-detail/LinksSection'
 import { SharingSection } from './task-detail/SharingSection'
 import { SubtasksSection } from './task-detail/SubtasksSection'
@@ -716,10 +716,11 @@ export function TaskDetailPage({ externalShareToken }: Props = {}) {
                   <p className="muted small">{t('descriptionMarkdownHint')}</p>
                 </>
               ) : (
-                <MarkdownView
+                <DescriptionPreview
+                  taskId={blobScope}
                   source={draft.description}
-                  className="notes-preview"
-                  empty={<p className="muted small wm-md-empty">{t('descriptionEmptyPreview')}</p>}
+                  refs={detail.task.description_refs ?? []}
+                  artifacts={detail.artifacts}
                 />
               )}
             </div>

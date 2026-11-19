@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -21,7 +22,12 @@ class CommentRefResolver:
         self._contacts = ContactService(db)
 
     def resolve(
-        self, *, principal: Principal, task: Task, text: str
+        self,
+        *,
+        principal: Principal,
+        task: Task,
+        text: str,
+        strict: bool = True,
     ) -> list[dict[str, Any]]:
         tokens = self._parser.parse(text)
         if not tokens:
@@ -30,10 +36,26 @@ class CommentRefResolver:
         nicknames = self._nicknames_for_viewer(
             principal.user_id, {user.id for user in people}
         )
-        return [
-            self._resolve_token(principal, task, people, nicknames, token)
-            for token in tokens
-        ]
+        refs: list[dict[str, Any]] = []
+        for token in tokens:
+            try:
+                refs.append(
+                    self._resolve_token(principal, task, people, nicknames, token)
+                )
+            except HTTPException:
+                if strict:
+                    raise
+        return refs
+
+    @staticmethod
+    def load_refs(refs_json: str | None) -> list[dict[str, Any]]:
+        if not refs_json:
+            return []
+        try:
+            raw = json.loads(refs_json)
+        except json.JSONDecodeError:
+            return []
+        return raw if isinstance(raw, list) else []
 
     def project_for_viewer(
         self, principal: Principal, refs: list[dict[str, Any]]

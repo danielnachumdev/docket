@@ -49,6 +49,8 @@ class Task(Base):
     external_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     title: Mapped[str] = mapped_column(String(500))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Resolved shorthand refs in description (same shape as task_comments.refs_json).
+    description_refs_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # backlog | in_progress | blocked | on_hold | failed | done | cancelled
     status: Mapped[str] = mapped_column(String(32), default="backlog")
     priority: Mapped[int] = mapped_column(Integer, default=3)

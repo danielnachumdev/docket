@@ -1,4 +1,3 @@
-import json
 from typing import Any, Literal
 
 from fastapi import HTTPException, status
@@ -15,6 +14,7 @@ from waymark.api.tasks.task_response_mapper import TaskResponseMapper
 from waymark.artifacts.artifact_gateway import ArtifactGateway
 from waymark.artifacts.artifact_service import ArtifactContent, ArtifactService
 from waymark.models import ApiToken, Artifact, CommentArtifact, Task, TaskComment, TaskLink, User
+from waymark.notifications.comment_ref_resolver import CommentRefResolver
 from waymark.notifications.mention_resolver import mention_resolver
 from waymark.schemas.activity import ActivityFeedOut
 from waymark.schemas.external_shares import ExternalShareDetailOut
@@ -106,7 +106,9 @@ class PublicExternalShareService:
         ]
 
     def _comment_out(self, comment, task, author, token, *, attachments):
-        refs = self._guest_refs(self._load_refs(comment.refs_json), task.public_id)
+        refs = self._guest_refs(
+            CommentRefResolver.load_refs(comment.refs_json), task.public_id
+        )
         mentioned = mention_resolver.resolve_user_ids_from_refs(refs)
         label = actor_label.label(
             user=author, user_id=comment.author_user_id, token=token,
@@ -155,20 +157,15 @@ class PublicExternalShareService:
 
     def _guest_task_out(self, task: Task) -> TaskOut:
         out = self._mapper.task_out(task, viewer_user_id=None)
+        refs = self._guest_refs(
+            CommentRefResolver.load_refs(task.description_refs_json),
+            task.public_id,
+        )
         return out.model_copy(update={
             "unread": False, "shared": False, "claimed_by_token_id": None,
             "claimed_by_token_name": None, "claim_expires_at": None,
+            "description_refs": refs,
         })
-
-    @staticmethod
-    def _load_refs(refs_json: str | None) -> list[dict[str, Any]]:
-        if not refs_json:
-            return []
-        try:
-            raw = json.loads(refs_json)
-        except json.JSONDecodeError:
-            return []
-        return raw if isinstance(raw, list) else []
 
     @staticmethod
     def _guest_refs(

@@ -227,5 +227,5 @@
   "descriptionEdit": "Edit",
   "descriptionPreview": "Preview",
   "descriptionEmptyPreview": "Nothing to preview yet. Switch to Edit to add a markdown description.",
-  "descriptionMarkdownHint": "Markdown supported: tables, task lists, fenced code, and links (shown as hostname chips)."
+  "descriptionMarkdownHint": "Markdown supported: tables, task lists, fenced code, links (hostname chips), and refs (#task, &artifact, ~comment, @mention) like comments."
 }
