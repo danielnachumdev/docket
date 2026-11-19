@@ -11,7 +11,7 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY . .
 RUN npm run build
 
-FROM nginx:1.27.5-alpine AS runtime
+FROM nginx:1.31.9-alpine AS runtime
 # Same value stamped into waymark-api; waymark-deploy fails the combine build if they differ.
 ARG WAYMARK_BUILD_ID=
 RUN apk add --no-cache gettext
