@@ -1,0 +1,23 @@
+{
+  "pageTitle": "Shared task",
+  "subtitle": "View-only link",
+  "notFound": "This share link is invalid, expired, or has been revoked.",
+  "loadFailed": "Could not load this shared task",
+  "description": "Description",
+  "descriptionEmpty": "No description",
+  "artifacts": "Artifacts",
+  "artifactsEmpty": "No artifacts",
+  "download": "Download",
+  "comments": "Comments",
+  "commentsEmpty": "No comments yet",
+  "activity": "Activity",
+  "activityEmpty": "No activity yet",
+  "children": "Subtasks",
+  "childrenEmpty": "No subtasks",
+  "links": "Linked tasks",
+  "linksEmpty": "No linked tasks",
+  "noAccess": "No access",
+  "due": "Due {{when}}",
+  "created": "Created {{when}}",
+  "guestHint": "You are viewing a shared task. Sign in is not required."
+}

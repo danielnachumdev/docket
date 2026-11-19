@@ -12,6 +12,14 @@ from waymark.schemas.auth import (
     UserUpdate,
 )
 from waymark.schemas.contacts import ContactNicknamePatch, ContactOut
+from waymark.schemas.external_shares import (
+    ExternalShareCreate,
+    ExternalShareCreatedOut,
+    ExternalShareDetailOut,
+    ExternalShareOut,
+    ExternalShareRotatedOut,
+    ExternalShareUpdate,
+)
 from waymark.schemas.preferences import (
     UserPreferencesOut,
     UserPreferencesPatch,
@@ -101,6 +109,12 @@ __all__ = [
     "BootstrapIn",
     "ContactNicknamePatch",
     "ContactOut",
+    "ExternalShareCreate",
+    "ExternalShareCreatedOut",
+    "ExternalShareDetailOut",
+    "ExternalShareOut",
+    "ExternalShareRotatedOut",
+    "ExternalShareUpdate",
     "InviteCreate",
     "InviteCreatedOut",
     "InviteOut",

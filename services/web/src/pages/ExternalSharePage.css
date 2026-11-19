@@ -1,0 +1,30 @@
+.external-share-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100dvh;
+  background:
+    radial-gradient(60rem 30rem at 50% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    var(--bg);
+}
+
+.external-share-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  padding: 0.85rem 1rem 0.35rem;
+}
+
+.external-share-chrome-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+  text-align: end;
+}
+
+.external-share-shell > .page {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+}

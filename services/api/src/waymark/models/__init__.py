@@ -13,6 +13,7 @@ from waymark.models.saved_view import SavedView
 from waymark.models.task import Task
 from waymark.models.task_comment import TaskComment
 from waymark.models.task_event import TaskEvent
+from waymark.models.task_external_share import TaskExternalShare
 from waymark.models.task_link import TaskLink
 from waymark.models.task_watch import TaskWatch
 from waymark.models.user import User
@@ -34,6 +35,7 @@ __all__ = [
     "Task",
     "TaskComment",
     "TaskEvent",
+    "TaskExternalShare",
     "TaskLink",
     "TaskWatch",
     "User",

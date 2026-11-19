@@ -10,7 +10,7 @@ from waymark.api.task_comments.task_comment_service import TaskCommentService
 from waymark.api.tasks.task_response_mapper import TaskResponseMapper
 from waymark.auth.principal import Principal
 from waymark.auth.task_access_service import TaskAccessService
-from waymark.models import ApiToken, TaskEvent, User
+from waymark.models import ApiToken, Task, TaskEvent, User
 from waymark.schemas.activity import ActivityActorOut, ActivityFeedOut, ActivityItemOut
 from waymark.schemas.tasks import TaskEventOut
 
@@ -38,6 +38,21 @@ class TaskActivityService:
     ) -> ActivityFeedOut:
         task = self._access.get_task(principal, task_ref, "tasks:read")
         comments = self._comments.list_comments(principal, task.public_id)
+        return self.build_feed(
+            task,
+            comments=comments,
+            order=order,
+            viewer_user_id=principal.user_id,
+        )
+
+    def build_feed(
+        self,
+        task: Task,
+        *,
+        comments: list,
+        order: Literal["asc", "desc"] = "desc",
+        viewer_user_id: int | None,
+    ) -> ActivityFeedOut:
         events = self._db.scalars(
             select(TaskEvent)
             .where(TaskEvent.task_id == task.id)
@@ -46,8 +61,10 @@ class TaskActivityService:
         ).all()
         users = self._users_for(comments, events)
         tokens = self._tokens_for(events)
-        nicknames = self._contacts.nicknames_for_viewer(
-            principal.user_id, set(users.keys())
+        nicknames = (
+            self._contacts.nicknames_for_viewer(viewer_user_id, set(users.keys()))
+            if viewer_user_id is not None
+            else {}
         )
 
         items: list[ActivityItemOut] = []

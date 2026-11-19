@@ -5,6 +5,7 @@ import authEn from '../locales/en/auth.json'
 import commonEn from '../locales/en/common.json'
 import detailEn from '../locales/en/detail.json'
 import domainEn from '../locales/en/domain.json'
+import externalShareEn from '../locales/en/externalShare.json'
 import inboxEn from '../locales/en/inbox.json'
 import integrationsEn from '../locales/en/integrations.json'
 import navEn from '../locales/en/nav.json'
@@ -15,6 +16,7 @@ import authHe from '../locales/he/auth.json'
 import commonHe from '../locales/he/common.json'
 import detailHe from '../locales/he/detail.json'
 import domainHe from '../locales/he/domain.json'
+import externalShareHe from '../locales/he/externalShare.json'
 import inboxHe from '../locales/he/inbox.json'
 import integrationsHe from '../locales/he/integrations.json'
 import navHe from '../locales/he/nav.json'
@@ -50,6 +52,7 @@ const en = {
   inbox: inboxEn,
   integrations: integrationsEn,
   progress: progressEn,
+  externalShare: externalShareEn,
 }
 
 const he = {
@@ -63,6 +66,7 @@ const he = {
   inbox: inboxHe,
   integrations: integrationsHe,
   progress: progressHe,
+  externalShare: externalShareHe,
 }
 
 function detectInitialLocale(): string {

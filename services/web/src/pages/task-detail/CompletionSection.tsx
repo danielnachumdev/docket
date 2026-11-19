@@ -13,6 +13,7 @@ type Props = {
   variant?: 'card' | 'plain'
   /** Render as a disclosure; collapsed on first render when true. */
   defaultCollapsed?: boolean
+  readOnly?: boolean
 }
 
 export function CompletionSection({
@@ -23,6 +24,7 @@ export function CompletionSection({
   recordedOutcome,
   variant = 'card',
   defaultCollapsed,
+  readOnly = false,
 }: Props) {
   const { t } = useTranslation('detail')
   const summary = [
@@ -41,27 +43,46 @@ export function CompletionSection({
       defaultCollapsed={defaultCollapsed}
       collapsedSummary={summary || null}
     >
-      <label className="switch">
-        <input
-          type="checkbox"
-          checked={requireArtifact}
-          onChange={(e) => onRequireArtifact(e.target.checked)}
-        />
-        <span className="switch-track" aria-hidden="true" />
-        <span>{t('completion.requireArtifact')}</span>
-      </label>
-      <label className="field">
-        <span>{t('completion.schema')}</span>
-        <textarea
-          {...userBidiAttrs(schemaText, 'mono')}
-          rows={6}
-          spellCheck={false}
-          placeholder='{"type":"object","required":["summary"],"properties":{"summary":{"type":"string"}}}'
-          value={schemaText}
-          onChange={(e) => onSchemaText(e.target.value)}
-        />
-      </label>
-      <p className="muted small">{t('completion.schemaHint')}</p>
+      {readOnly ? (
+        <>
+          {requireArtifact ? (
+            <p className="muted small">{t('completion.summaryArtifact')}</p>
+          ) : null}
+          {schemaText.trim() ? (
+            <label className="field">
+              <span>{t('completion.schema')}</span>
+              <UserBidiText text={pretty(schemaText)} as="pre" className="outcome-preview mono" />
+            </label>
+          ) : null}
+          {!requireArtifact && !schemaText.trim() && !recordedOutcome ? (
+            <p className="muted small">{t('completion.schemaHint')}</p>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={requireArtifact}
+              onChange={(e) => onRequireArtifact(e.target.checked)}
+            />
+            <span className="switch-track" aria-hidden="true" />
+            <span>{t('completion.requireArtifact')}</span>
+          </label>
+          <label className="field">
+            <span>{t('completion.schema')}</span>
+            <textarea
+              {...userBidiAttrs(schemaText, 'mono')}
+              rows={6}
+              spellCheck={false}
+              placeholder='{"type":"object","required":["summary"],"properties":{"summary":{"type":"string"}}}'
+              value={schemaText}
+              onChange={(e) => onSchemaText(e.target.value)}
+            />
+          </label>
+          <p className="muted small">{t('completion.schemaHint')}</p>
+        </>
+      )}
       {recordedOutcome && (
         <label className="field">
           <span>{t('completion.recordedOutcome')}</span>

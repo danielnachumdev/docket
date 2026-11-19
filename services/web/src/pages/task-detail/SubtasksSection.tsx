@@ -24,6 +24,8 @@ type Props = {
   variant?: 'card' | 'plain'
   /** Render as a disclosure; collapsed on first render when true. */
   defaultCollapsed?: boolean
+  /** Guest / external share: list only, no create/reorder/navigation. */
+  readOnly?: boolean
 }
 
 function sortByRank(tasks: Task[]): Task[] {
@@ -37,8 +39,9 @@ export function SubtasksSection({
   compact = false,
   variant = 'card',
   defaultCollapsed,
+  readOnly = false,
 }: Props) {
-  const { t } = useTranslation(['detail', 'tasks', 'common'])
+  const { t } = useTranslation(['detail', 'tasks', 'common', 'externalShare'])
   const { taskSortMode } = usePreferences()
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState(3)
@@ -93,6 +96,26 @@ export function SubtasksSection({
   }
 
   function renderRow(child: Task) {
+    const body = (
+      <>
+        <StatusBadge status={child.status} />
+        <UserBidiText text={child.title} className="grow truncate" />
+        <DueBadge due={child.due_at} closed={isClosed(child.status)} />
+        <PriorityBadge priority={child.priority} />
+      </>
+    )
+    if (readOnly) {
+      return (
+        <li key={child.id}>
+          <div
+            className={isClosed(child.status) ? 'list-row closed' : 'list-row'}
+            title={t('externalShare:noAccess')}
+          >
+            <span className="subtask-link grow">{body}</span>
+          </div>
+        </li>
+      )
+    }
     return (
       <SortableSiblingItem key={child.id} id={child.id} disabled={dateMode}>
         {({ dragHandle, setNodeRef, style, isDragging }) => (
@@ -100,10 +123,7 @@ export function SubtasksSection({
             <div className={isClosed(child.status) ? 'list-row link closed' : 'list-row link'}>
               {dateMode ? <span className="drag-handle-spacer" aria-hidden="true" /> : dragHandle}
               <Link to={`/tasks/${child.id}`} className="subtask-link grow">
-                <StatusBadge status={child.status} />
-                <UserBidiText text={child.title} className="grow truncate" />
-                <DueBadge due={child.due_at} closed={isClosed(child.status)} />
-                <PriorityBadge priority={child.priority} />
+                {body}
               </Link>
             </div>
           </li>
@@ -111,6 +131,37 @@ export function SubtasksSection({
       </SortableSiblingItem>
     )
   }
+
+  const listBody =
+    rows.length > 0 &&
+    (readOnly ? (
+      <ul className="list">{rows.map((child) => renderRow(child))}</ul>
+    ) : dateMode ? (
+      <div className="subtask-date-sections">
+        {dateSections.map((section) => (
+          <section
+            key={section.id}
+            className="due-section"
+            aria-label={t(`tasks:dueSection.${section.id as DueSectionId}`)}
+          >
+            <h3 className="due-section-title">
+              {t(`tasks:dueSection.${section.id as DueSectionId}`)}
+            </h3>
+            <SortableSiblingList
+              ids={section.tasks.map((row) => row.id)}
+              className="list"
+              onReorder={onReorder}
+            >
+              {section.tasks.map((child) => renderRow(child))}
+            </SortableSiblingList>
+          </section>
+        ))}
+      </div>
+    ) : (
+      <SortableSiblingList ids={ids} className="list" onReorder={onReorder}>
+        {rows.map((child) => renderRow(child))}
+      </SortableSiblingList>
+    ))
 
   return (
     <Section
@@ -132,60 +183,36 @@ export function SubtasksSection({
       }
     >
       {error && <Alert onDismiss={() => setError(null)}>{error}</Alert>}
-      {rows.length > 0 &&
-        (dateMode ? (
-          <div className="subtask-date-sections">
-            {dateSections.map((section) => (
-              <section
-                key={section.id}
-                className="due-section"
-                aria-label={t(`tasks:dueSection.${section.id as DueSectionId}`)}
-              >
-                <h3 className="due-section-title">
-                  {t(`tasks:dueSection.${section.id as DueSectionId}`)}
-                </h3>
-                <SortableSiblingList
-                  ids={section.tasks.map((row) => row.id)}
-                  className="list"
-                  onReorder={onReorder}
-                >
-                  {section.tasks.map((child) => renderRow(child))}
-                </SortableSiblingList>
-              </section>
+      {listBody}
+      {!readOnly && (
+        <form className="inline-form" onSubmit={onAdd}>
+          <input
+            type="text"
+            placeholder={t('subtasks.addPlaceholder')}
+            aria-label={t('subtasks.newTitle')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            {...userBidiAttrs(title)}
+          />
+          <select
+            className="compact-select"
+            value={priority}
+            onChange={(e) => setPriority(Number(e.target.value))}
+            aria-label={t('subtasks.priority')}
+          >
+            {PRIORITIES.map((p) => (
+              <option key={p} value={p}>
+                {priorityLabel(p)}
+              </option>
             ))}
-          </div>
-        ) : (
-          <SortableSiblingList ids={ids} className="list" onReorder={onReorder}>
-            {rows.map((child) => renderRow(child))}
-          </SortableSiblingList>
-        ))}
-      <form className="inline-form" onSubmit={onAdd}>
-        <input
-          type="text"
-          placeholder={t('subtasks.addPlaceholder')}
-          aria-label={t('subtasks.newTitle')}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          {...userBidiAttrs(title)}
-        />
-        <select
-          className="compact-select"
-          value={priority}
-          onChange={(e) => setPriority(Number(e.target.value))}
-          aria-label={t('subtasks.priority')}
-        >
-          {PRIORITIES.map((p) => (
-            <option key={p} value={p}>
-              {priorityLabel(p)}
-            </option>
-          ))}
-        </select>
-        <button type="submit" className="btn" disabled={busy || !title.trim()}>
-          <Icon name="plus" />
-          {t('common:add')}
-        </button>
-      </form>
+          </select>
+          <button type="submit" className="btn" disabled={busy || !title.trim()}>
+            <Icon name="plus" />
+            {t('common:add')}
+          </button>
+        </form>
+      )}
     </Section>
   )
 }
