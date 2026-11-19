@@ -122,6 +122,7 @@ class TaskService:
                     "external_id": task.external_id,
                 },
             )
+            TaskWatchService(self._db).ensure_watching(principal.user_id, task.id)
             self._gateway.commit()
         except IntegrityError:
             return self._recover_create_race(principal.user_id, external_id)

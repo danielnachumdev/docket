@@ -42,6 +42,74 @@ def _login(client: TestClient, email: str, password: str) -> None:
     assert res.status_code == 200
 
 
+def test_creator_auto_watches_new_task_and_can_unwatch() -> None:
+    client = TestClient(create_app())
+    owner = _bootstrap(client)
+    created = client.post("/api/tasks", json={"title": "Auto watch me"})
+    assert created.status_code == 201, created.text
+    task_id = created.json()["id"]
+
+    detail = client.get(f"/api/tasks/{task_id}")
+    assert detail.status_code == 200
+    assert detail.json()["watching"] is True
+    assert client.get(f"/api/tasks/{task_id}/watch").json() == {"watching": True}
+
+    assert client.delete(f"/api/tasks/{task_id}/watch").status_code == 204
+    assert client.get(f"/api/tasks/{task_id}/watch").json() == {"watching": False}
+    assert client.get(f"/api/tasks/{task_id}").json()["watching"] is False
+
+    assert client.put(f"/api/tasks/{task_id}/watch").status_code == 200
+    assert client.get(f"/api/tasks/{task_id}/watch").json() == {"watching": True}
+
+    sub = client.post(
+        "/api/tasks",
+        json={"title": "Child", "parent_task_id": task_id},
+    )
+    assert sub.status_code == 201, sub.text
+    assert client.get(f"/api/tasks/{sub.json()['id']}/watch").json() == {
+        "watching": True
+    }
+
+    first_ext = client.post(
+        "/api/tasks",
+        json={"title": "External", "external_id": "ext-auto-watch-1"},
+    )
+    assert first_ext.status_code == 201, first_ext.text
+    ext_id = first_ext.json()["id"]
+    assert client.get(f"/api/tasks/{ext_id}/watch").json() == {"watching": True}
+    assert client.delete(f"/api/tasks/{ext_id}/watch").status_code == 204
+    idempotent = client.post(
+        "/api/tasks",
+        json={"title": "ignored", "external_id": "ext-auto-watch-1"},
+    )
+    assert idempotent.status_code == 200, idempotent.text
+    assert idempotent.json()["id"] == ext_id
+    assert client.get(f"/api/tasks/{ext_id}/watch").json() == {"watching": False}
+
+    alex = _create_user("alex@example.com", "Alex", "password123")
+    link_as_contact(owner_user_id=owner["id"], contact=alex)
+    share = client.post(
+        f"/api/tasks/{task_id}/shares",
+        json={"email": "alex@example.com", "role": "editor"},
+    )
+    assert share.status_code == 201
+    client.post("/api/auth/logout")
+    _login(client, "alex@example.com", "password123")
+    assert client.get(f"/api/tasks/{task_id}/watch").json() == {"watching": False}
+
+    client.post("/api/auth/logout")
+    _login(client, "ops@example.com", "password1234")
+    raw, _ = mint_api_token(user_id=owner["id"], name="demo-api")
+    agent_task = client.post(
+        "/api/tasks",
+        headers=bearer(raw),
+        json={"title": "Agent created"},
+    )
+    assert agent_task.status_code == 201, agent_task.text
+    agent_id = agent_task.json()["id"]
+    assert client.get(f"/api/tasks/{agent_id}/watch").json() == {"watching": True}
+
+
 def test_watch_status_change_creates_notification() -> None:
     client = TestClient(create_app())
     owner = _bootstrap(client)
