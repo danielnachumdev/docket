@@ -652,7 +652,7 @@ export function TaskListPage() {
     <main
       className={[
         'page',
-        layout === 'kanban' ? 'wide' : '',
+        'wide',
         selectedCount > 0 ? 'has-bulkbar' : '',
       ]
         .filter(Boolean)
