@@ -9,14 +9,14 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.1",
-    "fastapi>=0.162.5",
+    "fastapi>=0.163.1",
     "httpx>=0.28.1",
     "itsdangerous>=2.2.0",
-    "packaging>=24.0",
-    "pwdlib[argon2]>=0.3.1",
-    "pydantic-settings>=2.16.2",
-    "python-multipart>=0.0.33",
-    "sqlalchemy>=2.1.8",
+    "packaging>=26.3",
+    "pwdlib[argon2]>=0.4.2",
+    "pydantic-settings>=2.16.3",
+    "python-multipart>=0.0.34",
+    "sqlalchemy>=2.1.9",
     "uvicorn[standard]>=0.54.0",
 ]
 
